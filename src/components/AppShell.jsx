@@ -8,17 +8,18 @@ export default function AppShell({ title, children }) {
   const showBack = pathname !== '/';
   return (
     <main className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="fixed top-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-3xl z-40 glass-card blur-bg flex items-center justify-between px-4 sm:px-8 py-4 shadow-xl rounded-[24px] border border-white/30 backdrop-blur-2xl"
-        style={{
-          boxShadow: '0 12px 30px rgba(0,0,0,0.12), 0 1.5px 8px rgba(236,72,153,0.08)',
-          background: 'rgba(255,255,255,0.75)',
-          border: '1.5px solid rgba(255,255,255,0.18)',
-          backdropFilter: 'blur(24px) saturate(1.2)',
-        }}
-      >
+      <div className="fixed top-0 left-0 right-0 z-40 flex justify-center px-4 pt-6">
+        <motion.header
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-3xl glass-card blur-bg flex items-center justify-between px-4 sm:px-8 py-4 shadow-xl rounded-[24px] border border-white/30 backdrop-blur-2xl"
+          style={{
+            boxShadow: '0 12px 30px rgba(0,0,0,0.12), 0 1.5px 8px rgba(236,72,153,0.08)',
+            background: 'rgba(255,255,255,0.75)',
+            border: '1.5px solid rgba(255,255,255,0.18)',
+            backdropFilter: 'blur(24px) saturate(1.2)',
+          }}
+        >
         <div className="flex items-center gap-3">
           {showBack && (
             <motion.button
@@ -46,7 +47,8 @@ export default function AppShell({ title, children }) {
           <Sparkles className="w-4 h-4" />
           <span className="hidden sm:inline">Dashboard</span>
         </motion.button>
-      </motion.header>
+        </motion.header>
+      </div>
       <div className="pt-[110px] max-w-3xl mx-auto px-4">
         {children}
       </div>
