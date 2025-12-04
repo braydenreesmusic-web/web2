@@ -42,8 +42,8 @@ export default function MusicTab({ user }) {
       if (payload.eventType === 'UPDATE' && payload.new) {
         // Partner's playback update
         setIsPlaying(payload.new.is_playing)
-        if (audioRef.current && Math.abs(audioRef.current.currentTime - payload.new.current_time) > 2) {
-          audioRef.current.currentTime = payload.new.current_time
+        if (audioRef.current && Math.abs(audioRef.current.currentTime - payload.new.playback_position) > 2) {
+          audioRef.current.currentTime = payload.new.playback_position
         }
       }
     })
@@ -127,7 +127,7 @@ export default function MusicTab({ user }) {
       await updateListeningSession(user.id, {
         track_id: track.id,
         is_playing: true,
-        current_time: 0
+        playback_position: 0
       })
     }
   }
@@ -140,14 +140,14 @@ export default function MusicTab({ user }) {
       await updateListeningSession(user.id, {
         track_id: currentTrack?.id,
         is_playing: false,
-        current_time: audioRef.current.currentTime
+        playback_position: audioRef.current.currentTime
       })
     } else {
       audioRef.current.play()
       await updateListeningSession(user.id, {
         track_id: currentTrack?.id,
         is_playing: true,
-        current_time: audioRef.current.currentTime
+        playback_position: audioRef.current.currentTime
       })
     }
     setIsPlaying(!isPlaying)

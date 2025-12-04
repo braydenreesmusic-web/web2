@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS listening_sessions (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   track_id UUID REFERENCES music_tracks(id) ON DELETE CASCADE,
   is_playing BOOLEAN DEFAULT FALSE,
-  current_time DECIMAL(10,2) DEFAULT 0,
+  playback_position DECIMAL(10,2) DEFAULT 0,
   started_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id)
