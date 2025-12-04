@@ -18,7 +18,9 @@ export default function Media() {
   const [caption, setCaption] = useState('')
   const [aiDescription, setAiDescription] = useState('')
   const [loadingAI, setLoadingAI] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const fileInput = useRef(null)
+  const videoInput = useRef(null)
   const [loading, setLoading] = useState(true)
   const tabs = ['photos','videos','notes','music']
 
@@ -83,6 +85,7 @@ export default function Media() {
   const onSelectPhoto = async (e) => {
     const file = e.target.files?.[0]
     if (!file || !user) return
+    setUploading(true)
     try {
       const saved = await uploadMedia(file, {
         user_id: user.id,
@@ -91,11 +94,33 @@ export default function Media() {
         date: new Date().toISOString().slice(0,10),
         favorite: false
       })
+      console.log('Photo uploaded:', saved)
       setPhotos(prev => [saved, ...prev])
     } catch (err) {
       console.error('Upload failed', err)
+      alert('Failed to upload photo: ' + err.message)
     } finally {
+      setUploading(false)
       if (fileInput.current) fileInput.current.value = ''
+    }
+  }
+
+  const onSelectVideo = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    try {
+      const saved = await uploadMedia(file, {
+        user_id: user.id,
+        type: 'video',
+        caption: '',
+        date: new Date().toISOString().slice(0,10),
+        favorite: false
+      })
+      setVideos(prev => [saved, ...prev])
+    } catch (err) {
+      console.error('Video upload failed', err)
+    } finally {
+      if (videoInput.current) videoInput.current.value = ''
     }
   }
 
@@ -130,10 +155,11 @@ export default function Media() {
           <input ref={fileInput} type="file" accept="image/*" onChange={onSelectPhoto} className="hidden" />
           <Button
             onClick={() => fileInput.current?.click()}
+            disabled={uploading}
             className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white flex items-center justify-center gap-2 py-3"
           >
             <Camera size={20} />
-            Add Photo
+            {uploading ? 'Uploading...' : 'Add Photo'}
           </Button>
 
           <div className="grid grid-cols-2 gap-4">
@@ -166,15 +192,28 @@ export default function Media() {
 
       {/* Videos Tab */}
       {tab === 'videos' && (
-        <div className="grid grid-cols-1 gap-4">
-          {videos.map(v => (
-            <div key={v.id} className="glass-card p-3 rounded-2xl">
-              <video src={v.url} controls className="w-full rounded-xl" />
-              {v.caption && <p className="mt-2 text-sm text-gray-600">{v.caption}</p>}
-            </div>
-          ))}
+        <div className="space-y-4">
+          <input ref={videoInput} type="file" accept="video/*" onChange={onSelectVideo} className="hidden" />
+          <Button
+            onClick={() => videoInput.current?.click()}
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white flex items-center justify-center gap-2 py-3"
+          >
+            <Camera size={20} />
+            Add Video
+          </Button>
+
+          <div className="grid grid-cols-1 gap-4">
+            {videos.map(v => (
+              <div key={v.id} className="glass-card p-3 rounded-2xl">
+                <video src={v.url} controls className="w-full rounded-xl" />
+                {v.caption && <p className="mt-2 text-sm text-gray-600">{v.caption}</p>}
+              </div>
+            ))}
+          </div>
+
           {videos.length === 0 && !loading && (
             <div className="text-center py-12 glass-card rounded-2xl">
+              <Camera size={48} className="mx-auto text-gray-300 mb-4" />
               <p className="text-gray-500">No videos yet</p>
             </div>
           )}
