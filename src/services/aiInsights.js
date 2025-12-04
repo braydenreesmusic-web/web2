@@ -91,7 +91,7 @@ Keep insights personal, warm, and encouraging. Be specific to their situation.`;
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo',
+        model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
@@ -191,7 +191,7 @@ Keep it concise and actionable.`;
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo',
+        model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
@@ -255,7 +255,7 @@ Return as a numbered list.`;
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo',
+        model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
