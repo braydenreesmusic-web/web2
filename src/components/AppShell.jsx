@@ -7,7 +7,7 @@ export default function AppShell({ title, children }) {
   const navigate = useNavigate();
   const showBack = pathname !== '/';
   return (
-    <main className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-slate-50 to-gray-100">
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center px-4 pt-6">
         <motion.header
           initial={{ opacity: 0, y: -20 }}
