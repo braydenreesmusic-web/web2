@@ -3,9 +3,11 @@ import Dialog from './ui/dialog.jsx'
 import Button from './ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import { getCheckIns, getPresence } from '../services/api'
+import AIInsights from './modals/AIInsights'
 
 export default function QuickDashboard() {
   const [open, setOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
   const { user } = useAuth()
   const [latest, setLatest] = useState(null)
   const [presence, setPresence] = useState([])
@@ -57,15 +59,17 @@ export default function QuickDashboard() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {['Check-In','Galaxy','Insights','Love Notes'].map(l => (
+          {['Check-In','Galaxy','Love Notes'].map(l => (
             <Button key={l}>{l}</Button>
           ))}
+          <Button onClick={() => setAiOpen(true)} className="col-span-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white">✨ AI Insights</Button>
         </div>
         <div className="glass-card p-3">
           <div className="text-xs text-gray-500">Latest Check-In</div>
           <div>{latest ? `${latest.emotion} • energy ${latest.energy}` : 'No check-ins yet'}</div>
         </div>
       </div>
+      <AIInsights user={user} isOpen={aiOpen} onClose={() => setAiOpen(false)} />
     </Dialog>
   )
 }

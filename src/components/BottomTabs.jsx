@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Home, Calendar, Image, Bookmark, MapPin, User } from 'lucide-react'
+import { Home, Calendar, Image, Bookmark, MapPin, User, Zap } from 'lucide-react'
 
 const tabs = [
   { to: '/', label: 'Home', icon: Home },
   { to: '/schedule', label: 'Schedule', icon: Calendar },
   { to: '/media', label: 'Media', icon: Image },
+  { to: '/aiinsights', label: 'AI', icon: Zap },
   { to: '/bookmarks', label: 'Saved', icon: Bookmark },
   { to: '/map', label: 'Map', icon: MapPin },
   { to: '/profile', label: 'Profile', icon: User },
@@ -21,7 +22,7 @@ export default function BottomTabs() {
       className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[95%] max-w-2xl glass-card px-3 py-2 z-50 shadow-lg" 
       style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
     >
-      <ul className="grid grid-cols-6 gap-1">
+      <ul className="grid grid-cols-7 gap-1">
         {tabs.map(t => {
           const active = pathname === t.to
           const Icon = t.icon
