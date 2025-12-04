@@ -11,7 +11,7 @@ export default function AppShell({ title, children }) {
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="fixed top-6 left-1/2 -translate-x-1/2 w-[95%] max-w-3xl z-40 glass-card blur-bg flex items-center justify-between px-8 py-5 shadow-xl rounded-[30px] border border-white/30 backdrop-blur-2xl"
+        className="fixed top-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-3xl z-40 glass-card blur-bg flex items-center justify-between px-4 sm:px-8 py-4 shadow-xl rounded-[24px] border border-white/30 backdrop-blur-2xl"
         style={{
           boxShadow: '0 12px 30px rgba(0,0,0,0.12), 0 1.5px 8px rgba(236,72,153,0.08)',
           background: 'rgba(255,255,255,0.75)',
@@ -32,7 +32,7 @@ export default function AppShell({ title, children }) {
               <ArrowLeft className="w-5 h-5" />
             </motion.button>
           )}
-          <h1 className="heading gradient-text flex items-center gap-2 text-3xl">
+          <h1 className="gradient-text flex items-center gap-2 text-xl sm:text-2xl font-bold">
             {title}
           </h1>
         </div>
