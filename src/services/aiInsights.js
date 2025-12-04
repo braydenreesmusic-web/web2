@@ -108,6 +108,12 @@ Keep insights personal, warm, and encouraging. Be specific to their situation.`;
     }
 
     const data = await response.json();
+    
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+      console.error('Unexpected Gemini response format:', data);
+      throw new Error('Unexpected response format from Gemini API');
+    }
+    
     const insights = data.candidates[0].content.parts[0].text;
 
     // Save insights to database for history
@@ -203,6 +209,12 @@ Keep it concise and actionable.`;
     }
 
     const data = await response.json();
+    
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+      console.error('Unexpected Gemini response format:', data);
+      throw new Error('Unexpected response format from Gemini API');
+    }
+    
     return data.candidates[0].content.parts[0].text;
   } catch (error) {
     console.error('Error generating mood-based recommendations:', error);
@@ -262,6 +274,12 @@ Return as a numbered list.`;
     }
 
     const data = await response.json();
+    
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+      console.error('Unexpected Gemini response format:', data);
+      throw new Error('Unexpected response format from Gemini API');
+    }
+    
     const content = data.candidates[0].content.parts[0].text;
 
     // Parse numbered list into array
