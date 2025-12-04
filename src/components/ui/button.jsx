@@ -1,10 +1,14 @@
+import { motion } from 'framer-motion';
+
 export default function Button({ children, className = '', ...props }) {
   return (
-    <button
-      className={`bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full px-4 py-2 shadow-lg hover:shadow-xl transition-all ${className}`}
+    <motion.button
+      whileHover={{ y: -3, boxShadow: '0 16px 32px rgba(0,0,0,0.16)' }}
+      whileTap={{ scale: 0.97 }}
+      className={`expensive-btn ${className}`}
       {...props}
     >
       {children}
-    </button>
-  )
+    </motion.button>
+  );
 }

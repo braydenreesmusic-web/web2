@@ -35,15 +35,15 @@ export default function QuickDashboard() {
     <Dialog open={open} onClose={() => setOpen(false)} title="Quick Dashboard">
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
-          <div className="glass-card p-3">
+          <div className="expensive-card p-3">
             <div className="text-xs text-gray-500">Days Together</div>
             <div className="text-xl font-semibold">512</div>
           </div>
-          <div className="glass-card p-3">
+          <div className="expensive-card p-3">
             <div className="text-xs text-gray-500">Savings</div>
             <div className="w-full bg-gray-200 rounded-full h-2 mt-1"><div className="h-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500" style={{width:'45%'}}/></div>
           </div>
-          <div className="glass-card p-3">
+          <div className="expensive-card p-3">
             <div className="text-xs text-gray-500">Presence</div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               {presence.filter(p => p.is_online).length === 0 && (
@@ -64,7 +64,7 @@ export default function QuickDashboard() {
           ))}
           <Button onClick={() => setAiOpen(true)} className="col-span-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white">✨ AI Insights</Button>
         </div>
-        <div className="glass-card p-3">
+        <div className="expensive-card p-3">
           <div className="text-xs text-gray-500">Latest Check-In</div>
           <div>{latest ? `${latest.emotion} • energy ${latest.energy}` : 'No check-ins yet'}</div>
         </div>
