@@ -1,56 +1,103 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { updatePresence, subscribeToPresence, getPresence } from '../services/api'
+import { updatePresence, subscribeToPresence, getPresence, getRelationshipData } from '../services/api'
 
 export const usePresence = () => {
   const { user } = useAuth()
-  const [onlineUsers, setOnlineUsers] = useState([])
+  const [partnerPresence, setPartnerPresence] = useState(null)
+  const [partnerUserId, setPartnerUserId] = useState(null)
 
   useEffect(() => {
     if (!user) return
 
-    // Load initial presence
-    const loadPresence = async () => {
+    let subscription = null
+    let heartbeatInterval = null
+
+    const initialize = async () => {
       try {
-        const data = await getPresence()
-        setOnlineUsers(data.filter(u => u.is_online) || [])
+        // Get partner's user_id from relationship
+        const relationship = await getRelationshipData(user.id)
+        const partnerId = relationship?.partner_user_id
+        
+        if (partnerId) {
+          setPartnerUserId(partnerId)
+          
+          // Load partner's initial presence
+          const allPresence = await getPresence()
+          const partner = allPresence?.find(p => p.user_id === partnerId)
+          setPartnerPresence(partner || { is_online: false, last_seen: null })
+        }
+
+        // Set self as online
+        await updatePresence(user.id, true)
+
+        // Update presence every 25 seconds (heartbeat)
+        heartbeatInterval = setInterval(async () => {
+          try {
+            await updatePresence(user.id, true)
+          } catch (e) {
+            console.error('Heartbeat failed', e)
+          }
+        }, 25000)
+
+        // Subscribe to presence changes
+        subscription = subscribeToPresence((payload) => {
+          if (!partnerId) return
+          
+          const { eventType, new: newRecord } = payload
+          
+          if (newRecord?.user_id === partnerId) {
+            if (eventType === 'INSERT' || eventType === 'UPDATE') {
+              setPartnerPresence({
+                is_online: newRecord.is_online,
+                last_seen: newRecord.last_seen,
+                updated_at: newRecord.updated_at
+              })
+            }
+          }
+        })
+
       } catch (e) {
-        console.error('Failed to load presence', e)
+        console.error('Failed to initialize presence', e)
       }
     }
-    loadPresence()
 
-    // Set self as online
-    updatePresence(user.id, true)
-
-    // Update presence every 30 seconds
-    const interval = setInterval(() => {
-      updatePresence(user.id, true)
-    }, 30000)
-
-    // Subscribe to presence changes
-    const subscription = subscribeToPresence((payload) => {
-      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-        setOnlineUsers(prev => {
-          const filtered = prev.filter(u => u.user_id !== payload.new.user_id)
-          return payload.new.is_online ? [...filtered, payload.new] : filtered
-        })
-      }
-    })
+    initialize()
 
     // Set self as offline when leaving
-    const handleBeforeUnload = () => {
-      updatePresence(user.id, false)
+    const handleBeforeUnload = async () => {
+      // Use sendBeacon for reliable offline status on page close
+      if (navigator.sendBeacon) {
+        // This would need a server endpoint, so we'll use the regular update
+        await updatePresence(user.id, false)
+      }
     }
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        await updatePresence(user.id, true)
+      } else {
+        await updatePresence(user.id, false)
+      }
+    }
+
     window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      clearInterval(interval)
-      subscription.unsubscribe()
+      if (heartbeatInterval) clearInterval(heartbeatInterval)
+      if (subscription) subscription.unsubscribe()
       window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      // Set offline when component unmounts
       updatePresence(user.id, false)
     }
   }, [user])
 
-  return { onlineUsers }
+  return { 
+    partnerPresence,
+    partnerUserId,
+    isPartnerOnline: partnerPresence?.is_online || false,
+    partnerLastSeen: partnerPresence?.last_seen
+  }
 }

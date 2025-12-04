@@ -656,3 +656,73 @@ export const subscribeToPresence = (callback) => {
     )
     .subscribe()
 }
+
+// ============== Partner Requests ==============
+
+export const sendPartnerRequest = async (fromUserId, fromEmail, fromName, toEmail) => {
+  const { data, error } = await supabase
+    .from('partner_requests')
+    .insert([{
+      from_user_id: fromUserId,
+      from_email: fromEmail,
+      from_name: fromName,
+      to_email: toEmail,
+      status: 'pending'
+    }])
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const getPartnerRequests = async (userEmail) => {
+  const { data, error } = await supabase
+    .from('partner_requests')
+    .select('*')
+    .or(`to_email.eq.${userEmail},from_email.eq.${userEmail}`)
+    .order('created_at', { ascending: false })
+  
+  if (error) throw error
+  return data
+}
+
+export const acceptPartnerRequest = async (requestId) => {
+  const { data, error } = await supabase
+    .from('partner_requests')
+    .update({ status: 'accepted', updated_at: new Date().toISOString() })
+    .eq('id', requestId)
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const rejectPartnerRequest = async (requestId) => {
+  const { data, error } = await supabase
+    .from('partner_requests')
+    .update({ status: 'rejected', updated_at: new Date().toISOString() })
+    .eq('id', requestId)
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const subscribeToPartnerRequests = (userEmail, callback) => {
+  return supabase
+    .channel('partner_requests')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'partner_requests',
+        filter: `to_email=eq.${userEmail}`
+      },
+      callback
+    )
+    .subscribe()
+}

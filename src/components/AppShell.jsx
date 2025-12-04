@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Sparkles } from 'lucide-react'
+import PresenceIndicator from './PresenceIndicator'
 
 export default function AppShell({ title, children }) {
   const { pathname } = useLocation();
@@ -37,16 +38,19 @@ export default function AppShell({ title, children }) {
             {title}
           </h1>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.96 }}
-          aria-label="Quick Dashboard"
-          className="expensive-btn flex items-center gap-2 !rounded-[16px] shadow-lg"
-          onClick={() => window.dispatchEvent(new CustomEvent('open-quick-dashboard'))}
-        >
-          <Sparkles className="w-4 h-4" />
-          <span className="hidden sm:inline">Dashboard</span>
-        </motion.button>
+        <div className="flex items-center gap-3">
+          <PresenceIndicator />
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.96 }}
+            aria-label="Quick Dashboard"
+            className="expensive-btn flex items-center gap-2 !rounded-[16px] shadow-lg"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-quick-dashboard'))}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </motion.button>
+        </div>
         </motion.header>
       </div>
       <div className="pt-[140px] pb-32 max-w-3xl mx-auto px-4">
