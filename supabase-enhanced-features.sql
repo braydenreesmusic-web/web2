@@ -83,6 +83,17 @@ CREATE TABLE IF NOT EXISTS user_presence (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- AI Insights table
+CREATE TABLE IF NOT EXISTS ai_insights (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  insights TEXT NOT NULL,
+  generated_at TIMESTAMPTZ DEFAULT NOW(),
+  check_in_count INTEGER,
+  notes_count INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Add author_id to check_ins for user attribution
 ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS author_name TEXT;
 ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS author_email TEXT;
@@ -102,6 +113,7 @@ ALTER TABLE playlists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE playlist_tracks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE listening_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_presence ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_insights ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- CREATE RLS POLICIES
@@ -171,6 +183,12 @@ CREATE POLICY "All users can view presence" ON user_presence FOR SELECT USING (t
 CREATE POLICY "Users can insert own presence" ON user_presence FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own presence" ON user_presence FOR UPDATE USING (auth.uid() = user_id);
 
+-- AI Insights policies
+DROP POLICY IF EXISTS "Users can view own insights" ON ai_insights;
+DROP POLICY IF EXISTS "Users can insert own insights" ON ai_insights;
+CREATE POLICY "Users can view own insights" ON ai_insights FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own insights" ON ai_insights FOR INSERT WITH CHECK (auth.uid() = user_id);
+
 -- ============================================
 -- SUCCESS MESSAGE
 -- ============================================
@@ -178,5 +196,6 @@ CREATE POLICY "Users can update own presence" ON user_presence FOR UPDATE USING 
 DO $$
 BEGIN
   RAISE NOTICE '✅ Enhanced features migration complete!';
-  RAISE NOTICE 'Added: savings goals, music tracks, playlists, listening sessions, user presence';
+  RAISE NOTICE 'Added: savings goals, music tracks, playlists, listening sessions, user presence, AI insights';
 END $$;
+
