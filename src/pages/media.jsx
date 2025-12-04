@@ -98,7 +98,12 @@ export default function Media() {
       setPhotos(prev => [saved, ...prev])
     } catch (err) {
       console.error('Upload failed', err)
-      alert('Failed to upload photo: ' + err.message)
+      const msg = err.message || 'Unknown error'
+      if (msg.includes('row-level security') || msg.includes('policy')) {
+        alert('⚠️ Database permission error!\n\nRun fix-media-rls.sql in your Supabase SQL Editor:\n1. Go to Supabase Dashboard\n2. SQL Editor\n3. Copy contents of fix-media-rls.sql\n4. Run it\n\nError: ' + msg)
+      } else {
+        alert('Failed to upload photo: ' + msg)
+      }
     } finally {
       setUploading(false)
       if (fileInput.current) fileInput.current.value = ''
@@ -119,6 +124,12 @@ export default function Media() {
       setVideos(prev => [saved, ...prev])
     } catch (err) {
       console.error('Video upload failed', err)
+      const msg = err.message || 'Unknown error'
+      if (msg.includes('row-level security') || msg.includes('policy')) {
+        alert('⚠️ Database permission error!\n\nRun fix-media-rls.sql in your Supabase SQL Editor:\n1. Go to Supabase Dashboard\n2. SQL Editor\n3. Copy contents of fix-media-rls.sql\n4. Run it\n\nError: ' + msg)
+      } else {
+        alert('Failed to upload video: ' + msg)
+      }
     } finally {
       if (videoInput.current) videoInput.current.value = ''
     }
