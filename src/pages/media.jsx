@@ -3,6 +3,7 @@ import Dialog from '../components/ui/dialog.jsx'
 import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import { getNotes, createNote, getMedia, uploadMedia } from '../services/api'
+import MusicTab from '../components/MusicTab'
 
 export default function Media() {
   const [tab, setTab] = useState('notes')
@@ -114,22 +115,7 @@ export default function Media() {
         </div>
       )}
 
-      {tab==='music' && (
-        <div className="space-y-2">
-          {!audios.length && (
-            <div className="text-sm text-gray-500">No audio yet.</div>
-          )}
-          {audios.map(a=> (
-            <div key={a.id} className="glass-card p-3 flex items-center justify-between">
-              <div>
-                <div className="font-medium">{a.caption || 'Audio'}</div>
-                <div className="text-sm text-gray-500">{a.date}</div>
-              </div>
-              <audio controls src={a.url} className="w-48"/>
-            </div>
-          ))}
-        </div>
-      )}
+      {tab==='music' && <MusicTab user={user} />}
 
       <Dialog open={open} onClose={()=>setOpen(false)} title="Add Note">
         <div className="space-y-3">

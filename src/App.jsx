@@ -9,6 +9,7 @@ import Media from './pages/media.jsx'
 import MapPage from './pages/map.jsx'
 import Profile from './pages/profile.jsx'
 import Bookmarks from './pages/bookmarks.jsx'
+import SavingsGoals from './pages/savings.jsx'
 import Login from './pages/login.jsx'
 import Register from './pages/register.jsx'
 import ForgotPassword from './pages/forgot-password.jsx'
@@ -35,6 +36,7 @@ export default function App() {
                     <Route path="/schedule" element={<AppShell title="Schedule"><Schedule/></AppShell>} />
                     <Route path="/media" element={<AppShell title="Media"><Media/></AppShell>} />
                     <Route path="/map" element={<AppShell title="Map"><MapPage/></AppShell>} />
+                    <Route path="/savings" element={<AppShell title="Savings"><SavingsGoals/></AppShell>} />
                     <Route path="/profile" element={<AppShell title="Profile"><Profile/></AppShell>} />
                     <Route path="/bookmarks" element={<AppShell title="Bookmarks"><Bookmarks/></AppShell>} />
                   </Routes>

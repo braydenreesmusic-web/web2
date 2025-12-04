@@ -20,9 +20,11 @@ export default function DailyCheckIn({ open, onClose, onSubmit, initial }) {
     const checkInData = { 
       emotion, 
       energy: Number(energy), 
-      loveLanguage: love, 
+      love_language: love, 
       date: new Date().toISOString().slice(0,10),
-      user_id: user?.id
+      user_id: user?.id,
+      author_name: user?.user_metadata?.name || 'You',
+      author_email: user?.email
     }
     
     // Call parent callback for immediate UI update

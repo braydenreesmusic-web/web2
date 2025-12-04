@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
-import { getCheckIns, getNotes, getMedia } from '../services/api'
+import { getCheckIns, getNotes, getMedia, getSavingsGoals, getPresence } from '../services/api'
 import DailyCheckIn from '../components/modals/DailyCheckIn.jsx'
 import MemoryConstellation from '../components/modals/MemoryConstellation.jsx'
 import RelationshipInsights from '../components/modals/RelationshipInsights.jsx'
 import EnhancedChat from '../components/modals/EnhancedChat.jsx'
+import { PiggyBank } from 'lucide-react'
 
 export default function Dashboard() {
   const [showCheckIn, setShowCheckIn] = useState(false)
@@ -17,6 +19,8 @@ export default function Dashboard() {
   const [checkIns, setCheckIns] = useState([])
   const [notes, setNotes] = useState([])
   const [photos, setPhotos] = useState([])
+  const [savings, setSavings] = useState([])
+  const [presence, setPresence] = useState([])
 
   useEffect(() => {
     let cancelled = false
@@ -24,15 +28,19 @@ export default function Dashboard() {
       if (!user) return
       setLoading(true)
       try {
-        const [ci, nt, ph] = await Promise.all([
+        const [ci, nt, ph, sv, pr] = await Promise.all([
           getCheckIns(user.id),
           getNotes(user.id),
-          getMedia(user.id, 'photo')
+          getMedia(user.id, 'photo'),
+          getSavingsGoals(user.id),
+          getPresence()
         ])
         if (cancelled) return
         setCheckIns(ci || [])
         setNotes(nt || [])
         setPhotos(ph || [])
+        setSavings(sv || [])
+        setPresence(pr || [])
       } catch (e) {
         console.error('Dashboard load failed', e)
       } finally {
@@ -61,13 +69,35 @@ export default function Dashboard() {
           <div className="text-sm text-gray-500">Days Together</div>
           <div className="text-3xl font-semibold">512</div>
         </div>
+        <Link to="/savings" className="glass-card p-4 hover:shadow-lg transition-shadow">
+          <div className="flex items-center gap-2 mb-2">
+            <PiggyBank className="w-4 h-4 text-pink-500" />
+            <div className="text-sm text-gray-500">Savings Goals</div>
+          </div>
+          {savings.length > 0 ? (
+            <>
+              <div className="text-xs text-gray-400 mb-1">{savings[0].title}</div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div 
+                  className="h-3 rounded-full bg-gradient-to-r from-pink-500 to-purple-500" 
+                  style={{width: `${Math.min((savings[0].current_amount / savings[0].target_amount) * 100, 100)}%`}}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="text-xs text-gray-400">No goals yet</div>
+          )}
+        </Link>
         <div className="glass-card p-4">
-          <div className="text-sm text-gray-500">Savings Goal</div>
-          <div className="w-full bg-gray-200 rounded-full h-3 mt-2"><div className="h-3 rounded-full bg-gradient-to-r from-pink-500 to-purple-500" style={{width:'45%'}}/></div>
-        </div>
-        <div className="glass-card p-4">
-          <div className="text-sm text-gray-500">Presence</div>
-          <div className="flex gap-2 mt-2"><span className="w-2 h-2 rounded-full bg-green-500"/> Alex <span className="w-2 h-2 rounded-full bg-gray-400"/> Sam</div>
+          <div className="text-sm text-gray-500 mb-2">Presence</div>
+          {presence.filter(p => p.is_online).length > 0 ? (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500"/> 
+              <span className="text-sm">{presence.filter(p => p.is_online).length} online</span>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-400">No one online</div>
+          )}
         </div>
       </div>
 
@@ -91,8 +121,22 @@ export default function Dashboard() {
       </div>
 
       <div className="glass-card p-4">
-        <div className="text-sm text-gray-500">Latest Check-In</div>
-        <div className="mt-2">{latestCheckIn ? `${latestCheckIn.emotion} • energy ${latestCheckIn.energy}` : 'No check-ins yet'}</div>
+        <div className="text-sm text-gray-500 mb-2">Recent Check-Ins</div>
+        {checkIns.slice(0, 3).map(ci => (
+          <div key={ci.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
+                {ci.author_name?.[0] || 'U'}
+              </div>
+              <div>
+                <div className="text-sm font-medium">{ci.author_name || 'User'}</div>
+                <div className="text-xs text-gray-500">{ci.emotion} • energy {ci.energy}</div>
+              </div>
+            </div>
+            <div className="text-xs text-gray-400">{new Date(ci.date).toLocaleDateString()}</div>
+          </div>
+        ))}
+        {!checkIns.length && <div className="text-sm text-gray-400">No check-ins yet</div>}
       </div>
 
       <DailyCheckIn open={showCheckIn} onClose={()=>setShowCheckIn(false)} onSubmit={(data)=>{ setCheckIns(prev=> [data, ...prev]) }} />

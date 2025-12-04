@@ -347,7 +347,7 @@ export const getInsights = async (userId) => {
 }
 
 export const markInsightAsRead = async (insightId) => {
-  const { data, error } = await supabase
+  const { data, error} = await supabase
     .from('relationship_insights')
     .update({ read: true })
     .eq('id', insightId)
@@ -356,4 +356,303 @@ export const markInsightAsRead = async (insightId) => {
   
   if (error) throw error
   return data
+}
+
+// ============== Savings Goals ==============
+
+export const getSavingsGoals = async (userId) => {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  
+  if (error) throw error
+  return data
+}
+
+export const createSavingsGoal = async (goalData) => {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .insert([goalData])
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const updateSavingsGoal = async (goalId, updates) => {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .update(updates)
+    .eq('id', goalId)
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const deleteSavingsGoal = async (goalId) => {
+  const { error } = await supabase
+    .from('savings_goals')
+    .delete()
+    .eq('id', goalId)
+  
+  if (error) throw error
+}
+
+export const addContribution = async (contributionData) => {
+  const { data, error } = await supabase
+    .from('savings_contributions')
+    .insert([contributionData])
+    .select()
+    .single()
+  
+  if (error) throw error
+  
+  // Update goal current_amount
+  const { data: goal } = await supabase
+    .from('savings_goals')
+    .select('current_amount')
+    .eq('id', contributionData.goal_id)
+    .single()
+  
+  if (goal) {
+    await supabase
+      .from('savings_goals')
+      .update({ current_amount: (goal.current_amount || 0) + contributionData.amount })
+      .eq('id', contributionData.goal_id)
+  }
+  
+  return data
+}
+
+export const getContributions = async (goalId) => {
+  const { data, error } = await supabase
+    .from('savings_contributions')
+    .select('*')
+    .eq('goal_id', goalId)
+    .order('created_at', { ascending: false })
+  
+  if (error) throw error
+  return data
+}
+
+// ============== Music & Playlists ==============
+
+export const searchItunesMusic = async (query) => {
+  try {
+    const response = await fetch(
+      `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=20`
+    )
+    const data = await response.json()
+    return data.results || []
+  } catch (error) {
+    console.error('iTunes search failed:', error)
+    return []
+  }
+}
+
+export const saveMusicTrack = async (trackData) => {
+  const { data, error } = await supabase
+    .from('music_tracks')
+    .insert([trackData])
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const getMusicTracks = async (userId) => {
+  const { data, error } = await supabase
+    .from('music_tracks')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  
+  if (error) throw error
+  return data
+}
+
+export const deleteMusicTrack = async (trackId) => {
+  const { error } = await supabase
+    .from('music_tracks')
+    .delete()
+    .eq('id', trackId)
+  
+  if (error) throw error
+}
+
+export const getPlaylists = async (userId) => {
+  const { data, error } = await supabase
+    .from('playlists')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  
+  if (error) throw error
+  return data
+}
+
+export const createPlaylist = async (playlistData) => {
+  const { data, error } = await supabase
+    .from('playlists')
+    .insert([playlistData])
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const updatePlaylist = async (playlistId, updates) => {
+  const { data, error } = await supabase
+    .from('playlists')
+    .update(updates)
+    .eq('id', playlistId)
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const deletePlaylist = async (playlistId) => {
+  const { error } = await supabase
+    .from('playlists')
+    .delete()
+    .eq('id', playlistId)
+  
+  if (error) throw error
+}
+
+export const getPlaylistTracks = async (playlistId) => {
+  const { data, error } = await supabase
+    .from('playlist_tracks')
+    .select(`
+      *,
+      track:music_tracks(*)
+    `)
+    .eq('playlist_id', playlistId)
+    .order('position', { ascending: true })
+  
+  if (error) throw error
+  return data
+}
+
+export const addTrackToPlaylist = async (playlistId, trackId, position, userId) => {
+  const { data, error } = await supabase
+    .from('playlist_tracks')
+    .insert([{
+      playlist_id: playlistId,
+      track_id: trackId,
+      position,
+      added_by: userId
+    }])
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const removeTrackFromPlaylist = async (playlistTrackId) => {
+  const { error } = await supabase
+    .from('playlist_tracks')
+    .delete()
+    .eq('id', playlistTrackId)
+  
+  if (error) throw error
+}
+
+// ============== Listening Sessions ==============
+
+export const getListeningSession = async (userId) => {
+  const { data, error } = await supabase
+    .from('listening_sessions')
+    .select(`
+      *,
+      track:music_tracks(*)
+    `)
+    .eq('user_id', userId)
+    .single()
+  
+  if (error && error.code !== 'PGRST116') throw error
+  return data
+}
+
+export const updateListeningSession = async (userId, sessionData) => {
+  const { data, error } = await supabase
+    .from('listening_sessions')
+    .upsert({
+      user_id: userId,
+      ...sessionData,
+      updated_at: new Date().toISOString()
+    })
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const subscribeToListeningSession = (userId, callback) => {
+  return supabase
+    .channel('listening_session')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'listening_sessions',
+        filter: `user_id=eq.${userId}`
+      },
+      callback
+    )
+    .subscribe()
+}
+
+// ============== User Presence ==============
+
+export const updatePresence = async (userId, isOnline) => {
+  const { data, error } = await supabase
+    .from('user_presence')
+    .upsert({
+      user_id: userId,
+      is_online: isOnline,
+      last_seen: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const getPresence = async () => {
+  const { data, error } = await supabase
+    .from('user_presence')
+    .select('*')
+  
+  if (error) throw error
+  return data
+}
+
+export const subscribeToPresence = (callback) => {
+  return supabase
+    .channel('user_presence')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'user_presence'
+      },
+      callback
+    )
+    .subscribe()
 }

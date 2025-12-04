@@ -2,23 +2,30 @@ import { useEffect, useState } from 'react'
 import Dialog from './ui/dialog.jsx'
 import Button from './ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
-import { getCheckIns } from '../services/api'
+import { getCheckIns, getPresence } from '../services/api'
 
 export default function QuickDashboard() {
   const [open, setOpen] = useState(false)
   const { user } = useAuth()
   const [latest, setLatest] = useState(null)
+  const [presence, setPresence] = useState([])
+  
   useEffect(() => {
     const handler = () => setOpen(true)
     window.addEventListener('open-quick-dashboard', handler)
     return () => window.removeEventListener('open-quick-dashboard', handler)
   }, [])
+  
   useEffect(() => {
     if (!user) return
     ;(async () => {
       try {
-        const list = await getCheckIns(user.id)
-        setLatest(list?.[0] || null)
+        const [checkIns, presenceData] = await Promise.all([
+          getCheckIns(user.id),
+          getPresence()
+        ])
+        setLatest(checkIns?.[0] || null)
+        setPresence(presenceData || [])
       } catch (e) { console.error(e) }
     })()
   }, [user])
@@ -36,7 +43,17 @@ export default function QuickDashboard() {
           </div>
           <div className="glass-card p-3">
             <div className="text-xs text-gray-500">Presence</div>
-            <div className="flex items-center gap-2 mt-1"><span className="w-2 h-2 rounded-full bg-green-500"/>Alex <span className="w-2 h-2 rounded-full bg-gray-400"/>Sam</div>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {presence.filter(p => p.is_online).length === 0 && (
+                <span className="text-xs text-gray-400">No one online</span>
+              )}
+              {presence.filter(p => p.is_online).map(p => (
+                <div key={p.user_id} className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-green-500"/>
+                  <span className="text-xs">Online</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
