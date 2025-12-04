@@ -49,7 +49,7 @@ export default function AppShell({ title, children }) {
         </motion.button>
         </motion.header>
       </div>
-      <div className="pt-[120px] pb-24 max-w-3xl mx-auto px-4">
+      <div className="pt-[140px] pb-32 max-w-3xl mx-auto px-4">
         {children}
       </div>
     </main>
