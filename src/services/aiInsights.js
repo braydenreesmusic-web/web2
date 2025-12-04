@@ -104,13 +104,15 @@ Keep insights personal, warm, and encouraging. Be specific to their situation.`;
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('API Response Not OK:', error);
       throw new Error(`Gemini API error: ${error.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
+    console.log('Gemini API Response:', data);
     
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-      console.error('Unexpected Gemini response format:', data);
+      console.error('Unexpected Gemini response format:', JSON.stringify(data, null, 2));
       throw new Error('Unexpected response format from Gemini API');
     }
     
@@ -205,13 +207,15 @@ Keep it concise and actionable.`;
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('API Response Not OK:', error);
       throw new Error(`Gemini API error: ${error.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
+    console.log('Gemini API Response:', data);
     
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-      console.error('Unexpected Gemini response format:', data);
+      console.error('Unexpected Gemini response format:', JSON.stringify(data, null, 2));
       throw new Error('Unexpected response format from Gemini API');
     }
     
@@ -270,13 +274,15 @@ Return as a numbered list.`;
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('API Response Not OK:', error);
       throw new Error(`Gemini API error: ${error.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
+    console.log('Gemini API Response:', data);
     
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-      console.error('Unexpected Gemini response format:', data);
+      console.error('Unexpected Gemini response format:', JSON.stringify(data, null, 2));
       throw new Error('Unexpected response format from Gemini API');
     }
     
