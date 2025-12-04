@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase'
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent';
 
 /**
  * Generate AI-powered relationship insights based on check-ins and relationship data
@@ -97,7 +97,7 @@ Keep insights personal, warm, and encouraging. Be specific to their situation.`;
         }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1000,
+          maxOutputTokens: 500,
         }
       }),
     });
@@ -200,7 +200,7 @@ Keep it concise and actionable.`;
         }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 300,
+          maxOutputTokens: 200,
         }
       }),
     });
@@ -267,7 +267,7 @@ Return as a numbered list.`;
         }],
         generationConfig: {
           temperature: 0.8,
-          maxOutputTokens: 400,
+          maxOutputTokens: 200,
         }
       }),
     });
