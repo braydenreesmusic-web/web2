@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { updatePresence, subscribeToPresence } from '../services/api'
+import { updatePresence, subscribeToPresence, getPresence } from '../services/api'
 
 export const usePresence = () => {
   const { user } = useAuth()
@@ -8,6 +8,17 @@ export const usePresence = () => {
 
   useEffect(() => {
     if (!user) return
+
+    // Load initial presence
+    const loadPresence = async () => {
+      try {
+        const data = await getPresence()
+        setOnlineUsers(data.filter(u => u.is_online) || [])
+      } catch (e) {
+        console.error('Failed to load presence', e)
+      }
+    }
+    loadPresence()
 
     // Set self as online
     updatePresence(user.id, true)
