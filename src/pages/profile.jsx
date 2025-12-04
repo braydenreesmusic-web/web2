@@ -41,11 +41,17 @@ export default function Profile() {
         }
         
         // Separate incoming and sent requests
+        console.log('All requests:', requests)
+        console.log('User email:', user.email)
         const pending = requests?.filter(r => r.to_email === user.email && r.status === 'pending') || []
         const sent = requests?.filter(r => r.from_email === user.email && r.status === 'pending') || []
+        console.log('Pending requests (incoming):', pending)
+        console.log('Sent requests (outgoing):', sent)
         setPendingRequests(pending)
         setSentRequests(sent)
-      } catch (e) { console.error(e) }
+      } catch (e) { 
+        console.error('Error loading profile data:', e) 
+      }
     }
     
     loadData()
@@ -113,6 +119,19 @@ export default function Profile() {
     }
   }
 
+  const refreshRequests = async () => {
+    try {
+      const requests = await getPartnerRequests(user.email)
+      console.log('Refreshed requests:', requests)
+      const pending = requests?.filter(r => r.to_email === user.email && r.status === 'pending') || []
+      const sent = requests?.filter(r => r.from_email === user.email && r.status === 'pending') || []
+      setPendingRequests(pending)
+      setSentRequests(sent)
+    } catch (e) {
+      console.error('Error refreshing requests:', e)
+    }
+  }
+
   const handleSignOut = async () => {
     await signOut()
     navigate('/login')
@@ -148,41 +167,64 @@ export default function Profile() {
           </div>
         ) : (
           <>
-            {/* Pending Requests (Incoming) */}
-            {pendingRequests.length > 0 && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl border border-pink-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <Heart className="w-5 h-5 text-pink-600" />
-                  <span className="text-sm font-semibold text-pink-900">Partner Request!</span>
-                </div>
-                {pendingRequests.map(req => (
-                  <div key={req.id} className="bg-white rounded-lg p-3 mb-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold text-sm">{req.from_name || req.from_email}</div>
-                        <div className="text-xs text-gray-500">{req.from_email}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleAccept(req.id)}
-                          className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs flex items-center gap-1"
-                        >
-                          <CheckCircle className="w-3 h-3" />
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => handleReject(req.id)}
-                          className="px-3 py-1.5 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg text-xs flex items-center gap-1"
-                        >
-                          <XCircle className="w-3 h-3" />
-                          Decline
-                        </button>
+            {/* Debug Info */}
+            <div className="mt-4 p-3 bg-gray-100 rounded-lg border border-gray-300">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-700">Debug Info</span>
+                <button
+                  onClick={refreshRequests}
+                  className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs"
+                >
+                  Refresh
+                </button>
+              </div>
+              <div className="text-xs text-gray-600 space-y-1">
+                <div>Your email: {user?.email}</div>
+                <div>Pending requests: {pendingRequests.length}</div>
+                <div>Sent requests: {sentRequests.length}</div>
+                <div>Linked: {linked ? 'Yes' : 'No'}</div>
+              </div>
+            </div>
+
+            {/* Pending Requests (Incoming) - Always show section */}
+            <div className="mt-4 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl border border-pink-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Heart className="w-5 h-5 text-pink-600" />
+                <span className="text-sm font-semibold text-pink-900">Partner Requests</span>
+              </div>
+              {pendingRequests.length > 0 ? (
+                <>
+                  {pendingRequests.map(req => (
+                    <div key={req.id} className="bg-white rounded-lg p-3 mb-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold text-sm">{req.from_name || req.from_email}</div>
+                          <div className="text-xs text-gray-500">{req.from_email}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleAccept(req.id)}
+                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs flex items-center gap-1"
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleReject(req.id)}
+                            className="px-3 py-1.5 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg text-xs flex items-center gap-1"
+                          >
+                            <XCircle className="w-3 h-3" />
+                            Decline
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </>
+              ) : (
+                <div className="text-xs text-gray-500">No pending requests</div>
+              )}
+            </div>
 
             {/* Sent Requests */}
             {sentRequests.length > 0 && (
