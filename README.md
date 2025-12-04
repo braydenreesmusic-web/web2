@@ -13,34 +13,52 @@ A beautiful, feature-rich web application for couples to manage their relationsh
 ### 📊 Dashboard
 - Quick actions and relationship stats
 - Daily check-in modal with emotion, energy, and love language tracking
-- Real-time updates with Supabase subscriptions
+- Real-time presence tracking (see who's online)
+- Recent check-ins with user attribution
 - Beautiful gradient animations
 
+### 💰 Savings Goals ✨ NEW
+- Create multiple savings goals with targets and deadlines
+- Track progress with visual charts
+- Add contributions with notes
+- Categorize goals (vacation, wedding, home, etc.)
+- View from dashboard widget or dedicated `/savings` page
+
 ### 📅 Schedule Management
-- Calendar view with events
-- Shared task lists (To-Do, Groceries, etc.)
-- Date jar with romantic ideas
-- Recurring events support
+- Calendar view with events by month
+- Shared task lists with completion tracking
+- Event categories with color coding
+- Create, edit, and delete events and tasks
+- Real-time updates
 
 ### 📷 Media Center
 - Notes with real-time sync
-- Photo gallery with favorites
+- Photo gallery with upload and favorites
 - Video library
-- Music playlists with listening sessions
+- Music powered by iTunes API ✨ NEW
+
+### 🎵 Music & Listening ✨ NEW
+- Search Apple Music catalog (iTunes API)
+- Preview 30-second clips
+- Build your music library
+- Create and manage playlists
+- **Synced Listening** - Listen together in real-time with play/pause sync
 
 ### 🗺️ Interactive Map
 - Memory pins for special locations
 - Location sharing between partners
-- Custom markers with photos and descriptions
+- Add pins at current location with geolocation
 
 ### 🔖 Bookmarks
 - Save favorite places and resources
 - Category filters (Restaurants, Activities, etc.)
 - Mark visited locations
+- Quick add with URL and notes
 
 ### 👤 Profile
 - User information and relationship stats
-- Savings goal tracking
+- Live counts for notes, photos, events
+- Real-time presence status
 - Sign out functionality
 
 ## 🚀 Quick Start
@@ -69,9 +87,17 @@ npm run dev
 ### First Time Setup
 See **[SETUP_GUIDE.md](./SETUP_GUIDE.md)** for detailed instructions on:
 - Creating your Supabase project
-- Setting up the database schema
+- Setting up the database schema (run both `supabase-setup.sql` and `supabase-enhanced-features.sql`)
 - Configuring storage for media uploads
 - Security policies and RLS setup
+
+### Enhanced Features
+After basic setup, see **[ENHANCED_FEATURES.md](./ENHANCED_FEATURES.md)** for:
+- Savings Goals setup and usage
+- Real-time Presence tracking
+- iTunes Music integration
+- Synced listening sessions
+- Playlist management
 
 ## 🛠️ Tech Stack
 
@@ -171,6 +197,24 @@ npm run preview
 ```
 
 ## 📚 Documentation
+
+- **[ENHANCED_FEATURES.md](./ENHANCED_FEATURES.md)** - New features guide (savings, music, presence)
+- **[SETUP_GUIDE.md](./SETUP_GUIDE.md)** - Complete setup instructions
+- **[API_EXAMPLES.md](./API_EXAMPLES.md)** - API usage examples
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System architecture
+- **[.env.example](./.env.example)** - Environment variable template
+
+## 🎯 What's New
+
+### Latest Updates
+- ✨ **Savings Goals Tracker** - Create and track financial goals together
+- 🎵 **iTunes Music Integration** - Search, preview, and save tracks
+- 👥 **Real-Time Presence** - See when your partner is online
+- 🎧 **Synced Listening** - Listen to music together in real-time
+- 📝 **Enhanced Check-Ins** - See who submitted each check-in
+- 📱 **Playlists** - Create and manage shared music playlists
+
+## 📚 Original Documentation
 
 - **[SETUP_GUIDE.md](./SETUP_GUIDE.md)** - Complete setup instructions
 - **[.env.example](./.env.example)** - Environment variable template
