@@ -96,8 +96,12 @@ BEGIN
       VALUES (
         from_id,
         to_id,
-        -- store human-friendly names when available
-        (SELECT COALESCE(u.raw_user_meta->>'full_name', u.email, '') FROM auth.users u WHERE u.id = from_id LIMIT 1),
+        -- store human-friendly names when available (prefer public.profiles)
+        (SELECT COALESCE(p.display_name, p.full_name, u.email, '')
+         FROM auth.users u
+         LEFT JOIN public.profiles p ON p.id = u.id
+         WHERE u.id = from_id
+         LIMIT 1),
         COALESCE(from_name, NEW.to_email),
         today,
         now(), now()
@@ -116,7 +120,11 @@ BEGIN
         to_id,
         from_id,
         COALESCE(NEW.to_name, NEW.to_email),
-        (SELECT COALESCE(u.raw_user_meta->>'full_name', u.email, '') FROM auth.users u WHERE u.id = from_id LIMIT 1),
+        (SELECT COALESCE(p.display_name, p.full_name, u.email, '')
+         FROM auth.users u
+         LEFT JOIN public.profiles p ON p.id = u.id
+         WHERE u.id = from_id
+         LIMIT 1),
         today,
         now(), now()
       )

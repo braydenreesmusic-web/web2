@@ -99,7 +99,13 @@ BEGIN
       VALUES (
         from_id,
         to_id,
-        COALESCE(NEW.from_name, (SELECT COALESCE(user_metadata->>'full_name', email) FROM auth.users WHERE id = from_id LIMIT 1)),
+        COALESCE(NEW.from_name, (
+          SELECT COALESCE(p.display_name, p.full_name, u.email)
+          FROM auth.users u
+          LEFT JOIN public.profiles p ON p.id = u.id
+          WHERE u.id = from_id
+          LIMIT 1
+        )),
         COALESCE(NEW.to_name, NEW.to_email),
         today,
         now(), now()
@@ -118,7 +124,13 @@ BEGIN
         to_id,
         from_id,
         COALESCE(NEW.to_name, NEW.to_email),
-        COALESCE(NEW.from_name, (SELECT COALESCE(user_metadata->>'full_name', email) FROM auth.users WHERE id = from_id LIMIT 1)),
+        COALESCE(NEW.from_name, (
+          SELECT COALESCE(p.display_name, p.full_name, u.email)
+          FROM auth.users u
+          LEFT JOIN public.profiles p ON p.id = u.id
+          WHERE u.id = from_id
+          LIMIT 1
+        )),
         today,
         now(), now()
       )
