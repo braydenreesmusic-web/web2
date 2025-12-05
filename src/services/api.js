@@ -659,17 +659,24 @@ export const subscribeToListeningSession = (userId, callback) => {
 // ============== User Presence ==============
 
 export const updatePresence = async (userId, isOnline) => {
+  // When marking online, avoid touching last_seen so it remains the last-offline timestamp.
+  const now = new Date().toISOString()
   const payload = {
     user_id: userId,
     is_online: isOnline,
-    last_seen: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    last_seen: isOnline ? null : now,
+    updated_at: now
   }
 
   // 1) Try to update an existing row for this user_id
+  // Only update last_seen when setting offline; when online we leave last_seen unchanged.
+  const updatePayload = isOnline
+    ? { is_online: isOnline, updated_at: payload.updated_at }
+    : { is_online: isOnline, last_seen: payload.last_seen, updated_at: payload.updated_at }
+
   const { data: updData, error: updErr } = await supabase
     .from('user_presence')
-    .update({ is_online: isOnline, last_seen: payload.last_seen, updated_at: payload.updated_at })
+    .update(updatePayload)
     .eq('user_id', userId)
     .select()
     .maybeSingle()
@@ -683,9 +690,11 @@ export const updatePresence = async (userId, isOnline) => {
   if (updData) return updData
 
   // 2) No existing row updated — try to insert a new one
+  // If inserting an 'online' row, leave last_seen null so it doesn't show as recently seen.
+  const insertPayload = payload
   const { data: insData, error: insErr } = await supabase
     .from('user_presence')
-    .insert([payload])
+    .insert([insertPayload])
     .select()
     .maybeSingle()
 
