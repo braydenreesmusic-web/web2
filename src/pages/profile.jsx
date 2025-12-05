@@ -15,6 +15,7 @@ export default function Profile() {
   const [partnerEmail, setPartnerEmail] = useState('')
   const [sending, setSending] = useState(false)
   const [linked, setLinked] = useState(false)
+  const [relationshipRaw, setRelationshipRaw] = useState(null)
   const [pendingRequests, setPendingRequests] = useState([])
   const [sentRequests, setSentRequests] = useState([])
 
@@ -33,6 +34,7 @@ export default function Profile() {
         setCounts({ notes: notes?.length || 0, photos: photos?.length || 0, events: events?.length || 0 })
         
         if (relationship) {
+          setRelationshipRaw(relationship)
           setStartDate(relationship.start_date || '')
           // Prefer stored partner display names if present
           const a = relationship.partner_a || ''
@@ -40,7 +42,12 @@ export default function Profile() {
           setPartners(a && b ? `${a} & ${b}` : (relationship.display_name || ''))
           if (relationship.partner_user_id) {
             setLinked(true)
+          } else {
+            setLinked(false)
           }
+        } else {
+          setRelationshipRaw(null)
+          setLinked(false)
         }
         
         // Separate incoming and sent requests
@@ -105,7 +112,16 @@ export default function Profile() {
     try {
       await acceptPartnerRequest(requestId)
       alert('✅ Partner linked! You can now see each other\'s online status.')
-      setLinked(true)
+      // Refresh relationship data after accepting so UI reflects new link
+      const rel = await getRelationshipData(user.id)
+      if (rel) {
+        setRelationshipRaw(rel)
+        setStartDate(rel.start_date || '')
+        const a = rel.partner_a || ''
+        const b = rel.partner_b || ''
+        setPartners(a && b ? `${a} & ${b}` : (rel.display_name || ''))
+        setLinked(!!rel.partner_user_id)
+      }
       setPendingRequests([])
     } catch (e) {
       console.error(e)
@@ -205,7 +221,13 @@ export default function Profile() {
                 <div>Your email: {user?.email}</div>
                 <div>Pending requests: {pendingRequests.length}</div>
                 <div>Sent requests: {sentRequests.length}</div>
-                <div>Linked: {linked ? 'Yes' : 'No'}</div>
+                  <div>Linked: {linked ? 'Yes' : 'No'}</div>
+                  {relationshipRaw && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      <div className="font-semibold">Raw relationship (debug)</div>
+                      <pre className="text-xs overflow-auto max-h-40 p-2 bg-white rounded mt-1 border text-gray-700">{JSON.stringify(relationshipRaw, null, 2)}</pre>
+                    </div>
+                  )}
               </div>
             </div>
 
