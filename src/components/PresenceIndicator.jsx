@@ -17,7 +17,7 @@ const formatTimeAgo = (date) => {
 }
 
 export default function PresenceIndicator() {
-  const { isPartnerOnline, partnerLastSeen } = usePresence()
+  const { isPartnerOnline, partnerLastSeen, partnerListeningSession } = usePresence()
 
   const getLastSeenText = () => {
     if (isPartnerOnline) return 'Online now'
@@ -67,9 +67,17 @@ export default function PresenceIndicator() {
           />
         )}
       </div>
-      <span className="text-xs font-medium text-gray-700">
-        {getLastSeenText()}
-      </span>
+      <div className="flex flex-col">
+        <span className="text-xs font-medium text-gray-700">
+          {getLastSeenText()}
+        </span>
+        {partnerListeningSession && partnerListeningSession.track && (
+          <span className="text-xs text-gray-600">
+            Listening to {partnerListeningSession.track.title || 'a track'}
+            {partnerListeningSession.track.artist ? ` — ${partnerListeningSession.track.artist}` : ''}
+          </span>
+        )}
+      </div>
     </motion.div>
   )
 }

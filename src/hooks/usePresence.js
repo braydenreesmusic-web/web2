@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { updatePresence, subscribeToPresence, getPresence, getRelationshipData } from '../services/api'
+import { updatePresence, subscribeToPresence, getPresence, getRelationshipData, subscribeToListeningSession, updateListeningSession } from '../services/api'
 
 export const usePresence = () => {
   const { user } = useAuth()
   const [partnerPresence, setPartnerPresence] = useState(null)
   const [partnerUserId, setPartnerUserId] = useState(null)
+  const [partnerListeningSession, setPartnerListeningSession] = useState(null)
 
   useEffect(() => {
     if (!user) return
 
     let subscription = null
+    let listenSubscription = null
     let heartbeatInterval = null
 
     const initialize = async () => {
@@ -28,6 +30,23 @@ export const usePresence = () => {
           setPartnerPresence(partner || { is_online: false, last_seen: null })
         }
 
+        // Subscribe to partner listening session (if any)
+        if (partnerId) {
+          try {
+            listenSubscription = subscribeToListeningSession(partnerId, (payload) => {
+              const { eventType, new: newRecord } = payload
+              if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                setPartnerListeningSession(newRecord || null)
+              }
+              if (eventType === 'DELETE') {
+                setPartnerListeningSession(null)
+              }
+            })
+          } catch (e) {
+            console.error('Failed to subscribe to partner listening session', e)
+          }
+        }
+
         // Set self as online
         await updatePresence(user.id, true)
 
@@ -43,17 +62,25 @@ export const usePresence = () => {
         // Subscribe to presence changes
         subscription = subscribeToPresence((payload) => {
           if (!partnerId) return
-          
-          const { eventType, new: newRecord } = payload
-          
-          if (newRecord?.user_id === partnerId) {
-            if (eventType === 'INSERT' || eventType === 'UPDATE') {
-              setPartnerPresence({
-                is_online: newRecord.is_online,
-                last_seen: newRecord.last_seen,
-                updated_at: newRecord.updated_at
-              })
-            }
+
+          const { eventType, new: newRecord, old: oldRecord } = payload
+
+          // Handle insert/update
+          if ((eventType === 'INSERT' || eventType === 'UPDATE') && newRecord?.user_id === partnerId) {
+            setPartnerPresence({
+              is_online: newRecord.is_online,
+              last_seen: newRecord.last_seen,
+              updated_at: newRecord.updated_at
+            })
+          }
+
+          // Handle delete -> mark offline and use last_seen from old record if available
+          if (eventType === 'DELETE' && oldRecord?.user_id === partnerId) {
+            setPartnerPresence({
+              is_online: false,
+              last_seen: oldRecord.last_seen || new Date().toISOString(),
+              updated_at: oldRecord?.updated_at || new Date().toISOString()
+            })
           }
         })
 
@@ -87,6 +114,7 @@ export const usePresence = () => {
     return () => {
       if (heartbeatInterval) clearInterval(heartbeatInterval)
       if (subscription) subscription.unsubscribe()
+      if (listenSubscription) listenSubscription.unsubscribe()
       window.removeEventListener('beforeunload', handleBeforeUnload)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       // Set offline when component unmounts
@@ -99,5 +127,17 @@ export const usePresence = () => {
     partnerUserId,
     isPartnerOnline: partnerPresence?.is_online || false,
     partnerLastSeen: partnerPresence?.last_seen
-  }
+    ,
+    partnerListeningSession,
+    // helper to update my listening session (play/pause/track change)
+    setMyListeningSession: async (sessionData) => {
+      try {
+        return await updateListeningSession(user.id, sessionData)
+      } catch (e) {
+        console.error('Failed to update listening session', e)
+      }
+    }
 }
+
+}
+

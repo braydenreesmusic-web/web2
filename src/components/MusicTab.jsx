@@ -11,9 +11,10 @@ import {
   createPlaylist,
   getPlaylistTracks,
   addTrackToPlaylist,
-  updateListeningSession,
-  subscribeToListeningSession
 } from '../services/api'
+import { usePresence } from '../hooks/usePresence'
+import { syncToLeader, stopSync } from '../lib/listeningSync'
+import PartnerPlaybackControls from './PartnerPlaybackControls'
 
 export default function MusicTab({ user }) {
   const [view, setView] = useState('search') // search, library, playlists, listening
@@ -31,24 +32,16 @@ export default function MusicTab({ user }) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const audioRef = useRef(null)
+  const { partnerListeningSession, partnerUserId, setMyListeningSession } = usePresence()
+  const [joinedSession, setJoinedSession] = useState(false)
 
   useEffect(() => {
     if (!user) return
     loadLibrary()
     loadPlaylists()
     
-    // Subscribe to listening session updates
-    const sub = subscribeToListeningSession(user.id, (payload) => {
-      if (payload.eventType === 'UPDATE' && payload.new) {
-        // Partner's playback update
-        setIsPlaying(payload.new.is_playing)
-        if (audioRef.current && Math.abs(audioRef.current.currentTime - payload.new.playback_position) > 2) {
-          audioRef.current.currentTime = payload.new.playback_position
-        }
-      }
-    })
-    
-    return () => sub.unsubscribe()
+    // We no longer subscribe here for partner updates; usePresence handles partner subscription
+    return () => {}
   }, [user])
 
   const loadLibrary = async () => {
@@ -124,7 +117,7 @@ export default function MusicTab({ user }) {
       audioRef.current.play()
       
       // Update session for synced listening
-      await updateListeningSession(user.id, {
+      await setMyListeningSession({
         track_id: track.id,
         is_playing: true,
         playback_position: 0
@@ -137,14 +130,14 @@ export default function MusicTab({ user }) {
     
     if (isPlaying) {
       audioRef.current.pause()
-      await updateListeningSession(user.id, {
+      await setMyListeningSession({
         track_id: currentTrack?.id,
         is_playing: false,
         playback_position: audioRef.current.currentTime
       })
     } else {
       audioRef.current.play()
-      await updateListeningSession(user.id, {
+      await setMyListeningSession({
         track_id: currentTrack?.id,
         is_playing: true,
         playback_position: audioRef.current.currentTime
@@ -169,6 +162,30 @@ export default function MusicTab({ user }) {
       }
     }
   }, [])
+
+  // Sync follower behavior if user has joined partner's session
+  useEffect(() => {
+    if (!audioRef.current) return
+    if (!joinedSession) {
+      stopSync(audioRef.current)
+      return
+    }
+
+    // If partner session exists and user joined, follow partner
+    if (partnerListeningSession) {
+      syncToLeader(audioRef.current, partnerListeningSession)
+    }
+    const interval = setInterval(() => {
+      if (partnerListeningSession && joinedSession) {
+        syncToLeader(audioRef.current, partnerListeningSession)
+      }
+    }, 1500)
+
+    return () => {
+      clearInterval(interval)
+      stopSync(audioRef.current)
+    }
+  }, [partnerListeningSession, joinedSession])
 
   return (
     <div className="space-y-4">
@@ -317,6 +334,27 @@ export default function MusicTab({ user }) {
           ) : (
             <p className="text-gray-500">No track playing. Search and play a song to start!</p>
           )}
+
+          {/* Partner controls: join/leave and see partner playback */}
+          <PartnerPlaybackControls
+            partnerSession={partnerListeningSession}
+            partnerId={partnerUserId}
+            joined={joinedSession}
+            onJoin={() => setJoinedSession(true)}
+            onLeave={() => setJoinedSession(false)}
+            onFollowPlay={() => {
+              // If partner is playing, attempt to load their track preview and play
+              if (!partnerListeningSession || !partnerListeningSession.track) return
+              const track = partnerListeningSession.track
+              setCurrentTrack(track)
+              if (audioRef.current) {
+                audioRef.current.src = track.preview_url || track.previewUrl
+                audioRef.current.currentTime = partnerListeningSession.playback_position || 0
+                audioRef.current.play()
+                setIsPlaying(true)
+              }
+            }}
+          />
         </div>
       )}
 
