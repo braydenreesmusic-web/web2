@@ -10,8 +10,8 @@ export default function Profile() {
   const navigate = useNavigate()
   const [counts, setCounts] = useState({ notes: 0, photos: 0, events: 0 })
   const [editing, setEditing] = useState(false)
-  const [startDate, setStartDate] = useState('2024-06-01')
-  const [partners, setPartners] = useState('Alex & Sam')
+  const [startDate, setStartDate] = useState('')
+  const [partners, setPartners] = useState('')
   const [partnerEmail, setPartnerEmail] = useState('')
   const [sending, setSending] = useState(false)
   const [linked, setLinked] = useState(false)
@@ -33,8 +33,11 @@ export default function Profile() {
         setCounts({ notes: notes?.length || 0, photos: photos?.length || 0, events: events?.length || 0 })
         
         if (relationship) {
-          setStartDate(relationship.start_date || '2024-06-01')
-          setPartners(`${relationship.partner_a} & ${relationship.partner_b}`)
+          setStartDate(relationship.start_date || '')
+          // Prefer stored partner display names if present
+          const a = relationship.partner_a || ''
+          const b = relationship.partner_b || ''
+          setPartners(a && b ? `${a} & ${b}` : (relationship.display_name || ''))
           if (relationship.partner_user_id) {
             setLinked(true)
           }
@@ -135,6 +138,26 @@ export default function Profile() {
   const handleSignOut = async () => {
     await signOut()
     navigate('/login')
+  }
+
+  const saveRelationship = async () => {
+    // Split partners input into two names if possible
+    const parts = partners.split(/&|,| and /i).map(p => p.trim()).filter(Boolean)
+    const partner_a = parts[0] || ''
+    const partner_b = parts[1] || ''
+
+    try {
+      await updateRelationshipData(user.id, {
+        start_date: startDate || null,
+        partner_a,
+        partner_b
+      })
+      setEditing(false)
+      alert('Relationship updated')
+    } catch (e) {
+      console.error('Failed to save relationship', e)
+      alert('Failed to save relationship')
+    }
   }
 
   return (
@@ -288,7 +311,10 @@ export default function Profile() {
               <div className="font-semibold">Relationship</div>
             </div>
             <button
-              onClick={() => setEditing(!editing)}
+              onClick={() => {
+                if (editing) return saveRelationship()
+                setEditing(true)
+              }}
               className="p-2 hover:bg-gray-100 rounded-lg transition"
             >
               {editing ? <Check className="w-4 h-4 text-green-600" /> : <Edit2 className="w-4 h-4 text-gray-400" />}
@@ -311,15 +337,15 @@ export default function Profile() {
                   type="text"
                   value={partners}
                   onChange={e => setPartners(e.target.value)}
-                  placeholder="Alex & Sam"
+                  placeholder="Partner A & Partner B"
                   className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                 />
               </div>
             </div>
           ) : (
             <div className="text-sm text-gray-600 space-y-1">
-              <div>Start: {startDate}</div>
-              <div>Partners: {partners}</div>
+              <div>Start: {startDate || 'Not set'}</div>
+              <div>Partners: {partners || 'Not set'}</div>
             </div>
           )}
         </motion.div>
