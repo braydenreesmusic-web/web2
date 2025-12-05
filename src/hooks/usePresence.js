@@ -154,7 +154,13 @@ export const usePresence = () => {
   return { 
     partnerPresence,
     partnerUserId,
-    isPartnerOnline: partnerPresence?.is_online || false,
+    // Treat stale presence as offline unless updated within 40s
+    isPartnerOnline: (() => {
+      if (!partnerPresence) return false
+      const updated = partnerPresence.updated_at ? new Date(partnerPresence.updated_at).getTime() : 0
+      const fresh = Date.now() - updated < 40000
+      return Boolean(partnerPresence.is_online && fresh)
+    })(),
     partnerLastSeen: partnerPresence?.last_seen
     ,
     partnerListeningSession,
