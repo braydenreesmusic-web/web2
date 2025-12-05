@@ -374,6 +374,16 @@ export const updateBookmark = async (bookmarkId, updates) => {
   return data
 }
 
+export const deleteBookmark = async (bookmarkId) => {
+  const { error } = await supabase
+    .from('bookmarks')
+    .delete()
+    .eq('id', bookmarkId)
+
+  if (error) throw error
+  return true
+}
+
 // ============== Insights ==============
 
 export const getInsights = async (userId) => {
