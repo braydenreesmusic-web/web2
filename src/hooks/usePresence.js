@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { updatePresence, subscribeToPresence, getPresence, getRelationshipData, subscribeToListeningSession, updateListeningSession } from '../services/api'
 
@@ -14,6 +14,8 @@ export const usePresence = () => {
     let subscription = null
     let listenSubscription = null
     let heartbeatInterval = null
+    const inFlight = useRef(false)
+    const visTimer = useRef(null)
 
     const initialize = async () => {
       try {
@@ -47,15 +49,27 @@ export const usePresence = () => {
           }
         }
 
-        // Set self as online
-        await updatePresence(user.id, true)
+        // Set self as online (guard against overlaps)
+        if (!inFlight.current) {
+          inFlight.current = true
+          try {
+            await updatePresence(user.id, true)
+          } finally {
+            inFlight.current = false
+          }
+        }
 
         // Update presence every 25 seconds (heartbeat)
         heartbeatInterval = setInterval(async () => {
           try {
-            await updatePresence(user.id, true)
+            if (document.visibilityState === 'visible' && !inFlight.current) {
+              inFlight.current = true
+              await updatePresence(user.id, true)
+            }
           } catch (e) {
             console.error('Heartbeat failed', e)
+          } finally {
+            inFlight.current = false
           }
         }, 25000)
 
@@ -101,11 +115,21 @@ export const usePresence = () => {
     }
 
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        await updatePresence(user.id, true)
-      } else {
-        await updatePresence(user.id, false)
-      }
+      // Debounce rapid visibility toggles
+      if (visTimer.current) clearTimeout(visTimer.current)
+      visTimer.current = setTimeout(async () => {
+        try {
+          if (!inFlight.current) {
+            inFlight.current = true
+            const isVisible = document.visibilityState === 'visible'
+            await updatePresence(user.id, isVisible)
+          }
+        } catch (e) {
+          console.error('Visibility presence update failed', e)
+        } finally {
+          inFlight.current = false
+        }
+      }, 300)
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
@@ -118,7 +142,12 @@ export const usePresence = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       // Set offline when component unmounts
-      updatePresence(user.id, false)
+      if (!inFlight.current) {
+        inFlight.current = true
+        updatePresence(user.id, false).finally(() => {
+          inFlight.current = false
+        })
+      }
     }
   }, [user])
 
