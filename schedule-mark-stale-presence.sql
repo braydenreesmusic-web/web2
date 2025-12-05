@@ -48,7 +48,7 @@ BEGIN
       PERFORM cron.schedule(
         'mark_stale_presence_offline',
         '* * * * *',
-        $$SELECT public.mark_stale_presence_offline();$$
+        $cmd$SELECT public.mark_stale_presence_offline();$cmd$
       );
       RAISE NOTICE 'Scheduled mark_stale_presence_offline to run every minute (pg_cron).';
     END;
