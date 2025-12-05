@@ -659,18 +659,38 @@ export const subscribeToListeningSession = (userId, callback) => {
 // ============== User Presence ==============
 
 export const updatePresence = async (userId, isOnline) => {
+  const payload = {
+    user_id: userId,
+    is_online: isOnline,
+    last_seen: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+
+  // Use onConflict to avoid duplicate-key errors when a row already exists for user_id.
+  // Use maybeSingle to avoid throwing when RLS prevents returning a row.
   const { data, error } = await supabase
     .from('user_presence')
-    .upsert({
-      user_id: userId,
-      is_online: isOnline,
-      last_seen: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
+    .upsert([payload], { onConflict: 'user_id' })
     .select()
-    .single()
-  
-  if (error) throw error
+    .maybeSingle()
+
+  if (error) {
+    // If we still hit a duplicate-key error for some reason, fall back to a safe update.
+    if (error?.code === '23505') {
+      const { data: upd, error: e2 } = await supabase
+        .from('user_presence')
+        .update({ is_online: isOnline, last_seen: payload.last_seen, updated_at: payload.updated_at })
+        .eq('user_id', userId)
+        .select()
+        .maybeSingle()
+
+      if (e2) throw e2
+      return upd
+    }
+
+    throw error
+  }
+
   return data
 }
 
