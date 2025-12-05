@@ -13,6 +13,19 @@ export const getRelationshipData = async (userId) => {
   return data
 }
 
+// Helper to get both user IDs (you + partner)
+export const getPartnerIds = async (userId) => {
+  try {
+    const relationship = await getRelationshipData(userId)
+    if (relationship?.partner_user_id) {
+      return [userId, relationship.partner_user_id]
+    }
+    return [userId]
+  } catch (e) {
+    return [userId]
+  }
+}
+
 export const updateRelationshipData = async (userId, updates) => {
   const { data, error } = await supabase
     .from('relationships')
@@ -28,10 +41,10 @@ export const updateRelationshipData = async (userId, updates) => {
 // ============== Check-ins ==============
 
 export const getCheckIns = async (userId) => {
+  // RLS policies automatically filter to show user + partner data
   const { data, error } = await supabase
     .from('check_ins')
     .select('*')
-    .eq('user_id', userId)
     .order('date', { ascending: false })
   
   if (error) throw error
@@ -69,10 +82,10 @@ export const subscribeToCheckIns = (userId, callback) => {
 // ============== Events ==============
 
 export const getEvents = async (userId) => {
+  // RLS policies automatically filter to show user + partner data
   const { data, error } = await supabase
     .from('events')
     .select('*')
-    .eq('user_id', userId)
     .order('date', { ascending: true })
   
   if (error) throw error
@@ -114,10 +127,10 @@ export const deleteEvent = async (eventId) => {
 // ============== Tasks ==============
 
 export const getTasks = async (userId) => {
+  // RLS policies automatically filter to show user + partner data
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: false })
   
   if (error) throw error
@@ -150,10 +163,10 @@ export const updateTask = async (taskId, updates) => {
 // ============== Media (Photos, Videos) ==============
 
 export const getMedia = async (userId, type = null) => {
+  // RLS policies automatically filter to show user + partner data
   let query = supabase
     .from('media')
     .select('*')
-    .eq('user_id', userId)
     .order('date', { ascending: false })
   
   if (type) {
@@ -209,10 +222,10 @@ export const toggleMediaFavorite = async (mediaId, favorite) => {
 // ============== Notes ==============
 
 export const getNotes = async (userId) => {
+  // RLS policies automatically filter to show user + partner data
   const { data, error } = await supabase
     .from('notes')
     .select('*')
-    .eq('user_id', userId)
     .order('date', { ascending: false })
   
   if (error) throw error
@@ -250,10 +263,10 @@ export const subscribeToNotes = (userId, callback) => {
 // ============== Location & Pins ==============
 
 export const getPins = async (userId) => {
+  // RLS policies automatically filter to show user + partner data
   const { data, error } = await supabase
     .from('pins')
     .select('*')
-    .eq('user_id', userId)
   
   if (error) throw error
   return data
@@ -300,10 +313,10 @@ export const getLocationShares = async (userId) => {
 // ============== Bookmarks ==============
 
 export const getBookmarks = async (userId) => {
+  // RLS policies automatically filter to show user + partner data
   const { data, error } = await supabase
     .from('bookmarks')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: false })
   
   if (error) throw error
@@ -361,10 +374,10 @@ export const markInsightAsRead = async (insightId) => {
 // ============== Savings Goals ==============
 
 export const getSavingsGoals = async (userId) => {
+  // RLS policies automatically filter to show user + partner data
   const { data, error } = await supabase
     .from('savings_goals')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: false })
   
   if (error) throw error
@@ -467,10 +480,10 @@ export const saveMusicTrack = async (trackData) => {
 }
 
 export const getMusicTracks = async (userId) => {
+  // RLS policies automatically filter to show user + partner data
   const { data, error } = await supabase
     .from('music_tracks')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: false })
   
   if (error) throw error
@@ -487,10 +500,10 @@ export const deleteMusicTrack = async (trackId) => {
 }
 
 export const getPlaylists = async (userId) => {
+  // RLS policies automatically filter to show user + partner data
   const { data, error } = await supabase
     .from('playlists')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: false })
   
   if (error) throw error
