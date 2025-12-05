@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { getBookmarks, createBookmark, updateBookmark, deleteBookmark, bulkUpdateBookmarkOrder } from '../services/api'
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const cats = ['All','Restaurants','Movies/Shows','Date Ideas','Gift Ideas','Places to Visit','Other']
@@ -55,7 +55,7 @@ export default function Bookmarks() {
     }
   }
 
-  // Drag & drop reordering (react-friendly via @hello-pangea/dnd). If your bookmarks table
+  // Drag & drop reordering (react-friendly via react-beautiful-dnd). If your bookmarks table
   // has an `order` integer column this will attempt to persist it; otherwise order is local.
   const onDragEnd = async (result) => {
     if (!result.destination) return
