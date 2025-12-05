@@ -675,7 +675,25 @@ export const updatePresence = async (userId, isOnline) => {
     .select()
     .maybeSingle()
 
-  if (error) throw error
+  // If a race still triggers a conflict, fall back to targeted update
+  if (error) {
+    const msg = error?.message || ''
+    const isConflict = error?.code === '23505' || /duplicate key|conflict/i.test(msg)
+    if (isConflict) {
+      const updatePayload = isOnline
+        ? { is_online: isOnline, updated_at: payload.updated_at }
+        : { is_online: isOnline, last_seen: payload.last_seen, updated_at: payload.updated_at }
+      const { data: upd, error: updErr } = await supabase
+        .from('user_presence')
+        .update(updatePayload)
+        .eq('user_id', userId)
+        .select()
+        .maybeSingle()
+      if (updErr) throw updErr
+      return upd
+    }
+    throw error
+  }
   return data
 }
 
