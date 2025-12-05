@@ -52,6 +52,49 @@ export default function Bookmarks() {
       console.error('Copy failed', e)
     }
   }
+
+  // Drag & drop reordering (optimistic). If your bookmarks table supports an order/position
+  // column, this will attempt to persist it via updateBookmark(id, { order: idx }). If not,
+  // the UI order will still update locally.
+  const dragIndex = useRef(null)
+
+  const onDragStart = (e, idx) => {
+    dragIndex.current = idx
+    e.dataTransfer.effectAllowed = 'move'
+    e.currentTarget.classList.add('opacity-80', 'scale-95')
+  }
+
+  const onDragEnd = (e) => {
+    e.currentTarget.classList.remove('opacity-80', 'scale-95')
+  }
+
+  const onDragOverCard = (e) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const onDropCard = async (e, idx) => {
+    e.preventDefault()
+    const from = dragIndex.current
+    const to = idx
+    if (from === null || from === to) return
+    const next = [...items]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    setItems(next)
+    dragIndex.current = null
+
+    // try to persist new order (best-effort)
+    try {
+      await Promise.all(next.map((b, i) => {
+        if (b.order !== i) return updateBookmark(b.id, { order: i }).catch(()=>null)
+        return Promise.resolve(null)
+      }))
+    } catch (e) {
+      // ignore persistence errors
+      console.error('Failed to persist bookmark order', e)
+    }
+  }
   return (
     <section className="space-y-6">
       <div className="flex gap-2 overflow-auto">
@@ -68,14 +111,26 @@ export default function Bookmarks() {
         <button onClick={add} className="px-3 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-white">Add</button>
       </div>
       <div className="grid md:grid-cols-2 gap-4">
-        {filtered.map(b=> {
+        {filtered.map((b, idx)=> {
           let favicon = ''
           try { favicon = b.url ? `https://www.google.com/s2/favicons?sz=64&domain=${new URL(b.url).hostname}` : '' } catch (e) { favicon = '' }
+          // thumbnail (best-effort) from thum.io; fallback to favicon
+          const thumb = b.url ? `https://image.thum.io/get/width/600/crop/320/${encodeURIComponent(b.url)}` : null
 
           return (
-            <div key={b.id} className="glass-card p-4 hover:shadow-lg transition-shadow relative">
+            <div
+              key={b.id}
+              draggable
+              onDragStart={(e)=>onDragStart(e, idx)}
+              onDragEnd={onDragEnd}
+              onDragOver={onDragOverCard}
+              onDrop={(e)=>onDropCard(e, idx)}
+              className="glass-card p-4 hover:shadow-lg transition-shadow transform-gpu motion-reduce:transform-none relative"
+            >
               <div className="flex items-start gap-3">
-                <img src={favicon} alt="favicon" className="w-10 h-10 rounded-md" onError={(e)=>e.target.style.display='none'} />
+                <div className="w-24 h-16 rounded-md overflow-hidden bg-gray-50 flex-shrink-0">
+                  {thumb ? <img src={thumb} alt="thumb" className="w-full h-full object-cover" onError={(e)=>{e.target.src=favicon}} /> : <img src={favicon} alt="favicon" className="w-10 h-10 rounded-md" onError={(e)=>e.target.style.display='none'} />}
+                </div>
                 <div className="flex-1">
                   <div className="font-semibold text-lg truncate">{b.title}</div>
                   <div className="text-sm text-gray-500 truncate">{b.url}</div>
