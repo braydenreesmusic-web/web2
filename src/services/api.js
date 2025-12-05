@@ -666,32 +666,47 @@ export const updatePresence = async (userId, isOnline) => {
     updated_at: new Date().toISOString()
   }
 
-  // Use onConflict to avoid duplicate-key errors when a row already exists for user_id.
-  // Use maybeSingle to avoid throwing when RLS prevents returning a row.
-  const { data, error } = await supabase
+  // 1) Try to update an existing row for this user_id
+  const { data: updData, error: updErr } = await supabase
     .from('user_presence')
-    .upsert([payload], { onConflict: 'user_id' })
+    .update({ is_online: isOnline, last_seen: payload.last_seen, updated_at: payload.updated_at })
+    .eq('user_id', userId)
     .select()
     .maybeSingle()
 
-  if (error) {
-    // If we still hit a duplicate-key error for some reason, fall back to a safe update.
-    if (error?.code === '23505') {
-      const { data: upd, error: e2 } = await supabase
+  if (updErr) {
+    // If RLS prevents updating, surface the error
+    console.error('updatePresence update error', updErr)
+    // continue to attempt insert (some RLS setups allow insert but not update)
+  }
+
+  if (updData) return updData
+
+  // 2) No existing row updated — try to insert a new one
+  const { data: insData, error: insErr } = await supabase
+    .from('user_presence')
+    .insert([payload])
+    .select()
+    .maybeSingle()
+
+  if (insErr) {
+    // If duplicate-key occurred (race), try update again
+    if (insErr?.code === '23505') {
+      const { data: retryData, error: retryErr } = await supabase
         .from('user_presence')
         .update({ is_online: isOnline, last_seen: payload.last_seen, updated_at: payload.updated_at })
         .eq('user_id', userId)
         .select()
         .maybeSingle()
 
-      if (e2) throw e2
-      return upd
+      if (retryErr) throw retryErr
+      return retryData
     }
 
-    throw error
+    throw insErr
   }
 
-  return data
+  return insData
 }
 
 export const getPresence = async () => {
