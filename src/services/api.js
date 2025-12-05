@@ -727,15 +727,22 @@ export const getPresence = async () => {
   return data
 }
 
-export const subscribeToPresence = (callback) => {
+export const subscribeToPresence = (userId, callback) => {
+  if (!userId) {
+    return {
+      unsubscribe: () => {}
+    }
+  }
+
   return supabase
-    .channel('user_presence')
+    .channel(`user_presence_${userId}`)
     .on(
       'postgres_changes',
       {
         event: '*',
         schema: 'public',
-        table: 'user_presence'
+        table: 'user_presence',
+        filter: `user_id=eq.${userId}`
       },
       callback
     )

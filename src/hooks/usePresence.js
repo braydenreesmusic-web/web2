@@ -60,29 +60,29 @@ export const usePresence = () => {
         }, 25000)
 
         // Subscribe to presence changes
-        subscription = subscribeToPresence((payload) => {
-          if (!partnerId) return
+        if (partnerId) {
+          subscription = subscribeToPresence(partnerId, (payload) => {
+            const { eventType, new: newRecord, old: oldRecord } = payload
 
-          const { eventType, new: newRecord, old: oldRecord } = payload
+            // Handle insert/update
+            if ((eventType === 'INSERT' || eventType === 'UPDATE') && newRecord?.user_id === partnerId) {
+              setPartnerPresence({
+                is_online: newRecord.is_online,
+                last_seen: newRecord.last_seen,
+                updated_at: newRecord.updated_at
+              })
+            }
 
-          // Handle insert/update
-          if ((eventType === 'INSERT' || eventType === 'UPDATE') && newRecord?.user_id === partnerId) {
-            setPartnerPresence({
-              is_online: newRecord.is_online,
-              last_seen: newRecord.last_seen,
-              updated_at: newRecord.updated_at
-            })
-          }
-
-          // Handle delete -> mark offline and use last_seen from old record if available
-          if (eventType === 'DELETE' && oldRecord?.user_id === partnerId) {
-            setPartnerPresence({
-              is_online: false,
-              last_seen: oldRecord.last_seen || new Date().toISOString(),
-              updated_at: oldRecord?.updated_at || new Date().toISOString()
-            })
-          }
-        })
+            // Handle delete -> mark offline and use last_seen from old record if available
+            if (eventType === 'DELETE' && oldRecord?.user_id === partnerId) {
+              setPartnerPresence({
+                is_online: false,
+                last_seen: oldRecord.last_seen || new Date().toISOString(),
+                updated_at: oldRecord?.updated_at || new Date().toISOString()
+              })
+            }
+          })
+        }
 
       } catch (e) {
         console.error('Failed to initialize presence', e)

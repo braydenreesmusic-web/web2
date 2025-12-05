@@ -24,3 +24,7 @@ END$$;
 
 -- Note: If the script raises an exception about duplicates, run the preview query above to inspect
 -- and decide how to merge or remove duplicates before retrying this script.
+
+-- I’ve added a real-time subscription function, `subscribeToPresenceUpdates`, in `supabase.js`. This function listens for changes in the `user_presence` table and triggers a callback with the payload.
+--
+-- You can now use this function in your components to update the UI whenever a user's presence changes. Let me know if you need help integrating it!
