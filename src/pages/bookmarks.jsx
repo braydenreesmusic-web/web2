@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { getBookmarks, createBookmark, updateBookmark, deleteBookmark } from '../services/api'
+import { getBookmarks, createBookmark, updateBookmark, deleteBookmark, bulkUpdateBookmarkOrder } from '../services/api'
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const cats = ['All','Restaurants','Movies/Shows','Date Ideas','Gift Ideas','Places to Visit','Other']
 
@@ -53,46 +55,32 @@ export default function Bookmarks() {
     }
   }
 
-  // Drag & drop reordering (optimistic). If your bookmarks table supports an order/position
-  // column, this will attempt to persist it via updateBookmark(id, { order: idx }). If not,
-  // the UI order will still update locally.
-  const dragIndex = useRef(null)
-
-  const onDragStart = (e, idx) => {
-    dragIndex.current = idx
-    e.dataTransfer.effectAllowed = 'move'
-    e.currentTarget.classList.add('opacity-80', 'scale-95')
-  }
-
-  const onDragEnd = (e) => {
-    e.currentTarget.classList.remove('opacity-80', 'scale-95')
-  }
-
-  const onDragOverCard = (e) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }
-
-  const onDropCard = async (e, idx) => {
-    e.preventDefault()
-    const from = dragIndex.current
-    const to = idx
-    if (from === null || from === to) return
-    const next = [...items]
+  // Drag & drop reordering (react-friendly via @hello-pangea/dnd). If your bookmarks table
+  // has an `order` integer column this will attempt to persist it; otherwise order is local.
+  const onDragEnd = async (result) => {
+    if (!result.destination) return
+    const from = result.source.index
+    const to = result.destination.index
+    if (from === to) return
+    const next = Array.from(items)
     const [moved] = next.splice(from, 1)
     next.splice(to, 0, moved)
     setItems(next)
-    dragIndex.current = null
 
-    // try to persist new order (best-effort)
+    // best-effort persist order via a single bulk upsert (more efficient)
     try {
-      await Promise.all(next.map((b, i) => {
-        if (b.order !== i) return updateBookmark(b.id, { order: i }).catch(()=>null)
-        return Promise.resolve(null)
-      }))
+      const payload = next.map((b, i) => ({ id: b.id, order: i }))
+      await bulkUpdateBookmarkOrder(payload)
     } catch (e) {
-      // ignore persistence errors
-      console.error('Failed to persist bookmark order', e)
+      // fallback: try per-item updates if bulk fails (best-effort)
+      try {
+        await Promise.all(next.map((b, i) => {
+          if (b.order !== i) return updateBookmark(b.id, { order: i }).catch(()=>null)
+          return Promise.resolve(null)
+        }))
+      } catch (err) {
+        console.error('Failed to persist bookmark order', err)
+      }
     }
   }
   return (
@@ -110,23 +98,29 @@ export default function Bookmarks() {
         </select>
         <button onClick={add} className="px-3 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-white">Add</button>
       </div>
-      <div className="grid md:grid-cols-2 gap-4">
-        {filtered.map((b, idx)=> {
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="bookmarks-list">
+          {(provided) => (
+            <div ref={provided.innerRef} {...provided.droppableProps} className="grid md:grid-cols-2 gap-4">
+              {filtered.map((b, idx)=> {
           let favicon = ''
           try { favicon = b.url ? `https://www.google.com/s2/favicons?sz=64&domain=${new URL(b.url).hostname}` : '' } catch (e) { favicon = '' }
           // thumbnail (best-effort) from thum.io; fallback to favicon
           const thumb = b.url ? `https://image.thum.io/get/width/600/crop/320/${encodeURIComponent(b.url)}` : null
 
           return (
-            <div
-              key={b.id}
-              draggable
-              onDragStart={(e)=>onDragStart(e, idx)}
-              onDragEnd={onDragEnd}
-              onDragOver={onDragOverCard}
-              onDrop={(e)=>onDropCard(e, idx)}
-              className="glass-card p-4 hover:shadow-lg transition-shadow transform-gpu motion-reduce:transform-none relative"
-            >
+            <Draggable key={b.id} draggableId={`${b.id}`} index={idx}>
+              {(provided, snapshot) => (
+                <motion.div
+                  ref={provided.innerRef}
+                  {...provided.draggableProps}
+                  {...provided.dragHandleProps}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  layout
+                  className={`glass-card p-4 transition-shadow relative ${snapshot.isDragging ? 'shadow-2xl' : ''}`}
+                >
               <div className="flex items-start gap-3">
                 <div className="w-24 h-16 rounded-md overflow-hidden bg-gray-50 flex-shrink-0">
                   {thumb ? <img src={thumb} alt="thumb" className="w-full h-full object-cover" onError={(e)=>{e.target.src=favicon}} /> : <img src={favicon} alt="favicon" className="w-10 h-10 rounded-md" onError={(e)=>e.target.style.display='none'} />}
@@ -147,10 +141,16 @@ export default function Bookmarks() {
                 {!b.visited && <button onClick={()=>markVisited(b.id)} className="px-3 py-2 rounded-lg bg-gradient-to-r from-green-400 to-teal-400 text-white">Mark visited</button>}
                 <button onClick={()=>remove(b.id)} className="ml-auto px-3 py-2 rounded-lg bg-red-100 text-red-600">Delete</button>
               </div>
-            </div>
+                </motion.div>
+              )}
+            </Draggable>
           )
         })}
+        {provided.placeholder}
       </div>
+          )}
+        </Droppable>
+      </DragDropContext>
     </section>
   )
 }

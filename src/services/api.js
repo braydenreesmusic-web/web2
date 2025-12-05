@@ -384,6 +384,30 @@ export const deleteBookmark = async (bookmarkId) => {
   return true
 }
 
+/**
+ * Bulk update bookmark orders.
+ * Accepts an array of objects: [{ id: 'uuid', order: 0 }, ...]
+ * Uses upsert on `id` so it's best-effort (RLS still applies).
+ */
+export const bulkUpdateBookmarkOrder = async (orders = []) => {
+  if (!Array.isArray(orders) || orders.length === 0) return []
+
+  // Normalize payload to only include id and order
+  const payload = orders.map(o => ({ id: o.id, order: o.order }))
+
+  const { data, error } = await supabase
+    .from('bookmarks')
+    .upsert(payload, { onConflict: 'id' })
+    .select()
+
+  if (error) {
+    console.error('bulkUpdateBookmarkOrder error', { error })
+    throw error
+  }
+
+  return data
+}
+
 // ============== Insights ==============
 
 export const getInsights = async (userId) => {
