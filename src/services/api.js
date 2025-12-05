@@ -9,7 +9,32 @@ export const getRelationshipData = async (userId) => {
     .eq('user_id', userId)
     .single()
   
-  if (error) throw error
+  if (error) {
+    console.error('getRelationshipData error', { userId, status: error?.status, message: error?.message, details: error?.details })
+    throw error
+  }
+  return data
+}
+
+// Upsert relationship row for a given user_id. Used as a client-side fallback when server trigger
+// didn't create the relationship row. Note: RLS may block upserting other users' rows.
+export const upsertRelationship = async (userId, relationshipData) => {
+  const payload = {
+    user_id: userId,
+    ...relationshipData
+  }
+
+  const { data, error } = await supabase
+    .from('relationships')
+    .upsert([payload], { onConflict: 'user_id' })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('upsertRelationship error', { userId, err: error })
+    throw error
+  }
+
   return data
 }
 

@@ -110,8 +110,24 @@ export default function Profile() {
 
   const handleAccept = async (requestId) => {
     try {
-      await acceptPartnerRequest(requestId)
+      const accepted = await acceptPartnerRequest(requestId)
       alert('✅ Partner linked! You can now see each other\'s online status.')
+
+      // Try to upsert our own relationships row as a fallback if server trigger didn't run.
+      try {
+        const fromUserId = accepted?.from_user_id
+        const fromName = accepted?.from_name || ''
+        const today = new Date().toISOString().slice(0, 10)
+        await upsertRelationship(user.id, {
+          partner_user_id: fromUserId,
+          partner_a: user.user_metadata?.name || user.email.split('@')[0],
+          partner_b: fromName,
+          start_date: today
+        })
+      } catch (upsertErr) {
+        console.warn('Could not upsert relationship locally:', upsertErr)
+      }
+
       // Refresh relationship data after accepting so UI reflects new link
       const rel = await getRelationshipData(user.id)
       if (rel) {
@@ -124,7 +140,7 @@ export default function Profile() {
       }
       setPendingRequests([])
     } catch (e) {
-      console.error(e)
+      console.error('accept error', e)
       alert('Failed to accept request')
     }
   }
