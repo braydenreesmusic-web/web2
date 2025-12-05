@@ -7,13 +7,16 @@ export const getRelationshipData = async (userId) => {
     .from('relationships')
     .select('*')
     .eq('user_id', userId)
-    .single()
-  
+    .maybeSingle()
+
+  // If no row exists, maybeSingle returns { data: null, error: null }
   if (error) {
+    // Log and rethrow unexpected errors
     console.error('getRelationshipData error', { userId, status: error?.status, message: error?.message, details: error?.details })
     throw error
   }
-  return data
+
+  return data || null
 }
 
 // Upsert relationship row for a given user_id. Used as a client-side fallback when server trigger
