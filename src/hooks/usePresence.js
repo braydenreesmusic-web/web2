@@ -7,6 +7,9 @@ export const usePresence = () => {
   const [partnerPresence, setPartnerPresence] = useState(null)
   const [partnerUserId, setPartnerUserId] = useState(null)
   const [partnerListeningSession, setPartnerListeningSession] = useState(null)
+  // refs must be at top-level of the hook (not inside effects)
+  const inFlight = useRef(false)
+  const visTimer = useRef(null)
 
   useEffect(() => {
     if (!user) return
@@ -14,8 +17,6 @@ export const usePresence = () => {
     let subscription = null
     let listenSubscription = null
     let heartbeatInterval = null
-    const inFlight = useRef(false)
-    const visTimer = useRef(null)
 
     const initialize = async () => {
       try {
@@ -129,47 +130,45 @@ export const usePresence = () => {
         } finally {
           inFlight.current = false
         }
-      }, 300)
-    }
+      return () => {
+        if (heartbeatInterval) clearInterval(heartbeatInterval)
+        if (subscription) subscription.unsubscribe()
+        if (listenSubscription) listenSubscription.unsubscribe()
+        window.removeEventListener('beforeunload', handleBeforeUnload)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+        // Set offline when component unmounts
+        if (!inFlight.current) {
+          inFlight.current = true
+          updatePresence(user.id, false).finally(() => {
+            inFlight.current = false
+          })
+        }
+      }
+    }, [user])
 
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    return () => {
-      if (heartbeatInterval) clearInterval(heartbeatInterval)
-      if (subscription) subscription.unsubscribe()
-      if (listenSubscription) listenSubscription.unsubscribe()
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      // Set offline when component unmounts
-      if (!inFlight.current) {
-        inFlight.current = true
-        updatePresence(user.id, false).finally(() => {
-          inFlight.current = false
-        })
+    return {
+      partnerPresence,
+      partnerUserId,
+      // Treat stale presence as offline unless updated within 40s
+      isPartnerOnline: (() => {
+        if (!partnerPresence) return false
+        const updated = partnerPresence.updated_at ? new Date(partnerPresence.updated_at).getTime() : 0
+        const fresh = Date.now() - updated < 40000
+        return Boolean(partnerPresence.is_online && fresh)
+      })(),
+      partnerLastSeen: partnerPresence?.last_seen,
+      partnerListeningSession,
+      // helper to update my listening session (play/pause/track change)
+      setMyListeningSession: async (sessionData) => {
+        try {
+          return await updateListeningSession(user.id, sessionData)
+        } catch (e) {
+          console.error('Failed to update listening session', e)
+        }
       }
     }
-  }, [user])
 
-  return { 
-    partnerPresence,
-    partnerUserId,
-    // Treat stale presence as offline unless updated within 40s
-    isPartnerOnline: (() => {
-      if (!partnerPresence) return false
-      const updated = partnerPresence.updated_at ? new Date(partnerPresence.updated_at).getTime() : 0
-      const fresh = Date.now() - updated < 40000
-      return Boolean(partnerPresence.is_online && fresh)
-    })(),
-    partnerLastSeen: partnerPresence?.last_seen
-    ,
-    partnerListeningSession,
-    // helper to update my listening session (play/pause/track change)
-    setMyListeningSession: async (sessionData) => {
-      try {
-        return await updateListeningSession(user.id, sessionData)
-      } catch (e) {
-        console.error('Failed to update listening session', e)
+  }
       }
     }
 }
