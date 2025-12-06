@@ -75,14 +75,21 @@ export default function Bookmarks() {
     try { 
       await updateBookmark(id, { visited: true })
       setItems(prev => prev.map(b => b.id === id ? { ...b, visited: true } : b))
-    } catch (e) { console.error(e) }
+    } catch (e) { 
+      console.error('Error marking visited:', e)
+      alert(`Failed to mark visited: ${e.message || 'Unknown error'}`)
+    }
   }
 
   const remove = async (id) => {
     try {
       await deleteBookmark(id)
       setItems(prev => prev.filter(b => b.id !== id))
-    } catch (e) { console.error(e) }
+      alert('Bookmark deleted!')
+    } catch (e) { 
+      console.error('Error deleting bookmark:', e)
+      alert(`Failed to delete bookmark: ${e.message || 'Unknown error'}`)
+    }
   }
 
   const copyLink = async (url) => {
