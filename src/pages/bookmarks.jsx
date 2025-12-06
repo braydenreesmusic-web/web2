@@ -52,7 +52,11 @@ export default function Bookmarks() {
       const saved = await createBookmark(data)
       setItems(prev => [saved, ...prev])
       setTitle(''); setUrl(''); setCategory('Other'); setThumbnail(null); setThumbnailPreview('')
-    } catch (e) { console.error(e) }
+      alert('Bookmark saved!')
+    } catch (e) { 
+      console.error('Error creating bookmark:', e)
+      alert(`Failed to save bookmark: ${e.message || 'Unknown error'}`)
+    }
   }
 
   const updateThumbnail = async (id, newThumbnail) => {
@@ -60,7 +64,11 @@ export default function Bookmarks() {
       await updateBookmark(id, { custom_thumbnail: newThumbnail })
       setItems(prev => prev.map(b => b.id === id ? { ...b, custom_thumbnail: newThumbnail } : b))
       setEditingId(null); setShowThumbnailModal(false); setThumbnail(null); setThumbnailPreview('')
-    } catch (e) { console.error(e) }
+      alert('Thumbnail updated!')
+    } catch (e) { 
+      console.error('Error updating thumbnail:', e)
+      alert(`Failed to update thumbnail: ${e.message || 'Unknown error'}`)
+    }
   }
 
   const markVisited = async (id) => {
