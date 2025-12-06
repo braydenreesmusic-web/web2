@@ -257,16 +257,20 @@ export default function Bookmarks() {
                         <motion.div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          layout
-                          className={`relative group rounded-2xl overflow-hidden transition-all h-full
+                          onClick={() => { if (b.url) window.open(b.url, '_blank', 'noopener'); }}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (b.url) window.open(b.url, '_blank', 'noopener'); } }}
+                          className={`cursor-pointer relative group rounded-2xl overflow-hidden transition-all h-full
                             ${snapshot.isDragging 
                               ? 'shadow-2xl ring-2 ring-pink-500 scale-105' 
                               : 'shadow-md hover:shadow-xl hover:-translate-y-1'
                             }
                           `}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          layout
                         >
                           {/* Thumbnail Background */}
                           <div className="absolute inset-0 bg-gray-100">
@@ -290,22 +294,23 @@ export default function Bookmarks() {
                                 }}
                               />
                             ) : null}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-100 transition-opacity"></div>
                           </div>
 
                           {/* Content Overlay (transparent so thumbnail remains visible) */}
-                          <div className="relative bg-transparent h-full flex flex-col p-4">
+                          <div className="relative h-full flex flex-col p-4">
                             {/* Drag Handle */}
                             <div 
                               {...provided.dragHandleProps}
-                              className="text-gray-400 mb-2 text-lg cursor-grab active:cursor-grabbing flex justify-center"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-gray-200 mb-2 text-lg cursor-grab active:cursor-grabbing flex justify-center"
                             >
                               <Icons.Drag className="w-4 h-4" />
                             </div>
 
                             <div className="flex-1">
-                              <h3 className="font-bold text-gray-900 line-clamp-2 mb-1">{b.title}</h3>
-                              <p className="text-xs text-gray-500 line-clamp-1">{b.url}</p>
+                              <h3 className="font-bold text-white line-clamp-2 mb-1">{b.title}</h3>
+                              <p className="text-xs text-gray-200 line-clamp-1">{b.url}</p>
                             </div>
 
                             {/* Tags */}
@@ -332,19 +337,8 @@ export default function Bookmarks() {
 
                             {/* Actions */}
                             <div className="flex gap-2">
-                              <motion.a 
-                                href={b.url} 
-                                target="_blank" 
-                                rel="noreferrer"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-medium text-center hover:shadow-lg transition-all flex items-center justify-center gap-1"
-                              >
-                                <Icons.Link className="w-4 h-4" />
-                                Open
-                              </motion.a>
                               <motion.button 
-                                onClick={()=>copyLink(b.url)}
+                                onClick={(e) => { e.stopPropagation(); copyLink(b.url) }}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 className="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition-all"
@@ -358,7 +352,7 @@ export default function Bookmarks() {
                             <div className="flex gap-2 mt-2">
                               {!b.visited && (
                                 <motion.button 
-                                  onClick={()=>markVisited(b.id)}
+                                  onClick={(e) => { e.stopPropagation(); markVisited(b.id) }}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
                                   className="flex-1 px-2 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-medium hover:bg-green-200 transition-all flex items-center justify-center gap-1"
@@ -368,7 +362,7 @@ export default function Bookmarks() {
                                 </motion.button>
                               )}
                               <motion.button 
-                                onClick={()=>{ setEditingId(b.id); setShowThumbnailModal(true) }}
+                                onClick={(e) => { e.stopPropagation(); setEditingId(b.id); setShowThumbnailModal(true) }}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 className="flex-1 px-2 py-1.5 rounded-lg bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition-all flex items-center justify-center gap-1"
@@ -377,7 +371,7 @@ export default function Bookmarks() {
                                 Thumb
                               </motion.button>
                               <motion.button 
-                                onClick={()=>remove(b.id)}
+                                onClick={(e) => { e.stopPropagation(); remove(b.id) }}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 className="flex-1 px-2 py-1.5 rounded-lg bg-red-100 text-red-600 text-xs font-medium hover:bg-red-200 transition-all"
