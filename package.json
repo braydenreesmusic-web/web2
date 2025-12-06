@@ -9,13 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.86.0",
-    "react-beautiful-dnd": "^13.1.0",
+    "@supabase/supabase-js": "^2.86.2",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.25",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
+    "react-beautiful-dnd": "^13.1.0",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.26.2"

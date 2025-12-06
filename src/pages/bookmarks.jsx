@@ -84,7 +84,9 @@ export default function Bookmarks() {
   const remove = async (id) => {
     try {
       await deleteBookmark(id)
-      setItems(prev => prev.filter(b => b.id !== id))
+      // refetch authoritative list from server to avoid local-state drift
+      const refreshed = await getBookmarks(user.id)
+      setItems(refreshed || [])
       alert('Bookmark deleted!')
     } catch (e) { 
       console.error('Error deleting bookmark:', e)
@@ -269,18 +271,30 @@ export default function Bookmarks() {
                           {/* Thumbnail Background */}
                           <div className="absolute inset-0 bg-gray-100">
                             {thumb ? (
-                              <img 
-                                src={thumb} 
-                                alt="thumb" 
-                                className="w-full h-full object-cover" 
-                                onError={(e)=>{ e.target.style.display='none' }}
+                              <img
+                                src={thumb}
+                                alt="thumb"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  try {
+                                    const img = e.target;
+                                    // prevent infinite onerror loop
+                                    img.onerror = null;
+                                    const fallback = b?.url
+                                      ? `https://image.thum.io/get/width/600/crop/400/${encodeURIComponent(b.url)}`
+                                      : (favicon || '/fallback-thumbnail.png');
+                                    if (img.src !== fallback) img.src = fallback;
+                                  } catch (_err) {
+                                    e.target.style.display = 'none';
+                                  }
+                                }}
                               />
                             ) : null}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                           </div>
 
-                          {/* Content Overlay */}
-                          <div className="relative bg-white/95 backdrop-blur-sm h-full flex flex-col p-4">
+                          {/* Content Overlay (transparent so thumbnail remains visible) */}
+                          <div className="relative bg-transparent h-full flex flex-col p-4">
                             {/* Drag Handle */}
                             <div 
                               {...provided.dragHandleProps}
