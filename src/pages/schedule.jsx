@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import { getEvents, createEvent, deleteEvent, getTasks, createTask, updateTask } from '../services/api'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const ownerColors = {
   hers: 'bg-red-500',
@@ -10,11 +11,25 @@ const ownerColors = {
   other: 'bg-gray-500'
 }
 
+const ownerEmojis = {
+  hers: '👩',
+  yours: '👨',
+  together: '💑',
+  other: '📌'
+}
+
 const categories = {
   Anniversary: 'bg-red-500',
   Together: 'bg-purple-500',
   Work: 'bg-blue-500',
   Other: 'bg-gray-500'
+}
+
+const categoryEmojis = {
+  Anniversary: '💕',
+  Together: '👫',
+  Work: '💼',
+  Other: '📌'
 }
 
 export default function Schedule() {
@@ -145,158 +160,389 @@ export default function Schedule() {
   }
 
   return (
-    <section className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-12 px-4">
+    <section className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-6xl mx-auto py-8 px-4">
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-5xl font-semibold text-gray-900 tracking-tight">Schedule</h1>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-10"
+        >
+          <h1 className="text-5xl font-bold text-gray-900 mb-2">Schedule & Planning</h1>
+          <p className="text-gray-600">Keep track of events, tasks, and couple goals together</p>
+        </motion.div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-12 bg-gray-100 p-1 rounded-full w-fit">
-          {['calendar','lists','goals'].map(t => (
-            <button
+        <div className="flex gap-2 mb-8 bg-white p-1.5 rounded-full w-fit shadow-sm border border-gray-200">
+          {['calendar','lists','goals'].map((t, i) => (
+            <motion.button
               key={t}
               onClick={()=>setTab(t)}
-              className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200
-                ${tab===t 
-                  ? "bg-white text-gray-900 shadow-sm" 
-                  : "text-gray-600 hover:text-gray-900"}`}
+              layout
+              className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
+                tab===t 
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg" 
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
             >
               {t.charAt(0).toUpperCase()+t.slice(1)}
-            </button>
+            </motion.button>
           ))}
         </div>
 
         {/* CALENDAR TAB */}
-        {tab==='calendar' && (
-          <div className="space-y-8">
-            {/* Add Event */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6">New Event</h2>
-
-              <div className="space-y-6">
-                <div className="grid md:grid-cols-3 gap-4">
-                  <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title"
-                    className="px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"/>
-                  <input type="datetime-local" value={date} onChange={e=>setDate(e.target.value)}
-                    className="px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"/>
-                  <select value={cat} onChange={e=>setCat(e.target.value)} className="px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900">
-                    {Object.keys(categories).map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-4">
-                  <select value={owner} onChange={e=>setOwner(e.target.value)} className="px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900">
-                    <option value="hers">Hers</option>
-                    <option value="yours">Yours</option>
-                    <option value="together">Together</option>
-                  </select>
-
-                  <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Add a note"
-                    className="px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"/>
-
-                  <input type="file" onChange={handlePhotoUpload} className="px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:bg-blue-50 file:text-blue-600 file:cursor-pointer"/>
-                </div>
-
-                {photoPreview && <img src={photoPreview} className="h-32 rounded-lg object-cover border border-gray-200"/>}
-
-                <Button onClick={addEvent} className="w-full bg-blue-500 text-white rounded-lg py-3 font-medium hover:bg-blue-600 transition-colors">
-                  Add Event
-                </Button>
-              </div>
-            </div>
-
-            {/* Calendar */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+        <AnimatePresence mode="wait">
+          {tab==='calendar' && (
+            <motion.div
+              key="calendar"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-8"
+            >
+              {/* Add Event Card */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
+              >
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <span>✨</span> Create New Event
                 </h2>
-              </div>
 
-              <div className="grid grid-cols-7 gap-0 mb-4">
-                {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-                  <div key={d} className="text-center text-xs font-semibold text-gray-500 py-2">{d}</div>
-                ))}
-              </div>
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <input 
+                      value={title} 
+                      onChange={e=>setTitle(e.target.value)} 
+                      placeholder="Event title"
+                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 placeholder-gray-500"
+                    />
+                    <input 
+                      type="datetime-local" 
+                      value={date} 
+                      onChange={e=>setDate(e.target.value)}
+                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-7 gap-0">
-                {Array.from({length: daysInMonth}, (_,i)=>i+1).map(day => (
-                  <div
-                    key={day}
-                    className="aspect-square border border-gray-100 p-2 flex flex-col bg-white hover:bg-gray-50 transition-colors text-sm"
-                  >
-                    <div className="font-semibold text-gray-900 mb-1">{day}</div>
-                    <div className="flex-1 overflow-hidden space-y-0.5">
-                      {(eventsByDay[day] || []).slice(0,2).map(e => (
-                        <div key={e.id} className={`text-xs px-2 py-1 rounded text-white font-medium ${ownerColors[e.owner]} truncate`} title={e.title}>
-                          {e.title}
-                        </div>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <select 
+                      value={cat} 
+                      onChange={e=>setCat(e.target.value)} 
+                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                    >
+                      {Object.keys(categories).map(c => (
+                        <option key={c} value={c}>{categoryEmojis[c]} {c}</option>
                       ))}
-                      {(eventsByDay[day] || []).length > 2 && (
-                        <div className="text-xs text-gray-500 px-2">+{(eventsByDay[day] || []).length - 2}</div>
-                      )}
-                    </div>
+                    </select>
+
+                    <select 
+                      value={owner} 
+                      onChange={e=>setOwner(e.target.value)} 
+                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                    >
+                      <option value="hers">{ownerEmojis.hers} Hers</option>
+                      <option value="yours">{ownerEmojis.yours} Yours</option>
+                      <option value="together">{ownerEmojis.together} Together</option>
+                    </select>
+
+                    <input 
+                      value={note} 
+                      onChange={e=>setNote(e.target.value)} 
+                      placeholder="Add a note"
+                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 placeholder-gray-500"
+                    />
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* LISTS TAB */}
-        {tab==='lists' && (
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Tasks</h2>
-            <div className="flex gap-2 mb-6">
-              <input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} className="px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 placeholder-gray-500"
-                placeholder="Add a task"/>
-              <Button onClick={addTask} className="bg-blue-500 text-white px-6 rounded-lg font-medium hover:bg-blue-600 transition-colors">Add</Button>
-            </div>
-
-            <div className="space-y-2">
-              {tasks.map(t => (
-                <label key={t.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                  <input type="checkbox" checked={t.completed}
-                    onChange={e=>toggleTask(t.id, e.target.checked)}
-                    className="w-5 h-5 rounded border-gray-300 text-blue-500 cursor-pointer"/>
-                  <span className={t.completed ? "line-through text-gray-400" : "text-gray-900"}>{t.title}</span>
-                </label>
-              ))}
-              {!tasks.length && !loading && (
-                <div className="text-center py-8 text-gray-500">No tasks yet</div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* GOALS TAB */}
-        {tab==='goals' && (
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Couple Goals</h2>
-
-            <form className="flex gap-3 mb-8" onSubmit={addGoal}>
-              <input className="px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 placeholder-gray-500" value={newGoal} onChange={e=>setNewGoal(e.target.value)} placeholder="New goal"/>
-              <input className="px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-24 placeholder-gray-500" type="number" value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="Target"/>
-              <Button type="submit" className="bg-blue-500 text-white px-6 rounded-lg font-medium hover:bg-blue-600 transition-colors">Add</Button>
-            </form>
-
-            <div className="space-y-4">
-              {goals.map(goal => (
-                <div key={goal.id} className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="font-semibold text-gray-900">{goal.title}</div>
-                    <div className="text-sm text-gray-500">{goal.progress}/{goal.target}</div>
+                  <div className="flex gap-3">
+                    <label className="flex-1 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 hover:border-purple-500 cursor-pointer transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-purple-600">
+                      <span>📸 Photo</span>
+                      <input type="file" onChange={handlePhotoUpload} className="hidden"/>
+                    </label>
+                    <motion.button 
+                      onClick={addEvent}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:shadow-lg transition-all"
+                    >
+                      Add Event
+                    </motion.button>
                   </div>
-                  <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-500 h-2 rounded-full transition-all" style={{width: `${Math.min(100, (goal.progress / goal.target) * 100)}%`}}></div>
-                  </div>
+
+                  {photoPreview && (
+                    <motion.img 
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      src={photoPreview} 
+                      className="h-40 rounded-xl object-cover border-2 border-purple-500 w-full"
+                    />
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </motion.div>
+
+              {/* Calendar View */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
+              >
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  📅 {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+                </h2>
+
+                <div className="grid grid-cols-7 gap-0 mb-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-2">
+                  {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                    <div key={d} className="text-center text-xs font-bold text-gray-600 py-3">{d}</div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-0.5 bg-gray-100 p-0.5 rounded-xl overflow-hidden">
+                  {Array.from({length: daysInMonth}, (_,i)=>i+1).map(day => (
+                    <div
+                      key={day}
+                      className="aspect-square bg-white p-2 flex flex-col hover:bg-gradient-to-br hover:from-purple-50 hover:to-pink-50 transition-all text-sm cursor-pointer"
+                    >
+                      <div className="font-bold text-gray-700 text-xs mb-1">{day}</div>
+                      <div className="flex-1 overflow-hidden space-y-0.5">
+                        {(eventsByDay[day] || []).slice(0,3).map(e => (
+                          <motion.div 
+                            key={e.id}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className={`text-xs px-1.5 py-0.5 rounded font-semibold text-white truncate ${ownerColors[e.owner]}`} 
+                            title={e.title}
+                          >
+                            {categoryEmojis[e.category]} {e.title}
+                          </motion.div>
+                        ))}
+                        {(eventsByDay[day] || []).length > 3 && (
+                          <div className="text-xs text-gray-500 px-1.5 font-semibold">+{(eventsByDay[day] || []).length - 3}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Events List */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
+              >
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">📌 Upcoming Events</h2>
+                <div className="space-y-3">
+                  <AnimatePresence>
+                    {events.slice(0, 10).map((e, i) => (
+                      <motion.div
+                        key={e.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ delay: i * 0.05 }}
+                        className={`p-4 rounded-xl border-2 flex items-start justify-between gap-4 group hover:shadow-md transition-all ${
+                          ownerColors[e.owner].replace('bg-', 'border-').replace('-500', '-300') + ' bg-gradient-to-br'
+                        }`}
+                      >
+                        <div className="flex-1">
+                          <div className="font-semibold text-gray-900 flex items-center gap-2">
+                            {categoryEmojis[e.category]} {e.title}
+                          </div>
+                          <div className="text-xs text-gray-600 mt-1">
+                            {new Date(e.date).toLocaleString()} • {ownerEmojis[e.owner]} {e.owner}
+                          </div>
+                          {e.note && <div className="text-xs text-gray-700 mt-2 italic">{e.note}</div>}
+                        </div>
+                        <motion.button 
+                          onClick={() => removeEvent(e.id)}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="px-3 py-2 rounded-lg bg-red-100 text-red-600 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          Delete
+                        </motion.button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  {!events.length && <div className="text-center py-6 text-gray-500">No events scheduled yet</div>}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* LISTS TAB */}
+          {tab==='lists' && (
+            <motion.div
+              key="lists"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
+            >
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <span>✅</span> Tasks & To-Dos
+              </h2>
+              
+              <div className="flex gap-3 mb-6">
+                <input 
+                  value={taskTitle} 
+                  onChange={e=>setTaskTitle(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addTask()}
+                  className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 flex-1 placeholder-gray-500"
+                  placeholder="Add a task..."
+                />
+                <motion.button 
+                  onClick={addTask}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:shadow-lg transition-all"
+                >
+                  Add
+                </motion.button>
+              </div>
+
+              <div className="space-y-2">
+                <AnimatePresence>
+                  {tasks.map((t, i) => (
+                    <motion.label
+                      key={t.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="flex items-center gap-3 p-4 rounded-xl hover:bg-gray-50 transition-all cursor-pointer group border border-gray-100"
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={t.completed}
+                        onChange={e=>toggleTask(t.id, e.target.checked)}
+                        className="w-5 h-5 rounded border-gray-300 text-purple-500 cursor-pointer"
+                      />
+                      <span className={`flex-1 font-medium transition-all ${t.completed ? "line-through text-gray-400" : "text-gray-900"}`}>
+                        {t.title}
+                      </span>
+                      {t.completed && <span className="text-green-500 text-lg">✓</span>}
+                    </motion.label>
+                  ))}
+                </AnimatePresence>
+                {!tasks.length && !loading && (
+                  <div className="text-center py-12 text-gray-500">
+                    <div className="text-4xl mb-2">📝</div>
+                    <p>No tasks yet - add one to get started!</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* GOALS TAB */}
+          {tab==='goals' && (
+            <motion.div
+              key="goals"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-8"
+            >
+              {/* Add Goal */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
+              >
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <span>🎯</span> Add a New Goal
+                </h2>
+                
+                <form className="flex gap-3" onSubmit={addGoal}>
+                  <input 
+                    className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 flex-1 placeholder-gray-500" 
+                    value={newGoal} 
+                    onChange={e=>setNewGoal(e.target.value)} 
+                    placeholder="What's your goal?"
+                  />
+                  <input 
+                    className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-24 placeholder-gray-500" 
+                    type="number" 
+                    value={newTarget} 
+                    onChange={e=>setNewTarget(e.target.value)} 
+                    placeholder="Target"
+                  />
+                  <motion.button 
+                    type="submit"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:shadow-lg transition-all"
+                  >
+                    Add
+                  </motion.button>
+                </form>
+              </motion.div>
+
+              {/* Goals List */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="grid md:grid-cols-2 gap-6"
+              >
+                <AnimatePresence mode="popLayout">
+                  {goals.map((goal, i) => {
+                    const progress = Math.min(100, (goal.progress / goal.target) * 100)
+                    return (
+                      <motion.div 
+                        key={goal.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="bg-white rounded-2xl p-6 shadow-md border border-gray-200 hover:shadow-lg hover:-translate-y-1 transition-all group"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="font-bold text-gray-900 text-lg flex-1">{goal.title}</div>
+                          <div className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                            {goal.progress}/{goal.target}
+                          </div>
+                        </div>
+                        
+                        <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden mb-3">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progress}%` }}
+                            transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
+                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                          />
+                        </div>
+
+                        <div className="text-xs text-gray-600 flex items-center justify-between">
+                          <span>{Math.round(progress)}% complete</span>
+                          <span className="text-lg">{progress === 100 ? '🎉' : '💪'}</span>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
+              </motion.div>
+
+              {!goals.length && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-12"
+                >
+                  <div className="text-5xl mb-3">🌟</div>
+                  <p className="text-gray-500 text-lg">No goals yet - set one to inspire each other!</p>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   )
