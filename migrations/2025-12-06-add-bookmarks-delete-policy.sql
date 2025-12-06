@@ -19,7 +19,7 @@ BEGIN
     SELECT 1 FROM pg_policies
     WHERE schemaname = 'public' AND tablename = 'bookmarks' AND policyname = 'Users can delete own bookmarks'
   ) THEN
-    EXECUTE $$
+    EXECUTE '
       CREATE POLICY "Users can delete own bookmarks"
       ON public.bookmarks
       FOR DELETE
@@ -29,8 +29,8 @@ BEGIN
           SELECT relationships.partner_user_id FROM relationships
           WHERE relationships.user_id = auth.uid()
         ))
-      );
-    $$;
+      )
+    ';
   END IF;
 END;
 $$;
