@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { getBookmarks, createBookmark, updateBookmark, deleteBookmark, bulkUpdateBookmarkOrder } from '../services/api'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Icons, IconButton, CategoryBadge } from '../components/Icons'
 
 const cats = ['All','Restaurants','Movies/Shows','Date Ideas','Gift Ideas','Places to Visit','Other']
 
@@ -116,7 +117,10 @@ export default function Bookmarks() {
     <section className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Saved Bookmarks</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <Icons.Bookmark className="w-8 h-8 text-purple-600" />
+          <h1 className="text-4xl font-bold text-gray-900">Saved Bookmarks</h1>
+        </div>
         <p className="text-gray-600">Organize and save your favorite places, ideas, and inspiration</p>
       </div>
 
@@ -145,7 +149,10 @@ export default function Bookmarks() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200"
       >
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Add New Bookmark</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <Icons.Add className="w-6 h-6 text-purple-600" />
+          <h2 className="text-xl font-semibold text-gray-900">Add New Bookmark</h2>
+        </div>
         <div className="space-y-4">
           <div className="grid md:grid-cols-4 gap-3">
             <input 
@@ -171,7 +178,8 @@ export default function Bookmarks() {
           
           <div className="flex gap-3">
             <label className="flex-1 px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-pink-500 cursor-pointer transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-pink-600">
-              <span>📸 Add thumbnail</span>
+              <Icons.Image className="w-4 h-4" />
+              <span>Add thumbnail</span>
               <input 
                 type="file" 
                 accept="image/*"
@@ -261,9 +269,9 @@ export default function Bookmarks() {
                             {/* Drag Handle */}
                             <div 
                               {...provided.dragHandleProps}
-                              className="text-gray-400 mb-2 text-lg cursor-grab active:cursor-grabbing"
+                              className="text-gray-400 mb-2 text-lg cursor-grab active:cursor-grabbing flex justify-center"
                             >
-                              ⋮⋮
+                              <Icons.Drag className="w-4 h-4" />
                             </div>
 
                             <div className="flex-1">
@@ -273,15 +281,23 @@ export default function Bookmarks() {
 
                             {/* Tags */}
                             <div className="flex gap-2 mb-3 flex-wrap">
-                              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                {b.category}
-                              </span>
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                              <CategoryBadge category={b.category} />
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
                                 b.visited 
                                   ? 'bg-green-100 text-green-700' 
                                   : 'bg-yellow-100 text-yellow-700'
                               }`}>
-                                {b.visited ? '✓ Visited' : 'New'}
+                                {b.visited ? (
+                                  <>
+                                    <Icons.CheckBadge className="w-3.5 h-3.5" />
+                                    Visited
+                                  </>
+                                ) : (
+                                  <>
+                                    <Icons.Star className="w-3.5 h-3.5" />
+                                    New
+                                  </>
+                                )}
                               </span>
                             </div>
 
@@ -293,8 +309,9 @@ export default function Bookmarks() {
                                 rel="noreferrer"
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-medium text-center hover:shadow-lg transition-all"
+                                className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-medium text-center hover:shadow-lg transition-all flex items-center justify-center gap-1"
                               >
+                                <Icons.Link className="w-4 h-4" />
                                 Open
                               </motion.a>
                               <motion.button 
@@ -304,7 +321,7 @@ export default function Bookmarks() {
                                 className="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition-all"
                                 title="Copy link"
                               >
-                                📋
+                                <Icons.Copy className="w-4 h-4" />
                               </motion.button>
                             </div>
 
@@ -315,18 +332,20 @@ export default function Bookmarks() {
                                   onClick={()=>markVisited(b.id)}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className="flex-1 px-2 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-medium hover:bg-green-200 transition-all"
+                                  className="flex-1 px-2 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-medium hover:bg-green-200 transition-all flex items-center justify-center gap-1"
                                 >
-                                  Mark visited
+                                  <Icons.Eye className="w-3.5 h-3.5" />
+                                  Visited
                                 </motion.button>
                               )}
                               <motion.button 
                                 onClick={()=>{ setEditingId(b.id); setShowThumbnailModal(true) }}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="flex-1 px-2 py-1.5 rounded-lg bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition-all"
+                                className="flex-1 px-2 py-1.5 rounded-lg bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition-all flex items-center justify-center gap-1"
                               >
-                                📸 Thumbnail
+                                <Icons.Image className="w-3.5 h-3.5" />
+                                Thumb
                               </motion.button>
                               <motion.button 
                                 onClick={()=>remove(b.id)}
@@ -334,7 +353,7 @@ export default function Bookmarks() {
                                 whileTap={{ scale: 0.95 }}
                                 className="flex-1 px-2 py-1.5 rounded-lg bg-red-100 text-red-600 text-xs font-medium hover:bg-red-200 transition-all"
                               >
-                                Delete
+                                <Icons.Trash className="w-3.5 h-3.5" />
                               </motion.button>
                             </div>
                           </div>
@@ -356,7 +375,7 @@ export default function Bookmarks() {
           animate={{ opacity: 1 }}
           className="text-center py-16"
         >
-          <div className="text-5xl mb-4">📚</div>
+          <Icons.Bookmark className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 text-lg">No bookmarks yet in this category</p>
           <p className="text-gray-400 text-sm">Add one above to get started</p>
         </motion.div>
@@ -379,10 +398,13 @@ export default function Bookmarks() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
             >
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Change Thumbnail</h3>
+              <div className="flex items-center gap-2 mb-4">
+                <Icons.Image className="w-6 h-6 text-purple-600" />
+                <h3 className="text-xl font-bold text-gray-900">Change Thumbnail</h3>
+              </div>
               
               <label className="block w-full px-4 py-8 rounded-lg border-2 border-dashed border-gray-300 hover:border-pink-500 cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-pink-600 mb-4">
-                <span className="text-3xl">📸</span>
+                <Icons.Image className="w-8 h-8" />
                 <span className="font-medium">Click to upload or drag</span>
                 <input 
                   type="file" 

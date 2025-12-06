@@ -3,6 +3,7 @@ import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import { getEvents, createEvent, deleteEvent, getTasks, createTask, updateTask } from '../services/api'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Icons, OwnerBadge } from '../components/Icons'
 
 const ownerColors = {
   hers: 'bg-red-500',
@@ -168,7 +169,10 @@ export default function Schedule() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-10"
         >
-          <h1 className="text-5xl font-bold text-gray-900 mb-2">Schedule & Planning</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <Icons.Calendar className="w-8 h-8 text-purple-600" />
+            <h1 className="text-5xl font-bold text-gray-900">Schedule & Planning</h1>
+          </div>
           <p className="text-gray-600">Keep track of events, tasks, and couple goals together</p>
         </motion.div>
 
@@ -207,9 +211,10 @@ export default function Schedule() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
               >
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <span>✨</span> Create New Event
-                </h2>
+                <div className="flex items-center gap-2 mb-6">
+                  <Icons.Add className="w-6 h-6 text-purple-600" />
+                  <h2 className="text-2xl font-bold text-gray-900">Create New Event</h2>
+                </div>
 
                 <div className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
@@ -258,7 +263,8 @@ export default function Schedule() {
 
                   <div className="flex gap-3">
                     <label className="flex-1 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 hover:border-purple-500 cursor-pointer transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-purple-600">
-                      <span>📸 Photo</span>
+                      <Icons.Image className="w-4 h-4" />
+                      <span>Photo</span>
                       <input type="file" onChange={handlePhotoUpload} className="hidden"/>
                     </label>
                     <motion.button 
@@ -289,9 +295,12 @@ export default function Schedule() {
                 transition={{ delay: 0.1 }}
                 className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
               >
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  📅 {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
-                </h2>
+                <div className="flex items-center gap-2 mb-6">
+                  <Icons.Calendar className="w-6 h-6 text-purple-600" />
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+                  </h2>
+                </div>
 
                 <div className="grid grid-cols-7 gap-0 mb-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-2">
                   {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
@@ -315,7 +324,7 @@ export default function Schedule() {
                             className={`text-xs px-1.5 py-0.5 rounded font-semibold text-white truncate ${ownerColors[e.owner]}`} 
                             title={e.title}
                           >
-                            {categoryEmojis[e.category]} {e.title}
+                            {e.title}
                           </motion.div>
                         ))}
                         {(eventsByDay[day] || []).length > 3 && (
@@ -334,7 +343,10 @@ export default function Schedule() {
                 transition={{ delay: 0.2 }}
                 className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
               >
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">📌 Upcoming Events</h2>
+                <div className="flex items-center gap-2 mb-6">
+                  <Icons.Link className="w-6 h-6 text-purple-600" />
+                  <h2 className="text-2xl font-bold text-gray-900">Upcoming Events</h2>
+                </div>
                 <div className="space-y-3">
                   <AnimatePresence>
                     {events.slice(0, 10).map((e, i) => (
@@ -350,10 +362,10 @@ export default function Schedule() {
                       >
                         <div className="flex-1">
                           <div className="font-semibold text-gray-900 flex items-center gap-2">
-                            {categoryEmojis[e.category]} {e.title}
+                            {e.title}
                           </div>
                           <div className="text-xs text-gray-600 mt-1">
-                            {new Date(e.date).toLocaleString()} • {ownerEmojis[e.owner]} {e.owner}
+                            {new Date(e.date).toLocaleString()} • <OwnerBadge owner={e.owner} />
                           </div>
                           {e.note && <div className="text-xs text-gray-700 mt-2 italic">{e.note}</div>}
                         </div>
@@ -363,7 +375,7 @@ export default function Schedule() {
                           whileTap={{ scale: 0.9 }}
                           className="px-3 py-2 rounded-lg bg-red-100 text-red-600 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          Delete
+                          <Icons.Trash className="w-4 h-4" />
                         </motion.button>
                       </motion.div>
                     ))}
@@ -384,9 +396,10 @@ export default function Schedule() {
               transition={{ duration: 0.2 }}
               className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
             >
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <span>✅</span> Tasks & To-Dos
-              </h2>
+              <div className="flex items-center gap-2 mb-6">
+                <Icons.CheckCircle className="w-6 h-6 text-purple-600" />
+                <h2 className="text-2xl font-bold text-gray-900">Tasks & To-Dos</h2>
+              </div>
               
               <div className="flex gap-3 mb-6">
                 <input 
@@ -456,9 +469,10 @@ export default function Schedule() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
               >
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <span>🎯</span> Add a New Goal
-                </h2>
+                <div className="flex items-center gap-2 mb-6">
+                  <Icons.Target className="w-6 h-6 text-purple-600" />
+                  <h2 className="text-2xl font-bold text-gray-900">Add a New Goal</h2>
+                </div>
                 
                 <form className="flex gap-3" onSubmit={addGoal}>
                   <input 
@@ -522,7 +536,7 @@ export default function Schedule() {
 
                         <div className="text-xs text-gray-600 flex items-center justify-between">
                           <span>{Math.round(progress)}% complete</span>
-                          <span className="text-lg">{progress === 100 ? '🎉' : '💪'}</span>
+                          <span>{progress === 100 ? '🎉' : <Icons.Target className="w-4 h-4" />}</span>
                         </div>
                       </motion.div>
                     )
@@ -536,7 +550,7 @@ export default function Schedule() {
                   animate={{ opacity: 1 }}
                   className="text-center py-12"
                 >
-                  <div className="text-5xl mb-3">🌟</div>
+                  <Icons.Target className="w-16 h-16 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 text-lg">No goals yet - set one to inspire each other!</p>
                 </motion.div>
               )}
