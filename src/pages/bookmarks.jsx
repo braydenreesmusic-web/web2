@@ -83,14 +83,26 @@ export default function Bookmarks() {
 
   const remove = async (id) => {
     try {
-      await deleteBookmark(id)
-      // refetch authoritative list from server to avoid local-state drift
+      const deleted = await deleteBookmark(id)
+      if (!deleted) {
+        // Deletion didn't return a deleted row — refetch to show current state and surface an error
+        const refreshed = await getBookmarks(user.id)
+        setItems(refreshed || [])
+        alert('Failed to delete bookmark (no confirmation). Check permissions.')
+        return
+      }
+      // Success — refresh authoritative list
       const refreshed = await getBookmarks(user.id)
       setItems(refreshed || [])
       alert('Bookmark deleted!')
-    } catch (e) { 
+    } catch (e) {
+      // Surface detailed error info for RLS/permission issues
       console.error('Error deleting bookmark:', e)
-      alert(`Failed to delete bookmark: ${e.message || 'Unknown error'}`)
+      let body = ''
+      try { body = JSON.stringify(e, Object.getOwnPropertyNames(e), 2) } catch (_) { body = String(e) }
+      alert(`Failed to delete bookmark. Error: ${e?.message || e?.error || ''}\nDetails: ${body}`)
+      // refetch to ensure UI matches DB
+      try { const refreshed = await getBookmarks(user.id); setItems(refreshed || []) } catch (_err) { /* ignore */ }
     }
   }
 

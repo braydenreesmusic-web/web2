@@ -375,13 +375,16 @@ export const updateBookmark = async (bookmarkId, updates) => {
 }
 
 export const deleteBookmark = async (bookmarkId) => {
-  const { error } = await supabase
+  // Return the deleted row so callers can verify the operation.
+  const { data, error } = await supabase
     .from('bookmarks')
     .delete()
     .eq('id', bookmarkId)
+    .select()
+    .maybeSingle()
 
   if (error) throw error
-  return true
+  return data || null
 }
 
 /**

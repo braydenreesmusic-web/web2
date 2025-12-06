@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
-import { getCheckIns, getNotes, getMedia, getSavingsGoals, getPresence } from '../services/api'
+import { getCheckIns, getNotes, getMedia, getSavingsGoals, getPresence, getRelationshipData } from '../services/api'
 import DailyCheckIn from '../components/modals/DailyCheckIn.jsx'
 import MemoryConstellation from '../components/modals/MemoryConstellation.jsx'
 import RelationshipInsights from '../components/modals/RelationshipInsights.jsx'
@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [photos, setPhotos] = useState([])
   const [savings, setSavings] = useState([])
   const [presence, setPresence] = useState([])
+  const [relationship, setRelationship] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -28,12 +29,13 @@ export default function Dashboard() {
       if (!user) return
       setLoading(true)
       try {
-        const [ci, nt, ph, sv, pr] = await Promise.all([
+        const [ci, nt, ph, sv, pr, rel] = await Promise.all([
           getCheckIns(user.id),
           getNotes(user.id),
           getMedia(user.id, 'photo'),
           getSavingsGoals(user.id),
-          getPresence()
+          getPresence(),
+          getRelationshipData(user.id)
         ])
         if (cancelled) return
         setCheckIns(ci || [])
@@ -41,6 +43,7 @@ export default function Dashboard() {
         setPhotos(ph || [])
         setSavings(sv || [])
         setPresence(pr || [])
+        setRelationship(rel || null)
       } catch (e) {
         console.error('Dashboard load failed', e)
       } finally {
@@ -91,9 +94,25 @@ export default function Dashboard() {
         <div className="glass-card p-4">
           <div className="text-sm text-gray-500 mb-2">Presence</div>
           {presence.filter(p => p.is_online).length > 0 ? (
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500"/> 
-              <span className="text-sm">{presence.filter(p => p.is_online).length} online</span>
+            <div className="flex flex-col gap-1">
+              {presence.filter(p => p.is_online).map(p => {
+                const isMe = p.user_id === user.id
+                const name = isMe
+                  ? (user.user_metadata?.name || 'You')
+                  : (
+                      // prefer stored partner names if available
+                      (relationship?.partner_a && relationship?.partner_b)
+                        ? (relationship.partner_a && relationship.partner_b ? `${relationship.partner_a} & ${relationship.partner_b}` : relationship.display_name)
+                        : 'Partner'
+                    )
+                return (
+                  <div key={p.user_id} className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500"/>
+                    <span className="text-sm font-medium">{name}{isMe ? ' (you)' : ''}</span>
+                    <span className="text-xs text-gray-400"> • {p.updated_at ? new Date(p.updated_at).toLocaleTimeString() : ''}</span>
+                  </div>
+                )
+              })}
             </div>
           ) : (
             <div className="text-sm text-gray-400">No one online</div>
