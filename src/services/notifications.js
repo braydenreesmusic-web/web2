@@ -24,8 +24,21 @@ export async function subscribeToPush(vapidPublicKey) {
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
   });
+  const json = sub.toJSON()
 
-  return sub.toJSON();
+  // Try to persist the subscription server-side so we can send pushes later.
+  try {
+    await fetch('/api/push-subscriptions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: json })
+    })
+  } catch (err) {
+    // non-fatal: still return the subscription for client-only use
+    console.warn('failed to save subscription to server', err)
+  }
+
+  return json;
 }
 
 export async function subscribeToPushAndReturn(vapidPublicKey) {
@@ -39,7 +52,19 @@ export async function unsubscribeFromPush() {
   if (!reg) return;
   const sub = await reg.pushManager.getSubscription();
   if (!sub) return;
+  const json = sub.toJSON()
   await sub.unsubscribe();
+
+  // attempt to delete server-side record (best-effort)
+  try {
+    await fetch('/api/push-subscriptions', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: json.endpoint })
+    })
+  } catch (err) {
+    console.warn('failed to remove subscription from server', err)
+  }
   return true
 }
 
