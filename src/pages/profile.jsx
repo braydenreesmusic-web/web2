@@ -6,6 +6,7 @@ import { LogOut, User, Heart, Calendar, Camera, FileText, Edit2, Check, Send, Us
 import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../services/api'
 import NotificationsButton from '../components/NotificationsButton'
 import NotificationPrompt from '../components/NotificationPrompt'
+import { supabase } from '../lib/supabase'
 
 export default function Profile() {
   const { user, signOut } = useAuth()
@@ -212,6 +213,10 @@ export default function Profile() {
                 <span>{user?.email}</span>
                 <NotificationsButton />
               </div>
+                <div className="mt-3 space-y-2">
+                  <PushSupport />
+                  <SubscriptionDebug />
+                </div>
           </div>
         </div>
         
@@ -431,5 +436,78 @@ export default function Profile() {
         Sign Out
       </motion.button>
     </section>
+  )
+}
+
+function PushSupport(){
+  const [info, setInfo] = useState({ sw: false, push: false, notif: false, secure: false, permission: 'default', ua: '' })
+
+  useEffect(()=>{
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+    const sw = typeof navigator !== 'undefined' && 'serviceWorker' in navigator
+    const push = typeof window !== 'undefined' && 'PushManager' in window
+    const notif = typeof window !== 'undefined' && 'Notification' in window
+    const secure = typeof location !== 'undefined' && (location.protocol === 'https:' || location.hostname === 'localhost')
+    const permission = typeof Notification !== 'undefined' && Notification.permission ? Notification.permission : 'default'
+    setInfo({ sw, push, notif, secure, permission, ua })
+  },[])
+
+  return (
+    <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+      <div className="font-medium mb-1">Push Support</div>
+      <div className="grid grid-cols-2 gap-1">
+        <div><strong>Service Worker:</strong> {info.sw ? 'Yes' : 'No'}</div>
+        <div><strong>Push API:</strong> {info.push ? 'Yes' : 'No'}</div>
+        <div><strong>Notifications:</strong> {info.notif ? 'Yes' : 'No'}</div>
+        <div><strong>Secure Context:</strong> {info.secure ? 'Yes' : 'No'}</div>
+        <div><strong>Permission:</strong> {info.permission}</div>
+        <div className="truncate"><strong>User Agent:</strong> {info.ua}</div>
+      </div>
+      {!info.sw || !info.push || !info.notif ? (
+        <div className="mt-2 text-amber-700">
+          This browser may not support web push. Try Chrome on Android or Safari on iOS 16.4+.
+          If you're testing locally on your phone, serve the app over HTTPS (use ngrok or deploy a preview).
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function SubscriptionDebug(){
+  const [subs, setSubs] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(()=>{
+    let mounted = true
+    async function load(){
+      setLoading(true)
+      try{
+        const { data, error } = await supabase.from('push_subscriptions').select('*')
+        if (error) throw error
+        if (mounted) setSubs(data)
+      }catch(e){
+        console.error('Failed to load subscriptions', e)
+        if (mounted) setSubs([])
+      }finally{
+        if (mounted) setLoading(false)
+      }
+    }
+    load()
+    return ()=>{ mounted=false }
+  },[])
+
+  if (loading) return <div className="text-xs text-gray-500">Loading subscriptions…</div>
+  return (
+    <div className="text-xs text-gray-700 bg-gray-50 p-2 rounded">
+      <div className="font-medium">Push Subscriptions</div>
+      {(!subs || subs.length===0) && <div className="text-sm text-gray-500">No subscriptions for this user</div>}
+      {subs && subs.map(s=> (
+        <div key={s.id} className="mt-2">
+          <div><strong>ID:</strong> {s.id}</div>
+          <div className="truncate"><strong>Endpoint:</strong> {s.subscription?.endpoint}</div>
+          <div><strong>Created:</strong> {new Date(s.created_at).toLocaleString()}</div>
+        </div>
+      ))}
+    </div>
   )
 }
