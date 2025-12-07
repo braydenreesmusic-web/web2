@@ -213,8 +213,7 @@ export default function Profile() {
                 <span>{user?.email}</span>
                 <NotificationsButton />
               </div>
-                <div className="mt-3 space-y-2">
-                  <PushSupport />
+                <div className="mt-3">
                   <SubscriptionDebug />
                 </div>
           </div>
@@ -436,40 +435,6 @@ export default function Profile() {
         Sign Out
       </motion.button>
     </section>
-  )
-}
-
-function PushSupport(){
-  const [info, setInfo] = useState({ sw: false, push: false, notif: false, secure: false, permission: 'default', ua: '' })
-
-  useEffect(()=>{
-    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
-    const sw = typeof navigator !== 'undefined' && 'serviceWorker' in navigator
-    const push = typeof window !== 'undefined' && 'PushManager' in window
-    const notif = typeof window !== 'undefined' && 'Notification' in window
-    const secure = typeof location !== 'undefined' && (location.protocol === 'https:' || location.hostname === 'localhost')
-    const permission = typeof Notification !== 'undefined' && Notification.permission ? Notification.permission : 'default'
-    setInfo({ sw, push, notif, secure, permission, ua })
-  },[])
-
-  return (
-    <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-      <div className="font-medium mb-1">Push Support</div>
-      <div className="grid grid-cols-2 gap-1">
-        <div><strong>Service Worker:</strong> {info.sw ? 'Yes' : 'No'}</div>
-        <div><strong>Push API:</strong> {info.push ? 'Yes' : 'No'}</div>
-        <div><strong>Notifications:</strong> {info.notif ? 'Yes' : 'No'}</div>
-        <div><strong>Secure Context:</strong> {info.secure ? 'Yes' : 'No'}</div>
-        <div><strong>Permission:</strong> {info.permission}</div>
-        <div className="truncate"><strong>User Agent:</strong> {info.ua}</div>
-      </div>
-      {!info.sw || !info.push || !info.notif ? (
-        <div className="mt-2 text-amber-700">
-          This browser may not support web push. Try Chrome on Android or Safari on iOS 16.4+.
-          If you're testing locally on your phone, serve the app over HTTPS (use ngrok or deploy a preview).
-        </div>
-      ) : null}
-    </div>
   )
 }
 
