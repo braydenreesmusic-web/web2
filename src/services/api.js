@@ -1,5 +1,19 @@
 import { supabase } from '../lib/supabase'
 
+// Helper: trigger a server-side push broadcast via our send-push endpoint.
+// Keep payload small; server will broadcast to all stored subscriptions.
+async function triggerNotification({ title, body, user_id = null } = {}) {
+  try {
+    await fetch('/api/send-push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body, user_id })
+    })
+  } catch (err) {
+    console.warn('triggerNotification failed', err)
+  }
+}
+
 // ============== User & Relationship ==============
 
 export const getRelationshipData = async (userId) => {
@@ -87,6 +101,8 @@ export const createCheckIn = async (checkInData) => {
     .single()
   
   if (error) throw error
+  // Notify about new check-in
+  triggerNotification({ title: 'New check-in', body: `${checkInData.user_name || 'Someone'} added a check-in` })
   return data
 }
 
@@ -128,6 +144,7 @@ export const createEvent = async (eventData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New event', body: `${eventData.title || 'Event'} created` })
   return data
 }
 
@@ -140,6 +157,7 @@ export const updateEvent = async (eventId, updates) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'Event updated', body: `Event updated: ${updates.title || ''}` })
   return data
 }
 
@@ -150,6 +168,7 @@ export const deleteEvent = async (eventId) => {
     .eq('id', eventId)
   
   if (error) throw error
+  triggerNotification({ title: 'Event deleted', body: 'An event was removed' })
 }
 
 // ============== Tasks ==============
@@ -173,6 +192,7 @@ export const createTask = async (taskData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New task', body: `${taskData.title || 'Task'} added` })
   return data
 }
 
@@ -232,6 +252,7 @@ export const uploadMedia = async (file, metadata) => {
     .single()
 
   if (error) throw error
+  triggerNotification({ title: 'New photo', body: `${metadata.user_name || 'Someone'} added a photo` })
   return data
 }
 
@@ -268,6 +289,7 @@ export const createNote = async (noteData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New note', body: `${noteData.title || 'A note'} was created` })
   return data
 }
 
@@ -308,6 +330,7 @@ export const createPin = async (pinData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New pin', body: 'A new location pin was added' })
   return data
 }
 
@@ -359,6 +382,7 @@ export const createBookmark = async (bookmarkData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New bookmark', body: `${bookmarkData.title || 'A bookmark'} added` })
   return data
 }
 
@@ -384,6 +408,7 @@ export const deleteBookmark = async (bookmarkId) => {
     .maybeSingle()
 
   if (error) throw error
+  triggerNotification({ title: 'Bookmark deleted', body: 'A bookmark was removed' })
   return data || null
 }
 
@@ -457,6 +482,7 @@ export const createSavingsGoal = async (goalData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New savings goal', body: `${goalData.title || 'Savings goal'} created` })
   return data
 }
 
@@ -503,7 +529,7 @@ export const addContribution = async (contributionData) => {
       .update({ current_amount: (goal.current_amount || 0) + contributionData.amount })
       .eq('id', contributionData.goal_id)
   }
-  
+  triggerNotification({ title: 'New contribution', body: `A contribution of ${contributionData.amount} was added` })
   return data
 }
 
@@ -541,6 +567,7 @@ export const saveMusicTrack = async (trackData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New track saved', body: `${trackData.title || 'Track'} saved` })
   return data
 }
 
