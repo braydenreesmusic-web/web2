@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { LogOut, User, Heart, Calendar, Camera, FileText, Edit2, Check, Send, UserPlus, CheckCircle, XCircle, Mail } from 'lucide-react'
 import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../services/api'
 import NotificationsButton from '../components/NotificationsButton'
+import NotificationPrompt from '../components/NotificationPrompt'
 
 export default function Profile() {
   const { user, signOut } = useAuth()
@@ -195,6 +196,7 @@ export default function Profile() {
 
   return (
     <section className="space-y-6">
+      <NotificationPrompt />
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
