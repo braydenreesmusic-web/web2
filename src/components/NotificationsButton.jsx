@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Bell, BellOff } from 'lucide-react'
-import { registerServiceWorker, subscribeToPush, saveSubscriptionToServer, unsubscribeFromPush, isPushSupported } from '../services/notifications'
+import { registerServiceWorker, subscribeToPush, subscribeToPushAndReturn, unsubscribeFromPush, isPushSupported } from '../services/notifications'
 
 export default function NotificationsButton() {
   const [supported, setSupported] = useState(false)
@@ -32,7 +32,8 @@ export default function NotificationsButton() {
       const vapid = import.meta.env.VITE_VAPID_PUBLIC
       if (!vapid) throw new Error('VAPID public key not configured (VITE_VAPID_PUBLIC)')
       const sub = await subscribeToPush(vapid)
-      await saveSubscriptionToServer(sub)
+      // subscriptions are now handled client-side only; return subscription if needed
+      await subscribeToPushAndReturn(vapid)
       setSubscribed(true)
       showToast('Notifications enabled')
     } catch (e) {

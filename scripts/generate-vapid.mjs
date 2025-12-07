@@ -1,5 +1,3 @@
 #!/usr/bin/env node
-// Generate a VAPID keypair and print JSON to stdout
-const webpush = (await import('web-push')).default
-const keys = webpush.generateVAPIDKeys()
-console.log(JSON.stringify(keys, null, 2))
+console.log('generate-vapid deprecated: VAPID tooling removed from repo.')
+process.exit(0)

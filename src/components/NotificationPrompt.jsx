@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { subscribeToPush, saveSubscriptionToServer, registerServiceWorker, isPushSupported } from '../services/notifications'
+import { subscribeToPush, subscribeToPushAndReturn, registerServiceWorker, isPushSupported } from '../services/notifications'
 
 const STORAGE_KEY = 'notifications_prompt_dismissed'
 
@@ -45,7 +45,7 @@ export default function NotificationPrompt() {
       if (!vapid) throw new Error('VAPID public key not configured (VITE_VAPID_PUBLIC)')
 
       const sub = await subscribeToPush(vapid)
-      await saveSubscriptionToServer(sub)
+      await subscribeToPushAndReturn(vapid)
       setMessage('Notifications enabled')
       localStorage.setItem(STORAGE_KEY, '1')
       setTimeout(() => setShow(false), 900)

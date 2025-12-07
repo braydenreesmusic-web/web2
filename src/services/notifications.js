@@ -1,10 +1,4 @@
-// Client-side helpers for web push subscription management
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
+// Client-side helpers for web push subscription management (no server-side storage)
 export async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     try {
@@ -31,18 +25,9 @@ export async function subscribeToPush(vapidPublicKey) {
   return sub.toJSON();
 }
 
-export async function saveSubscriptionToServer(subscription) {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError) throw userError;
-  const user = userData?.user;
-  if (!user) throw new Error('Not authenticated');
-
-  const { data, error } = await supabase
-    .from('push_subscriptions')
-    .insert([{ user_id: user.id, subscription }]);
-
-  if (error) throw error;
-  return data;
+export async function subscribeToPushAndReturn(vapidPublicKey) {
+  // convenience wrapper for subscribeToPush that returns the raw subscription JSON
+  return await subscribeToPush(vapidPublicKey)
 }
 
 export async function unsubscribeFromPush() {
@@ -52,13 +37,7 @@ export async function unsubscribeFromPush() {
   const sub = await reg.pushManager.getSubscription();
   if (!sub) return;
   await sub.unsubscribe();
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (!userError) {
-    const user = userData?.user;
-    if (user) {
-      await supabase.from('push_subscriptions').delete().eq('user_id', user.id);
-    }
-  }
+  return true
 }
 
 function urlBase64ToUint8Array(base64String) {

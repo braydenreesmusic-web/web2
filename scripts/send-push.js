@@ -24,35 +24,7 @@ webpush.setVapidDetails('mailto:admin@example.com', VAPID_PUBLIC, VAPID_PRIVATE)
 async function fetchSubscriptions() {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?select=*`, {
     headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`
-    }
+      #!/usr/bin/env node
+      console.log('send-push (CJS) deprecated: push_subscriptions storage has been removed from this project.')
+      process.exit(0)
   });
-  if (!res.ok) throw new Error('Failed to fetch subscriptions: ' + res.statusText);
-  return res.json();
-}
-
-async function main() {
-  const title = argv.title || 'Notification';
-  const body = argv.body || 'You have a new message';
-  const icon = argv.icon;
-
-  const subs = await fetchSubscriptions();
-  console.log('Found', subs.length, 'subscriptions');
-
-  const payload = JSON.stringify({ title, body, icon });
-
-  for (let s of subs) {
-    try {
-      await webpush.sendNotification(s.subscription, payload);
-      console.log('Sent to', s.id);
-    } catch (err) {
-      console.error('Failed to send to', s.id, err.message || err);
-    }
-  }
-}
-
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
