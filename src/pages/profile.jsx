@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { LogOut, User, Heart, Calendar, Camera, FileText, Edit2, Check, Send, UserPlus, CheckCircle, XCircle, Mail } from 'lucide-react'
 import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../services/api'
+import NotificationsButton from '../components/NotificationsButton'
 
 export default function Profile() {
   const { user, signOut } = useAuth()
@@ -205,7 +206,10 @@ export default function Profile() {
           </div>
           <div className="flex-1">
             <div className="font-semibold text-xl">{user?.user_metadata?.name || 'User'}</div>
-            <div className="text-sm text-gray-500">{user?.email}</div>
+              <div className="text-sm text-gray-500 flex items-center justify-between">
+                <span>{user?.email}</span>
+                <NotificationsButton />
+              </div>
           </div>
         </div>
         
