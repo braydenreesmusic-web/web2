@@ -32,7 +32,9 @@ export async function subscribeToPush(vapidPublicKey) {
 }
 
 export async function saveSubscriptionToServer(subscription) {
-  const user = supabase.auth.user();
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  const user = userData?.user;
   if (!user) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
@@ -50,9 +52,12 @@ export async function unsubscribeFromPush() {
   const sub = await reg.pushManager.getSubscription();
   if (!sub) return;
   await sub.unsubscribe();
-  const user = supabase.auth.user();
-  if (user) {
-    await supabase.from('push_subscriptions').delete().eq('user_id', user.id);
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (!userError) {
+    const user = userData?.user;
+    if (user) {
+      await supabase.from('push_subscriptions').delete().eq('user_id', user.id);
+    }
   }
 }
 
