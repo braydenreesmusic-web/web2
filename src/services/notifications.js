@@ -13,9 +13,12 @@ export async function registerServiceWorker() {
 export async function subscribeToPush(vapidPublicKey) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) throw new Error('Push not supported');
 
+  // Note: permission must be requested from a user gesture in the UI.
+  // This helper assumes the page has already requested and been granted
+  // Notification permission (call Notification.requestPermission() from
+  // a click handler before invoking this function).
   const reg = await registerServiceWorker();
-  const permission = await Notification.requestPermission();
-  if (permission !== 'granted') throw new Error('Notification permission denied');
+  if (!reg) throw new Error('Service worker registration failed');
 
   const sub = await reg.pushManager.subscribe({
     userVisibleOnly: true,

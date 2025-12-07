@@ -31,8 +31,21 @@ export default function NotificationsButton() {
     try {
       const vapid = import.meta.env.VITE_VAPID_PUBLIC
       if (!vapid) throw new Error('VAPID public key not configured (VITE_VAPID_PUBLIC)')
+      // Request permission from a direct user gesture
+      if (Notification.permission === 'denied') {
+        showToast('Notifications are blocked for this site. Please enable in your browser settings.')
+        setLoading(false)
+        return
+      }
+
+      if (Notification.permission === 'default') {
+        const perm = await Notification.requestPermission() // must be called from click handler
+        if (perm !== 'granted') throw new Error('Notification permission denied')
+      }
+
+      // permission is granted now — perform registration & subscribe
       const sub = await subscribeToPush(vapid)
-      // subscriptions are now handled client-side only; return subscription if needed
+      // convenience wrapper left for compatibility
       await subscribeToPushAndReturn(vapid)
       setSubscribed(true)
       showToast('Notifications enabled')
