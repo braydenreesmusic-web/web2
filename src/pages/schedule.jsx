@@ -235,6 +235,14 @@ export default function Schedule() {
 
   return (
     <section className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {scanning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white/90 p-6 rounded-xl shadow-lg flex items-center gap-4">
+            <div className="w-8 h-8 border-4 border-t-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+            <div className="text-sm font-medium">Scanning image — this may take a few seconds…</div>
+          </div>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto py-8 px-4">
         {/* Header */}
         <motion.div 

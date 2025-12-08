@@ -125,14 +125,14 @@ async function callOcrSpace(base64Data) {
 async function callGeminiExtract(text) {
   if (!GEMINI_API_KEY) throw new Error('Gemini API key not configured')
 
-  const prompt = `You are an assistant that extracts event/date items from a block of text.\n\nInput text:\n"""\n${text}\n"""\n\nReturn a JSON array of objects with keys: title, date (ISO 8601 if possible, otherwise natural language), note (optional), category (optional). Example: [{"title":"Dentist","date":"2025-12-10T09:00:00","note":"teeth cleaning","category":"Other"}]\n\nIf no events found return an empty array.`
+  const prompt = `You are an assistant that extracts event/date items from a block of text.\n\nInstruction: Respond with a valid JSON array ONLY, and nothing else (no commentary). Each array item should be an object with keys: title, date (ISO 8601 preferred; natural language acceptable), note (optional), category (optional). Example: [{"title":"Dentist","date":"2025-12-10T09:00:00","note":"teeth cleaning","category":"Other"}]\n\nInput text:\n"""\n${text}\n"""\n\nIf no events found return an empty array: []`
 
   const response = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
+      generationConfig: { temperature: 0.0, maxOutputTokens: 768 }
     })
   })
 
@@ -148,11 +148,13 @@ async function callGeminiExtract(text) {
   const jsonMatch = textOut.match(/\[\s*\{[\s\S]*\}\s*\]/m)
   if (jsonMatch) {
     try {
-      return JSON.parse(jsonMatch[0])
+      const raw = JSON.parse(jsonMatch[0])
+      return Array.isArray(raw) ? raw.map(normalizeParsedItem) : []
     } catch (e) {
       // fallback to trying to eval-safe by stripping trailing commas
       const cleaned = jsonMatch[0].replace(/,\s*}/g, '}').replace(/,\s*\]/g, ']')
-      return JSON.parse(cleaned)
+      const raw = JSON.parse(cleaned)
+      return Array.isArray(raw) ? raw.map(normalizeParsedItem) : []
     }
   }
 
@@ -165,10 +167,54 @@ async function callGeminiExtract(text) {
     const dateMatch = trimmed.match(/(\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?)/)
     const title = trimmed.replace(dateMatch ? dateMatch[0] : '', '').replace(/^[-:\s]+/, '').trim()
     if (title) {
-      items.push({ title, date: dateMatch ? new Date(dateMatch[0]).toISOString() : null })
+      const parsedDate = dateMatch ? parseDateString(dateMatch[0]) : null
+      items.push(normalizeParsedItem({ title, date: parsedDate }))
     }
   })
   return items
+}
+
+// Try to parse common date formats into ISO; return null if unknown
+function parseDateString(str) {
+  if (!str) return null
+  const s = String(str).trim()
+  // Try Date.parse first
+  const d1 = new Date(s)
+  if (!Number.isNaN(d1.getTime())) return d1.toISOString()
+
+  // YYYY-MM-DD or YYYY/MM/DD optional time
+  let m = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/)
+  if (m) {
+    const [_, y, mo, da, hh='00', mi='00', ss='00'] = m
+    const iso = new Date(`${y}-${mo.padStart(2,'0')}-${da.padStart(2,'0')}T${hh.padStart(2,'0')}:${mi.padStart(2,'0')}:${ss.padStart(2,'0')}Z`)
+    if (!Number.isNaN(iso.getTime())) return iso.toISOString()
+  }
+
+  // MM/DD/YYYY or M/D/YY
+  m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:[ \t](\d{1,2}):(\d{2}))?/)
+  if (m) {
+    const [_, mo, da, yr, hh='00', mi='00'] = m
+    const year = yr.length === 2 ? '20' + yr : yr
+    const iso = new Date(`${year}-${mo.padStart(2,'0')}-${da.padStart(2,'0')}T${hh.padStart(2,'0')}:${mi.padStart(2,'0')}:00Z`)
+    if (!Number.isNaN(iso.getTime())) return iso.toISOString()
+  }
+
+  // Month name formats - let Date try a cleaned English string
+  const cleaned = s.replace(/(st|nd|rd|th)/gi, '')
+  const d2 = new Date(cleaned)
+  if (!Number.isNaN(d2.getTime())) return d2.toISOString()
+
+  return null
+}
+
+function normalizeParsedItem(it) {
+  const title = (it && it.title) ? String(it.title).trim() : ''
+  let date = it && it.date ? String(it.date).trim() : null
+  if (date) {
+    const parsed = parseDateString(date)
+    date = parsed
+  }
+  return { title, date, note: it && it.note ? String(it.note).trim() : '', category: it && it.category ? String(it.category).trim() : 'Other' }
 }
 
 export default async function handler(req, res) {
