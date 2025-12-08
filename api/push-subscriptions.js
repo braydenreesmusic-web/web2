@@ -45,18 +45,33 @@ export default async function handler(req, res) {
       const insertText = await insertRes.text()
       console.warn('push-subscriptions insert failed', insertRes.status, insertText)
 
-      // Try to find existing by endpoint
+      // Try to find existing by endpoint. Some deployments use an `endpoint` column,
+      // others only store endpoint inside the `subscription` jsonb. Try both.
       const qEndpoint = `endpoint=eq.${encodeURIComponent(endpoint)}`
-      const getRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?select=*&${qEndpoint}`, {
+      let getRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?select=*&${qEndpoint}`, {
         headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
       })
 
+      let rows
       if (!getRes.ok) {
         const txt = await getRes.text()
-        return res.status(getRes.status).json({ error: 'Failed to query existing subscription', details: txt })
+        // If the error indicates the `endpoint` column doesn't exist, try JSONB path query
+        if (txt && txt.includes('column push_subscriptions.endpoint does not exist')) {
+          const qJson = `subscription->>endpoint=eq.${encodeURIComponent(endpoint)}`
+          getRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?select=*&${qJson}`, {
+            headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
+          })
+          if (!getRes.ok) {
+            const txt2 = await getRes.text()
+            return res.status(getRes.status).json({ error: 'Failed to query existing subscription (jsonb path)', details: txt2 })
+          }
+          rows = await getRes.json()
+        } else {
+          return res.status(getRes.status).json({ error: 'Failed to query existing subscription', details: txt })
+        }
+      } else {
+        rows = await getRes.json()
       }
-
-      const rows = await getRes.json()
       if (Array.isArray(rows) && rows.length > 0) {
         // Update the first matching row
         const id = rows[0].id
@@ -86,15 +101,46 @@ export default async function handler(req, res) {
       const { id, endpoint } = req.body || {}
       if (!id && !endpoint) return res.status(400).json({ error: 'id or endpoint required' })
 
-      const q = id ? `id=eq.${id}` : `endpoint=eq.${encodeURIComponent(endpoint)}`
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?${q}`, {
-        method: 'DELETE',
-        headers: {
-          'apikey': SERVICE_KEY,
-          'Authorization': `Bearer ${SERVICE_KEY}`,
-          'Prefer': 'return=representation'
+      // Try delete by id or by endpoint column first; if that column doesn't exist,
+      // fall back to deleting by JSONB subscription->>endpoint path.
+      const qById = id ? `id=eq.${id}` : null
+      const qByEndpoint = endpoint ? `endpoint=eq.${encodeURIComponent(endpoint)}` : null
+
+      let r
+      if (qById) {
+        r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?${qById}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SERVICE_KEY,
+            'Authorization': `Bearer ${SERVICE_KEY}`,
+            'Prefer': 'return=representation'
+          }
+        })
+      } else {
+        r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?${qByEndpoint}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SERVICE_KEY,
+            'Authorization': `Bearer ${SERVICE_KEY}`,
+            'Prefer': 'return=representation'
+          }
+        })
+        if (!r.ok) {
+          const txt = await r.text()
+          if (txt && txt.includes('column push_subscriptions.endpoint does not exist')) {
+            const qJson = `subscription->>endpoint=eq.${encodeURIComponent(endpoint)}`
+            r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?${qJson}`, {
+              method: 'DELETE',
+              headers: {
+                'apikey': SERVICE_KEY,
+                'Authorization': `Bearer ${SERVICE_KEY}`,
+                'Prefer': 'return=representation'
+              }
+            })
+          }
         }
-      })
+      }
+
       const data = await r.json()
       return res.status(r.status).json(data)
     }
