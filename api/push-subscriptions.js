@@ -73,8 +73,9 @@ export default async function handler(req, res) {
         return res.status(200).json(JSON.parse(patchText))
       }
 
-      // No existing row found and insert failed — return original insert error
-      return res.status(insertRes.status).text ? res.status(insertRes.status).json({ error: insertText }) : res.status(500).json({ error: 'Unknown insert failure' })
+      // No existing row found and insert failed — return original insert error text
+      console.warn('push-subscriptions insert error body:', insertText)
+      return res.status(insertRes.status).json({ error: insertText })
     }
 
     if (req.method === 'DELETE') {
