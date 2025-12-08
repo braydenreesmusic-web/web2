@@ -21,10 +21,7 @@ WHERE (endpoint IS NULL OR trim(endpoint) = '')
   AND (subscription ->> 'endpoint') IS NOT NULL;
 
 
--- 3) Ensure archive table exists for duplicates
-CREATE TABLE IF NOT EXISTS public.push_subscriptions_duplicates AS TABLE public.push_subscriptions WITH NO DATA;
-
--- 4) & 5) Archive duplicates and delete duplicates from main table.
+-- 3) Archive and dedupe: create archive table inside DO block and then run archive/delete
 -- Some deployments may not have `last_seen`; detect that and order accordingly.
 DO $$
 DECLARE
@@ -41,6 +38,9 @@ BEGIN
   ELSE
     order_by_clause := 'created_at DESC';
   END IF;
+
+  -- Ensure the archive table exists with the same structure before inserting
+  EXECUTE 'CREATE TABLE IF NOT EXISTS public.push_subscriptions_duplicates (LIKE public.push_subscriptions INCLUDING ALL)';
 
   -- Insert duplicates into archive (keep all duplicate rows)
   EXECUTE format($sql$
