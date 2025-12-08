@@ -13,7 +13,12 @@ export default async function handler(req, res) {
       const { subscription, user_id } = req.body
       if (!subscription) return res.status(400).json({ error: 'subscription required' })
 
-      const payload = [{ subscription, user_id: user_id ?? null }]
+      // Extract endpoint and user agent to satisfy NOT NULL constraint on endpoint
+      const endpoint = subscription?.endpoint
+      if (!endpoint) return res.status(400).json({ error: 'subscription.endpoint required' })
+      const user_agent = req.headers['user-agent'] || null
+
+      const payload = [{ subscription, endpoint, user_agent, user_id: user_id ?? null }]
       const r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
         method: 'POST',
         headers: {

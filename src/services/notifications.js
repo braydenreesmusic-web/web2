@@ -2,7 +2,9 @@
 export async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     try {
-      const reg = await navigator.serviceWorker.register('/service-worker.js');
+      // Register the service worker and wait until it's active/ready.
+      await navigator.serviceWorker.register('/service-worker.js');
+      const reg = await navigator.serviceWorker.ready; // ensures active worker
       return reg;
     } catch (err) {
       console.error('Service worker registration failed', err);
