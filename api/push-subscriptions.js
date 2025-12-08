@@ -10,15 +10,19 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
-      const { subscription, user_id } = req.body
-      if (!subscription) return res.status(400).json({ error: 'subscription required' })
+      // Accept either { subscription } or the subscription itself as the body
+      const incoming = req.body || {}
+      const subscription = incoming.subscription || incoming
+      const user_id = incoming.user_id ?? null
+
+      if (!subscription || Object.keys(subscription).length === 0) return res.status(400).json({ error: 'subscription required' })
 
       // Extract endpoint and user agent to satisfy NOT NULL constraint on endpoint
-      const endpoint = subscription?.endpoint
+      const endpoint = subscription?.endpoint || incoming.endpoint
       if (!endpoint) return res.status(400).json({ error: 'subscription.endpoint required' })
-      const user_agent = req.headers['user-agent'] || null
+      const user_agent = incoming.user_agent || req.headers['user-agent'] || null
 
-      const payload = [{ subscription, endpoint, user_agent, user_id: user_id ?? null }]
+      const payload = [{ subscription, endpoint, user_agent, user_id }]
 
       // Try to insert; if insert fails (duplicate endpoint), update existing row's subscription and last_seen.
       const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
