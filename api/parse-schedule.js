@@ -1,13 +1,59 @@
 import fetch from 'node-fetch'
+import crypto from 'crypto'
 
 const GEMINI_API_KEY = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent'
 const OCR_SPACE_API_KEY = process.env.OCR_SPACE_API_KEY || process.env.OCR_SPACE_KEY || null
 const GOOGLE_VISION_KEY = process.env.GOOGLE_VISION_API_KEY || process.env.GOOGLE_VISION_KEY || null
+const GOOGLE_SA_JSON_BASE64 = process.env.GOOGLE_SA_JSON_BASE64 || process.env.GOOGLE_SERVICE_ACCOUNT_BASE64 || null
+
+async function getAccessTokenFromServiceAccount(base64Json) {
+  const saJson = Buffer.from(base64Json, 'base64').toString('utf8')
+  let sa
+  try {
+    sa = JSON.parse(saJson)
+  } catch (e) {
+    throw new Error('Invalid service account JSON')
+  }
+
+  const iat = Math.floor(Date.now() / 1000)
+  const exp = iat + 3600
+  const header = { alg: 'RS256', typ: 'JWT' }
+  const payload = {
+    iss: sa.client_email,
+    scope: 'https://www.googleapis.com/auth/cloud-platform',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp,
+    iat
+  }
+
+  function base64url(input) {
+    return Buffer.from(JSON.stringify(input)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  }
+
+  const unsignedJwt = base64url(header) + '.' + base64url(payload)
+  const signer = crypto.createSign('RSA-SHA256')
+  signer.update(unsignedJwt)
+  const signature = signer.sign(sa.private_key, 'base64')
+  const sigUrl = signature.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  const jwt = unsignedJwt + '.' + sigUrl
+
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${encodeURIComponent(jwt)}`
+  })
+
+  if (!tokenRes.ok) {
+    const txt = await tokenRes.text()
+    throw new Error('Failed to obtain access token: ' + txt)
+  }
+  const tokenJson = await tokenRes.json()
+  if (!tokenJson.access_token) throw new Error('No access_token in token response')
+  return tokenJson.access_token
+}
 
 async function callGoogleVision(base64Data) {
-  const key = GOOGLE_VISION_KEY
-  if (!key) throw new Error('Google Vision API key not configured')
   const content = base64Data.replace(/^data:\w+\/\w+;base64,/, '')
   const body = {
     requests: [
@@ -18,19 +64,38 @@ async function callGoogleVision(base64Data) {
     ]
   }
 
-  const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${key}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  })
-
-  if (!res.ok) {
-    const txt = await res.text()
-    throw new Error(`Google Vision error: ${res.status} ${txt}`)
+  // Prefer service account access token if provided
+  if (GOOGLE_SA_JSON_BASE64) {
+    const accessToken = await getAccessTokenFromServiceAccount(GOOGLE_SA_JSON_BASE64)
+    const res = await fetch('https://vision.googleapis.com/v1/images:annotate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+      body: JSON.stringify(body)
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      throw new Error(`Google Vision (service account) error: ${res.status} ${txt}`)
+    }
+    const json = await res.json()
+    return json?.responses?.[0]?.fullTextAnnotation?.text || ''
   }
-  const json = await res.json()
-  const annotation = json?.responses?.[0]?.fullTextAnnotation?.text || ''
-  return annotation
+
+  // Fallback to API key if configured
+  if (GOOGLE_VISION_KEY) {
+    const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      throw new Error(`Google Vision error: ${res.status} ${txt}`)
+    }
+    const json = await res.json()
+    return json?.responses?.[0]?.fullTextAnnotation?.text || ''
+  }
+
+  throw new Error('No Google Vision credential configured')
 }
 
 async function callOcrSpace(base64Data) {

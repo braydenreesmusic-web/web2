@@ -106,23 +106,45 @@ export default function Schedule() {
   const { showToast } = useToast()
   const [scanning, setScanning] = useState(false)
   const [parsedEvents, setParsedEvents] = useState([])
+  const [lastDebug, setLastDebug] = useState(null)
 
   const scanImageForSchedule = async () => {
     if (!photoPreview) return
     setScanning(true)
     setParsedEvents([])
     try {
+      showToast && showToast('Scanning image…', { type: 'info' })
+      setLastDebug({ startedAt: Date.now(), payloadSize: (photoPreview || '').length })
+      console.log('Scan request: sending image to /api/parse-schedule')
       const res = await fetch('/api/parse-schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: photoPreview })
       })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || 'Scan failed')
-      setParsedEvents(json.events || [])
+      let json
+      try {
+        json = await res.json()
+      } catch (e) {
+        const text = await res.text().catch(() => null)
+        throw new Error('Invalid JSON response from server: ' + (text || e.message))
+      }
+      setLastDebug(prev => ({ ...(prev||{}), receivedAt: Date.now(), status: res.status, body: json, raw_text: json?.raw_text }))
+      if (!res.ok) {
+        console.error('Scan server error', res.status, json)
+        throw new Error(json?.error || JSON.stringify(json) || 'Scan failed')
+      }
+      console.log('Scan response', json)
+      const events = json.events || []
+      setParsedEvents(events)
+      if (events.length) {
+        showToast && showToast(`Scan complete — ${events.length} event(s) found`, { type: 'success' })
+      } else {
+        showToast && showToast('Scan complete — no events detected', { type: 'info' })
+        console.debug('OCR raw text:', json.raw_text)
+      }
     } catch (err) {
       console.error('Scan error', err)
-      showToast && showToast('Failed to parse schedule image: ' + (err.message || err))
+      showToast && showToast('Failed to parse schedule image: ' + (err.message || err), { type: 'error' })
     } finally {
       setScanning(false)
     }
@@ -146,9 +168,10 @@ export default function Schedule() {
       setParsedEvents([])
       setPhoto(null)
       setPhotoPreview('')
+      showToast && showToast('Imported events', { type: 'success' })
     } catch (err) {
       console.error('Import error', err)
-      showToast && showToast('Failed to import events: ' + (err.message || err))
+      showToast && showToast('Failed to import events: ' + (err.message || err), { type: 'error' })
     }
   }
 
@@ -405,9 +428,10 @@ export default function Schedule() {
                                   createEvent(payload).then(saved => {
                                     setEvents(prev => [...prev, saved])
                                     setParsedEvents(prev => prev.filter((_, i) => i !== idx))
+                                    showToast && showToast('Event imported', { type: 'success' })
                                   }).catch(err => {
                                     console.error('Import single error', err)
-                                    showToast && showToast('Failed to import event')
+                                    showToast && showToast('Failed to import event', { type: 'error' })
                                   })
                                 }} className="px-3 py-2 rounded-md bg-purple-600 text-white">Import</button>
                                 <button onClick={() => setParsedEvents(prev => prev.filter((_, i) => i !== idx))} className="px-3 py-2 rounded-md border">Remove</button>
@@ -420,6 +444,20 @@ export default function Schedule() {
                         <button onClick={importParsedEvents} className="px-4 py-2 rounded-lg bg-purple-600 text-white">Import all</button>
                         <button onClick={() => setParsedEvents([])} className="px-4 py-2 rounded-lg bg-white border">Clear</button>
                       </div>
+                      {lastDebug && (
+                        <div className="mt-3 p-3 bg-white border rounded text-xs text-gray-700">
+                          <div className="font-semibold mb-1">Scan debug</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div><strong>Started:</strong> {new Date(lastDebug.startedAt).toLocaleString()}</div>
+                            <div><strong>Received:</strong> {lastDebug.receivedAt ? new Date(lastDebug.receivedAt).toLocaleString() : '—'}</div>
+                            <div><strong>Payload size:</strong> {lastDebug.payloadSize}</div>
+                            <div><strong>Status:</strong> {lastDebug.status ?? '—'}</div>
+                            <div className="col-span-2"><strong>OCR text (excerpt):</strong>
+                              <pre className="whitespace-pre-wrap max-h-36 overflow-auto text-xs bg-gray-50 p-2 rounded mt-1">{(lastDebug.raw_text || '').slice(0, 1000)}</pre>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

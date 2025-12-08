@@ -8,6 +8,16 @@
 -- 5) delete duplicates keeping the most-recent
 -- 6) create a unique index on lower(endpoint) and set NOT NULL
 
+-- PREVIEW: run the following SELECT (in your SQL editor) to preview potential duplicates
+-- before executing the destructive delete. Uncomment and run to inspect results.
+--
+-- SELECT lower(trim(subscription->>'endpoint')) AS endpoint, count(*) AS cnt
+-- FROM public.push_subscriptions
+-- WHERE subscription->>'endpoint' IS NOT NULL AND trim(subscription->>'endpoint') <> ''
+-- GROUP BY lower(trim(subscription->>'endpoint'))
+-- HAVING count(*) > 1
+-- ORDER BY cnt DESC;
+
 BEGIN;
 
 -- 1) Add column if it doesn't already exist

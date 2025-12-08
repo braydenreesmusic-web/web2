@@ -31,7 +31,7 @@ export default function NotificationsButton() {
       if (!vapid) throw new Error('VAPID public key not configured (VITE_VAPID_PUBLIC)')
       // Request permission from a direct user gesture
       if (Notification.permission === 'denied') {
-        showToast && showToast('Notifications are blocked for this site. Please enable in your browser settings.')
+        showToast && showToast('Notifications are blocked for this site. Please enable in your browser settings.', { type: 'error' })
         setLoading(false)
         return
       }
@@ -46,10 +46,10 @@ export default function NotificationsButton() {
       // convenience wrapper left for compatibility
       await subscribeToPushAndReturn(vapid)
       setSubscribed(true)
-      showToast && showToast('Notifications enabled')
+      showToast && showToast('Notifications enabled', { type: 'success' })
     } catch (e) {
       console.error('subscribe error', e)
-      showToast && showToast(e.message || 'Failed to subscribe')
+      showToast && showToast(e.message || 'Failed to subscribe', { type: 'error' })
     } finally {
       setLoading(false)
     }
@@ -60,10 +60,10 @@ export default function NotificationsButton() {
     try {
       await unsubscribeFromPush()
       setSubscribed(false)
-      showToast && showToast('Notifications disabled')
+      showToast && showToast('Notifications disabled', { type: 'info' })
     } catch (e) {
       console.error('unsubscribe error', e)
-      showToast && showToast('Failed to unsubscribe')
+      showToast && showToast('Failed to unsubscribe', { type: 'error' })
     } finally {
       setLoading(false)
     }
