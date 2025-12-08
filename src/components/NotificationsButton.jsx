@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Bell, BellOff } from 'lucide-react'
 import { registerServiceWorker, subscribeToPush, subscribeToPushAndReturn, unsubscribeFromPush, isPushSupported } from '../services/notifications'
+import { useToast } from '../contexts/ToastContext'
 
 export default function NotificationsButton() {
   const [supported, setSupported] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [toast, setToast] = useState(null)
+  const { showToast } = useToast()
 
   useEffect(() => {
     setSupported(isPushSupported())
@@ -21,10 +22,7 @@ export default function NotificationsButton() {
     check()
   }, [])
 
-  const showToast = (msg) => {
-    setToast(msg)
-    setTimeout(() => setToast(null), 4000)
-  }
+  // use global showToast
 
   const handleSubscribe = async () => {
     setLoading(true)
@@ -33,7 +31,7 @@ export default function NotificationsButton() {
       if (!vapid) throw new Error('VAPID public key not configured (VITE_VAPID_PUBLIC)')
       // Request permission from a direct user gesture
       if (Notification.permission === 'denied') {
-        showToast('Notifications are blocked for this site. Please enable in your browser settings.')
+        showToast && showToast('Notifications are blocked for this site. Please enable in your browser settings.')
         setLoading(false)
         return
       }
@@ -48,10 +46,10 @@ export default function NotificationsButton() {
       // convenience wrapper left for compatibility
       await subscribeToPushAndReturn(vapid)
       setSubscribed(true)
-      showToast('Notifications enabled')
+      showToast && showToast('Notifications enabled')
     } catch (e) {
       console.error('subscribe error', e)
-      showToast(e.message || 'Failed to subscribe')
+      showToast && showToast(e.message || 'Failed to subscribe')
     } finally {
       setLoading(false)
     }
@@ -62,10 +60,10 @@ export default function NotificationsButton() {
     try {
       await unsubscribeFromPush()
       setSubscribed(false)
-      showToast('Notifications disabled')
+      showToast && showToast('Notifications disabled')
     } catch (e) {
       console.error('unsubscribe error', e)
-      showToast('Failed to unsubscribe')
+      showToast && showToast('Failed to unsubscribe')
     } finally {
       setLoading(false)
     }
@@ -86,11 +84,7 @@ export default function NotificationsButton() {
         {loading ? 'Working...' : (subscribed ? 'Disable Notifications' : 'Enable Notifications')}
       </button>
 
-      {toast && (
-        <div className="absolute right-0 mt-2 w-64 p-3 bg-white border rounded shadow text-sm">
-          {toast}
-        </div>
-      )}
+      {/* global toasts render in ToastProvider */}
     </div>
   )
 }

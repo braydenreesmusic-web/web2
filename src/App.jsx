@@ -15,10 +15,12 @@ import Login from './pages/login.jsx'
 import Register from './pages/register.jsx'
 import ForgotPassword from './pages/forgot-password.jsx'
 import { AuthProvider } from './contexts/AuthContext.jsx'
+import { ToastProvider } from './contexts/ToastContext.jsx'
 
 export default function App() {
   return (
-    <AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
@@ -50,6 +52,7 @@ export default function App() {
           }
         />
       </Routes>
-    </AuthProvider>
+      </AuthProvider>
+    </ToastProvider>
   )
 }

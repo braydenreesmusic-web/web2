@@ -3,6 +3,7 @@ import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import { getEvents, createEvent, deleteEvent, getTasks, createTask, updateTask } from '../services/api'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useToast } from '../contexts/ToastContext'
 import { Icons, OwnerBadge } from '../components/Icons'
 
 const ownerColors = {
@@ -99,6 +100,55 @@ export default function Schedule() {
       reader.readAsDataURL(file)
     } else {
       setPhotoPreview('')
+    }
+  }
+
+  const { showToast } = useToast()
+  const [scanning, setScanning] = useState(false)
+  const [parsedEvents, setParsedEvents] = useState([])
+
+  const scanImageForSchedule = async () => {
+    if (!photoPreview) return
+    setScanning(true)
+    setParsedEvents([])
+    try {
+      const res = await fetch('/api/parse-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: photoPreview })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Scan failed')
+      setParsedEvents(json.events || [])
+    } catch (err) {
+      console.error('Scan error', err)
+      showToast && showToast('Failed to parse schedule image: ' + (err.message || err))
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  const importParsedEvents = async () => {
+    if (!parsedEvents.length) return
+    try {
+      for (const ev of parsedEvents) {
+        const payload = {
+          user_id: user.id,
+          title: ev.title || 'Imported event',
+          date: ev.date ? new Date(ev.date).toISOString() : new Date().toISOString(),
+          category: ev.category || 'Other',
+          owner: 'together',
+          note: ev.note || ''
+        }
+        const saved = await createEvent(payload)
+        setEvents(prev => [...prev, saved])
+      }
+      setParsedEvents([])
+      setPhoto(null)
+      setPhotoPreview('')
+    } catch (err) {
+      console.error('Import error', err)
+      showToast && showToast('Failed to import events: ' + (err.message || err))
     }
   }
 
@@ -275,6 +325,15 @@ export default function Schedule() {
                     >
                       Add Event
                     </motion.button>
+                    <motion.button
+                      onClick={scanImageForSchedule}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      disabled={!photoPreview || scanning}
+                      className="px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 font-semibold hover:shadow-sm transition-all disabled:opacity-50"
+                    >
+                      {scanning ? 'Scanning…' : 'Scan Image'}
+                    </motion.button>
                   </div>
 
                   {photoPreview && (
@@ -284,6 +343,84 @@ export default function Schedule() {
                       src={photoPreview} 
                       className="h-40 rounded-xl object-cover border-2 border-purple-500 w-full"
                     />
+                  )}
+                  {parsedEvents.length > 0 && (
+                    <div className="mt-4 bg-gray-50 p-3 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-semibold">Parsed events</div>
+                        <div className="text-sm text-gray-500">{parsedEvents.length} found</div>
+                      </div>
+                      <div className="space-y-2">
+                        {parsedEvents.map((pe, idx) => {
+                          const localDt = pe.date ? new Date(pe.date) : null
+                          const dtValue = localDt ? new Date(localDt.getTime() - localDt.getTimezoneOffset()*60000).toISOString().slice(0,16) : ''
+                          return (
+                          <div key={idx} className="p-3 rounded-lg border border-gray-100 bg-white">
+                            <div className="grid md:grid-cols-3 gap-3">
+                              <input
+                                value={pe.title || ''}
+                                onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, title: e.target.value} : p))}
+                                className="px-3 py-2 rounded-md border w-full"
+                                placeholder="Event title"
+                              />
+                              <input
+                                type="datetime-local"
+                                value={dtValue}
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  const iso = val ? new Date(val).toISOString() : null
+                                  setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, date: iso} : p))
+                                }}
+                                className="px-3 py-2 rounded-md border w-full"
+                              />
+                              <select
+                                value={pe.category || 'Other'}
+                                onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, category: e.target.value} : p))}
+                                className="px-3 py-2 rounded-md border w-full"
+                              >
+                                {Object.keys(categories).map(c => (
+                                  <option key={c} value={c}>{categoryEmojis[c]} {c}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="mt-2 grid md:grid-cols-2 gap-3">
+                              <input
+                                value={pe.note || ''}
+                                onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, note: e.target.value} : p))}
+                                className="px-3 py-2 rounded-md border w-full"
+                                placeholder="Note (optional)"
+                              />
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => {
+                                  // import single parsed event
+                                  const ev = parsedEvents[idx]
+                                  const payload = {
+                                    user_id: user.id,
+                                    title: ev.title || 'Imported event',
+                                    date: ev.date ? new Date(ev.date).toISOString() : new Date().toISOString(),
+                                    category: ev.category || 'Other',
+                                    owner: 'together',
+                                    note: ev.note || ''
+                                  }
+                                  createEvent(payload).then(saved => {
+                                    setEvents(prev => [...prev, saved])
+                                    setParsedEvents(prev => prev.filter((_, i) => i !== idx))
+                                  }).catch(err => {
+                                    console.error('Import single error', err)
+                                    showToast && showToast('Failed to import event')
+                                  })
+                                }} className="px-3 py-2 rounded-md bg-purple-600 text-white">Import</button>
+                                <button onClick={() => setParsedEvents(prev => prev.filter((_, i) => i !== idx))} className="px-3 py-2 rounded-md border">Remove</button>
+                              </div>
+                            </div>
+                          </div>
+                        )})}
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <button onClick={importParsedEvents} className="px-4 py-2 rounded-lg bg-purple-600 text-white">Import all</button>
+                        <button onClick={() => setParsedEvents([])} className="px-4 py-2 rounded-lg bg-white border">Clear</button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </motion.div>
