@@ -45,31 +45,28 @@ export default async function handler(req, res) {
       const insertText = await insertRes.text()
       console.warn('push-subscriptions insert failed', insertRes.status, insertText)
 
-      // Try to find existing by endpoint. Some deployments use an `endpoint` column,
-      // others only store endpoint inside the `subscription` jsonb. Try both.
-      const qEndpoint = `endpoint=eq.${encodeURIComponent(endpoint)}`
-      let getRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?select=*&${qEndpoint}`, {
+      // Some deployments store the endpoint inside the `subscription` jsonb only.
+      // To avoid PostgREST schema-cache errors when `endpoint` column is absent,
+      // query by the JSONB path first, then fall back to querying the `endpoint` column.
+      const qJson = `subscription->>endpoint=eq.${encodeURIComponent(endpoint)}`
+      let getRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?select=*&${qJson}`, {
         headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
       })
 
       let rows
-      if (!getRes.ok) {
-        const txt = await getRes.text()
-        // If the error indicates the `endpoint` column doesn't exist, try JSONB path query
-        if (txt && txt.includes('column push_subscriptions.endpoint does not exist')) {
-          const qJson = `subscription->>endpoint=eq.${encodeURIComponent(endpoint)}`
-          getRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?select=*&${qJson}`, {
-            headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
-          })
-          if (!getRes.ok) {
-            const txt2 = await getRes.text()
-            return res.status(getRes.status).json({ error: 'Failed to query existing subscription (jsonb path)', details: txt2 })
-          }
-          rows = await getRes.json()
-        } else {
+      if (getRes.ok) {
+        rows = await getRes.json()
+      } else {
+        // JSONB path query failed — try the plain column query as a fallback
+        const qEndpoint = `endpoint=eq.${encodeURIComponent(endpoint)}`
+        getRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?select=*&${qEndpoint}`, {
+          headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
+        })
+
+        if (!getRes.ok) {
+          const txt = await getRes.text()
           return res.status(getRes.status).json({ error: 'Failed to query existing subscription', details: txt })
         }
-      } else {
         rows = await getRes.json()
       }
       if (Array.isArray(rows) && rows.length > 0) {
@@ -106,6 +103,7 @@ export default async function handler(req, res) {
       const qById = id ? `id=eq.${id}` : null
       const qByEndpoint = endpoint ? `endpoint=eq.${encodeURIComponent(endpoint)}` : null
 
+
       let r
       if (qById) {
         r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?${qById}`, {
@@ -117,7 +115,9 @@ export default async function handler(req, res) {
           }
         })
       } else {
-        r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?${qByEndpoint}`, {
+        // Try JSONB path delete first to avoid referencing non-existent `endpoint` column
+        const qJson = `subscription->>endpoint=eq.${encodeURIComponent(endpoint)}`
+        r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?${qJson}`, {
           method: 'DELETE',
           headers: {
             'apikey': SERVICE_KEY,
@@ -125,19 +125,17 @@ export default async function handler(req, res) {
             'Prefer': 'return=representation'
           }
         })
+
         if (!r.ok) {
-          const txt = await r.text()
-          if (txt && txt.includes('column push_subscriptions.endpoint does not exist')) {
-            const qJson = `subscription->>endpoint=eq.${encodeURIComponent(endpoint)}`
-            r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?${qJson}`, {
-              method: 'DELETE',
-              headers: {
-                'apikey': SERVICE_KEY,
-                'Authorization': `Bearer ${SERVICE_KEY}`,
-                'Prefer': 'return=representation'
-              }
-            })
-          }
+          // Fallback to deleting by endpoint column if JSONB delete fails
+          r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?${qByEndpoint}`, {
+            method: 'DELETE',
+            headers: {
+              'apikey': SERVICE_KEY,
+              'Authorization': `Bearer ${SERVICE_KEY}`,
+              'Prefer': 'return=representation'
+            }
+          })
         }
       }
 
