@@ -30,11 +30,19 @@ export async function subscribeToPush(vapidPublicKey) {
 
   // Try to persist the subscription server-side so we can send pushes later.
   try {
-    await fetch('/api/push-subscriptions', {
+    const res = await fetch('/api/push-subscriptions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: json })
+      body: JSON.stringify({ subscription: json, user_agent: navigator.userAgent })
     })
+    if (!res.ok) {
+      const text = await res.text()
+      console.error('push subscription save failed', res.status, text)
+    } else {
+      // optionally log the returned representation
+      const data = await res.json().catch(() => null)
+      if (data) console.debug('push subscription saved', data)
+    }
   } catch (err) {
     // non-fatal: still return the subscription for client-only use
     console.warn('failed to save subscription to server', err)
@@ -59,11 +67,15 @@ export async function unsubscribeFromPush() {
 
   // attempt to delete server-side record (best-effort)
   try {
-    await fetch('/api/push-subscriptions', {
+    const res = await fetch('/api/push-subscriptions', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ endpoint: json.endpoint })
     })
+    if (!res.ok) {
+      const txt = await res.text()
+      console.error('push subscription delete failed', res.status, txt)
+    }
   } catch (err) {
     console.warn('failed to remove subscription from server', err)
   }
