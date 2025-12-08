@@ -20,35 +20,54 @@ SET endpoint = trim(subscription ->> 'endpoint')
 WHERE (endpoint IS NULL OR trim(endpoint) = '')
   AND (subscription ->> 'endpoint') IS NOT NULL;
 
--- 3) Non-destructive preview: show rows that would be considered duplicates
---    (run this SELECT in your SQL editor to inspect rows before deleting)
--- WITH ranked AS (
---   SELECT
---     *,
---     ROW_NUMBER() OVER (
---       PARTITION BY lower(COALESCE(endpoint, subscription->>'endpoint'))
---       ORDER BY COALESCE(last_seen, created_at) DESC
---     ) AS rn
---   FROM public.push_subscriptions
---   WHERE COALESCE(endpoint, subscription->>'endpoint') IS NOT NULL
--- )
--- SELECT * FROM ranked WHERE rn > 1;
 
--- 4) Optional: archive duplicates before deletion (uncomment to enable)
--- CREATE TABLE IF NOT EXISTS public.push_subscriptions_duplicates AS TABLE public.push_subscriptions WITH NO DATA;
--- INSERT INTO public.push_subscriptions_duplicates
--- SELECT ps.* FROM (
---   WITH ranked AS (
---     SELECT *, ROW_NUMBER() OVER (
---       PARTITION BY lower(COALESCE(endpoint, subscription->>'endpoint'))
---       ORDER BY COALESCE(last_seen, created_at) DESC
---     ) AS rn
---     FROM public.push_subscriptions
---     WHERE COALESCE(endpoint, subscription->>'endpoint') IS NOT NULL
---   )
---   SELECT * FROM ranked WHERE rn > 1
--- ) ps;
 
+-- 4) & 5) Archive duplicates and delete duplicates from main table.
+-- Some deployments may not have `last_seen`; detect that and order accordingly.
+DO $$
+DECLARE
+  has_last boolean;
+  order_by_clause text;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'push_subscriptions' AND column_name = 'last_seen'
+  ) INTO has_last;
+
+  IF has_last THEN
+    order_by_clause := 'COALESCE(last_seen, created_at) DESC';
+  ELSE
+    order_by_clause := 'created_at DESC';
+  END IF;
+
+  -- Insert duplicates into archive (keep all duplicate rows)
+  EXECUTE format($sql$
+    WITH ranked AS (
+      SELECT *, ROW_NUMBER() OVER (
+        PARTITION BY lower(endpoint)
+        ORDER BY %s
+      ) AS rn
+      FROM public.push_subscriptions
+      WHERE endpoint IS NOT NULL AND trim(endpoint) <> ''
+    )
+    INSERT INTO public.push_subscriptions_duplicates
+    SELECT ps.* FROM (SELECT * FROM ranked WHERE rn > 1) ps;
+  $sql$, order_by_clause);
+
+  -- Delete duplicates from main table, keeping the most recent row
+  EXECUTE format($sql$
+    WITH ranked AS (
+      SELECT id, ROW_NUMBER() OVER (
+        PARTITION BY lower(endpoint)
+        ORDER BY %s
+      ) AS rn
+      FROM public.push_subscriptions
+      WHERE endpoint IS NOT NULL AND trim(endpoint) <> ''
+    )
+    DELETE FROM public.push_subscriptions
+    WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
+  $sql$, order_by_clause);
+END$$;
 -- 5) Delete duplicate rows, keeping the most recent by last_seen/created_at
 WITH ranked AS (
   SELECT
