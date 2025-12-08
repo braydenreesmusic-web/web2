@@ -45,7 +45,7 @@ BEGIN
   -- Insert duplicates into archive (keep all duplicate rows)
   EXECUTE format($sql$
     WITH ranked AS (
-      SELECT *, ROW_NUMBER() OVER (
+      SELECT id, ROW_NUMBER() OVER (
         PARTITION BY lower(endpoint)
         ORDER BY %s
       ) AS rn
@@ -53,7 +53,10 @@ BEGIN
       WHERE endpoint IS NOT NULL AND trim(endpoint) <> ''
     )
     INSERT INTO public.push_subscriptions_duplicates
-    SELECT ps.* FROM (SELECT * FROM ranked WHERE rn > 1) ps;
+    SELECT p.*
+    FROM public.push_subscriptions p
+    JOIN ranked r ON p.id = r.id
+    WHERE r.rn > 1;
   $sql$, order_by_clause);
 
   -- Delete duplicates from main table, keeping the most recent row
