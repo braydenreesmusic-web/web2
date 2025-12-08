@@ -21,6 +21,8 @@ WHERE (endpoint IS NULL OR trim(endpoint) = '')
   AND (subscription ->> 'endpoint') IS NOT NULL;
 
 
+-- 3) Ensure archive table exists for duplicates
+CREATE TABLE IF NOT EXISTS public.push_subscriptions_duplicates AS TABLE public.push_subscriptions WITH NO DATA;
 
 -- 4) & 5) Archive duplicates and delete duplicates from main table.
 -- Some deployments may not have `last_seen`; detect that and order accordingly.
@@ -68,19 +70,6 @@ BEGIN
     WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
   $sql$, order_by_clause);
 END$$;
--- 5) Delete duplicate rows, keeping the most recent by last_seen/created_at
-WITH ranked AS (
-  SELECT
-    id,
-    ROW_NUMBER() OVER (
-      PARTITION BY lower(COALESCE(endpoint, subscription->>'endpoint'))
-      ORDER BY COALESCE(last_seen, created_at) DESC
-    ) AS rn
-  FROM public.push_subscriptions
-  WHERE COALESCE(endpoint, subscription->>'endpoint') IS NOT NULL
-)
-DELETE FROM public.push_subscriptions
-WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
 
 -- 6) Create unique index on lower(endpoint) and make endpoint NOT NULL
 CREATE UNIQUE INDEX IF NOT EXISTS idx_push_subscriptions_endpoint ON public.push_subscriptions ((lower(endpoint)));
