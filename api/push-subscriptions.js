@@ -19,7 +19,9 @@ export default async function handler(req, res) {
       const user_agent = req.headers['user-agent'] || null
 
       const payload = [{ subscription, endpoint, user_agent, user_id: user_id ?? null }]
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
+
+      // Try to insert; if insert fails (duplicate endpoint), update existing row's subscription and last_seen.
+      const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
         method: 'POST',
         headers: {
           'apikey': SERVICE_KEY,
@@ -30,8 +32,49 @@ export default async function handler(req, res) {
         body: JSON.stringify(payload)
       })
 
-      const data = await r.json()
-      return res.status(r.status).json(data)
+      if (insertRes.ok) {
+        const data = await insertRes.json()
+        return res.status(insertRes.status).json(data)
+      }
+
+      // If insert failed, attempt to find existing subscription by endpoint and update it.
+      const insertText = await insertRes.text()
+      console.warn('push-subscriptions insert failed', insertRes.status, insertText)
+
+      // Try to find existing by endpoint
+      const qEndpoint = `endpoint=eq.${encodeURIComponent(endpoint)}`
+      const getRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?select=*&${qEndpoint}`, {
+        headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
+      })
+
+      if (!getRes.ok) {
+        const txt = await getRes.text()
+        return res.status(getRes.status).json({ error: 'Failed to query existing subscription', details: txt })
+      }
+
+      const rows = await getRes.json()
+      if (Array.isArray(rows) && rows.length > 0) {
+        // Update the first matching row
+        const id = rows[0].id
+        const updateBody = { subscription, last_seen: new Date().toISOString(), user_agent }
+        const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SERVICE_KEY,
+            'Authorization': `Bearer ${SERVICE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(updateBody)
+        })
+
+        const patchText = await patchRes.text()
+        if (!patchRes.ok) return res.status(patchRes.status).json({ error: 'Failed to update existing subscription', details: patchText })
+        return res.status(200).json(JSON.parse(patchText))
+      }
+
+      // No existing row found and insert failed — return original insert error
+      return res.status(insertRes.status).text ? res.status(insertRes.status).json({ error: insertText }) : res.status(500).json({ error: 'Unknown insert failure' })
     }
 
     if (req.method === 'DELETE') {

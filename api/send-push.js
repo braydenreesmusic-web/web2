@@ -5,9 +5,19 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
 const VAPID_PUBLIC = process.env.VITE_VAPID_PUBLIC || process.env.VAPID_PUBLIC
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE || process.env.VITE_VAPID_PRIVATE
+const SEND_PUSH_TOKEN = process.env.SEND_PUSH_TOKEN || null
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  // Token protection: require a server token header to prevent abuse
+  if (!SEND_PUSH_TOKEN) {
+    console.warn('SEND_PUSH_TOKEN not configured; endpoint will be protected with missing-token check')
+  }
+  const provided = req.headers['x-send-push-token'] || req.headers['x-send-push-token'.toLowerCase()]
+  if (SEND_PUSH_TOKEN && provided !== SEND_PUSH_TOKEN) {
+    return res.status(401).json({ error: 'Missing or invalid send token' })
+  }
 
   if (!SUPABASE_URL || !SERVICE_KEY || !VAPID_PRIVATE || !VAPID_PUBLIC) {
     return res.status(500).json({ error: 'Missing SUPABASE_URL, SERVICE_KEY or VAPID keys in env' })
@@ -29,7 +39,7 @@ export default async function handler(req, res) {
 
     if (!r.ok) {
       const errText = await r.text()
-      return res.status(r.status).json({ error: errText })
+      return res.status(r.status).json({ error: 'Failed to fetch subscriptions', details: errText })
     }
 
     const rows = await r.json()
@@ -46,8 +56,9 @@ export default async function handler(req, res) {
         await webpush.sendNotification(sub, payload)
         results.push({ id: row.id ?? null, status: 'ok' })
       } catch (err) {
-        console.warn('push send error', err)
-        results.push({ id: row.id ?? null, status: 'error', message: err?.body || err?.message || String(err) })
+        const body = err?.body || err?.message || String(err)
+        console.warn('push send error', body)
+        results.push({ id: row.id ?? null, status: 'error', message: body })
       }
     }
 
