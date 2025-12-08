@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       if (!endpoint) return res.status(400).json({ error: 'subscription.endpoint required' })
       const user_agent = incoming.user_agent || req.headers['user-agent'] || null
 
-      const payload = [{ subscription, endpoint, user_agent, user_id }]
+        const payload = [{ subscription, endpoint, user_id }]
 
       // Try to insert; if insert fails (duplicate endpoint), update existing row's subscription and last_seen.
       const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
       if (Array.isArray(rows) && rows.length > 0) {
         // Update the first matching row
         const id = rows[0].id
-        const updateBody = { subscription, last_seen: new Date().toISOString(), user_agent }
+          const updateBody = { subscription, last_seen: new Date().toISOString() }
         const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?id=eq.${id}`, {
           method: 'PATCH',
           headers: {
