@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev-api": "node scripts/dev-api.js",
+    "dev:all": "npx concurrently \"npm:dev-api\" \"npm:dev\"",
     "build": "vite build",
     "preview": "vite preview",
     "generate-vapid": "node -e \"const wp=require('web-push');console.log(JSON.stringify(wp.generateVAPIDKeys()));\"",
