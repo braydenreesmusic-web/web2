@@ -289,7 +289,7 @@ export default function Schedule() {
           className="mb-10"
         >
           <div className="flex items-center gap-3 mb-2">
-            <Icons.Calendar className="w-8 h-8 text-purple-600" />
+            <Icons.Calendar className="w-8 h-8 text-slate-600" />
             <h1 className="text-5xl font-bold text-gray-900">Schedule & Planning</h1>
           </div>
           <p className="text-gray-600">Keep track of events, tasks, and couple goals together</p>
@@ -303,7 +303,7 @@ export default function Schedule() {
         >
           <div className="md:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Icons.Clock className="w-5 h-5 text-purple-600" />
+              <Icons.Clock className="w-5 h-5 text-slate-600" />
               <div className="text-lg font-semibold text-gray-900">Today</div>
             </div>
             <div className="space-y-2">
@@ -339,7 +339,7 @@ export default function Schedule() {
               <div className="text-lg font-semibold text-gray-900">Quick Actions</div>
             </div>
             <div className="space-y-2">
-              <button onClick={()=>setShowAddDialog(true)} className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold">Add Event</button>
+              <button onClick={()=>setShowAddDialog(true)} className="w-full px-4 py-3 rounded-xl bg-slate-700 text-white font-semibold">Add Event</button>
               <button onClick={()=>setTab('lists')} className="w-full px-4 py-3 rounded-xl border">Open Tasks</button>
             </div>
           </div>
@@ -364,9 +364,9 @@ export default function Schedule() {
               onClick={()=>setTab(t)}
               layout
               className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                tab===t 
-                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg" 
-                  : "text-gray-600 hover:text-gray-900"
+                 tab===t 
+                   ? "bg-slate-700 text-white shadow" 
+                   : "text-gray-700 hover:text-black"
               }`}
             >
               {t.charAt(0).toUpperCase()+t.slice(1)}
@@ -392,8 +392,8 @@ export default function Schedule() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <Icons.Add className="w-6 h-6 text-purple-600" />
+                <div className="flex items-center gap-2 mb-6">
+                  <Icons.Add className="w-6 h-6 text-slate-600" />
                   <h2 className="text-2xl font-bold text-gray-900">Create Event</h2>
                 </div>
 
@@ -452,7 +452,7 @@ export default function Schedule() {
                       onClick={addEvent}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:shadow-lg transition-all"
+                      className="px-6 py-3 rounded-xl bg-slate-700 text-white font-semibold hover:shadow transition-all"
                     >
                       Save
                     </motion.button>
@@ -500,7 +500,7 @@ export default function Schedule() {
                               <input
                                 value={pe.title || ''}
                                 onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, title: e.target.value} : p))}
-                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-slate-500"
                                 placeholder="Event title"
                               />
                               <input
@@ -511,12 +511,12 @@ export default function Schedule() {
                                   const iso = val ? new Date(val).toISOString() : null
                                   setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, date: iso} : p))
                                 }}
-                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-slate-500"
                               />
                               <select
                                 value={pe.category || 'Other'}
                                 onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, category: e.target.value} : p))}
-                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-slate-500"
                               >
                                 {Object.keys(categories).map(c => (
                                   <option key={c} value={c}>{categoryEmojis[c]} {c}</option>
@@ -527,7 +527,7 @@ export default function Schedule() {
                               <input
                                 value={pe.note || ''}
                                 onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, note: e.target.value} : p))}
-                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-slate-500"
                                 placeholder="Note (optional)"
                               />
                               <div className="flex items-center gap-2">
@@ -550,7 +550,7 @@ export default function Schedule() {
                                     console.error('Import single error', err)
                                     showToast && showToast('Failed to import event', { type: 'error' })
                                   })
-                                }} className="px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700">Import</button>
+                                }} className="px-3 py-2 rounded-lg bg-slate-700 text-white hover:bg-slate-800">Import</button>
                                 <button onClick={() => setParsedEvents(prev => prev.filter((_, i) => i !== idx))} className="px-3 py-2 rounded-lg border hover:bg-gray-50">Remove</button>
                               </div>
                             </div>
@@ -558,7 +558,7 @@ export default function Schedule() {
                         )})}
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <button onClick={importParsedEvents} className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow">Import All</button>
+                        <button onClick={importParsedEvents} className="px-4 py-2 rounded-xl bg-slate-700 text-white hover:shadow">Import All</button>
                         <button onClick={() => setParsedEvents([])} className="px-4 py-2 rounded-xl bg-white border">Clear</button>
                         <button onClick={() => setShowAdvanced(v=>!v)} className="ml-auto text-sm text-gray-600 underline">{showAdvanced ? 'Hide' : 'Show'} advanced</button>
                       </div>
@@ -589,7 +589,7 @@ export default function Schedule() {
                 className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
               >
                 <div className="flex items-center gap-2 mb-6">
-                  <Icons.Calendar className="w-6 h-6 text-purple-600" />
+                  <Icons.Calendar className="w-6 h-6 text-slate-600" />
                   <h2 className="text-2xl font-bold text-gray-900">
                     {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
                   </h2>
@@ -650,7 +650,7 @@ export default function Schedule() {
                 className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
               >
                 <div className="flex items-center gap-2 mb-6">
-                  <Icons.Link className="w-6 h-6 text-purple-600" />
+                  <Icons.Link className="w-6 h-6 text-slate-600" />
                   <h2 className="text-2xl font-bold text-gray-900">Upcoming Events</h2>
                 </div>
                 <div className="space-y-3">
@@ -702,7 +702,7 @@ export default function Schedule() {
               className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
             >
               <div className="flex items-center gap-2 mb-6">
-                <Icons.CheckCircle className="w-6 h-6 text-purple-600" />
+                  <Icons.CheckCircle className="w-6 h-6 text-slate-600" />
                 <h2 className="text-2xl font-bold text-gray-900">Tasks & To-Dos</h2>
               </div>
               
@@ -718,7 +718,7 @@ export default function Schedule() {
                   onClick={addTask}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:shadow-lg transition-all"
+                  className="px-6 py-3 rounded-xl bg-slate-700 text-white font-semibold hover:shadow transition-all"
                 >
                   Add
                 </motion.button>
@@ -778,7 +778,7 @@ export default function Schedule() {
                 className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
               >
                 <div className="flex items-center gap-2 mb-6">
-                  <Icons.Target className="w-6 h-6 text-purple-600" />
+                  <Icons.Target className="w-6 h-6 text-slate-600" />
                   <h2 className="text-2xl font-bold text-gray-900">Add a New Goal</h2>
                 </div>
                 
@@ -800,7 +800,7 @@ export default function Schedule() {
                     type="submit"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:shadow-lg transition-all"
+                    className="px-6 py-3 rounded-xl bg-slate-700 text-white font-semibold hover:shadow transition-all"
                   >
                     Add
                   </motion.button>
@@ -930,7 +930,7 @@ export default function Schedule() {
                   </div>
                   <div className="flex gap-3 justify-end">
                     <button className="px-4 py-3 rounded-xl border" onClick={()=>setShowAddDialog(false)}>Cancel</button>
-                    <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold" onClick={() => { addEvent(); setShowAddDialog(false) }}>Save</button>
+                    <button className="px-6 py-3 rounded-xl bg-slate-700 text-white font-semibold" onClick={() => { addEvent(); setShowAddDialog(false) }}>Save</button>
                   </div>
                 </div>
               </motion.div>
