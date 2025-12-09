@@ -264,23 +264,23 @@ export default function Schedule() {
             <div className="text-sm font-medium">Scanning image — this may take a few seconds…</div>
           </div>
         </div>
-
-        {/* Category legend & filters */}
-        <div className="mb-6 flex items-center gap-3">
-          {Object.keys(categories).map(catKey => {
-            const active = categoryFilter.includes(catKey)
-            return (
-              <button key={catKey} onClick={() => {
-                setCategoryFilter(prev => prev.includes(catKey) ? prev.filter(p=>p!==catKey) : [...prev, catKey])
-              }} className={`flex items-center gap-2 px-3 py-1 rounded-full border ${active ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white'}`}>
-                <span className={`w-3 h-3 rounded-full ${categories[catKey]}`} />
-                <span className="text-sm font-medium">{catKey}</span>
-              </button>
-            )
-          })}
-          <button onClick={()=>setCategoryFilter(Object.keys(categories))} className="ml-auto text-sm text-gray-600 underline">Reset filters</button>
-        </div>
       )}
+
+      {/* Category legend & filters */}
+      <div className="mb-6 flex items-center gap-3">
+        {Object.keys(categories).map(catKey => {
+          const active = categoryFilter.includes(catKey)
+          return (
+            <button key={catKey} onClick={() => {
+              setCategoryFilter(prev => prev.includes(catKey) ? prev.filter(p=>p!==catKey) : [...prev, catKey])
+            }} className={`flex items-center gap-2 px-3 py-1 rounded-full border ${active ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white'}`}>
+              <span className={`w-3 h-3 rounded-full ${categories[catKey]}`} />
+              <span className="text-sm font-medium">{catKey}</span>
+            </button>
+          )
+        })}
+        <button onClick={()=>setCategoryFilter(Object.keys(categories))} className="ml-auto text-sm text-gray-600 underline">Reset filters</button>
+      </div>
       <div className="max-w-6xl mx-auto py-8 px-4">
         {/* Header */}
         <motion.div 
