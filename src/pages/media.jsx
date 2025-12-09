@@ -150,7 +150,7 @@ export default function Media() {
               key={t}
               onClick={() => setTab(t)}
               className={`py-2.5 px-3 rounded-xl font-semibold text-sm capitalize transition-all ${tab === t ? 'text-white' : 'bg-transparent text-gray-600 hover:bg-gray-100'}`}
-              style={ tab === t ? { background: 'linear-gradient(90deg, var(--accent-700), var(--accent-600))', boxShadow: 'var(--elev-1)' } : {} }
+              style={ tab === t ? { background: 'linear-gradient(90deg, #334155, #64748b)', boxShadow: 'var(--elev-1)' } : {} }
             >
               {t}
             </button>
@@ -294,7 +294,7 @@ export default function Media() {
             </Button>
 
             {aiDescription && (
-              <div className="p-4 rounded-xl border" style={{background: 'linear-gradient(180deg, var(--accent-50), var(--card))', borderColor: 'var(--border)'}}>
+              <div className="p-4 rounded-xl border" style={{background: 'linear-gradient(180deg, #f7f8f9, var(--card))', borderColor: 'var(--border)'}}>
                 <p className="text-sm" style={{color: 'var(--text)'}}>{aiDescription}</p>
               </div>
             )}

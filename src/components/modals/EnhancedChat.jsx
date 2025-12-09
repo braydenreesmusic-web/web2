@@ -88,7 +88,7 @@ export default function EnhancedChat({ open, onClose }) {
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${isPartnerOnline ? 'bg-green-500' : 'bg-gray-300'}`}/>
+            <span className={`w-2 h-2 rounded-full ${isPartnerOnline ? 'bg-slate-600' : 'bg-gray-300'}`}/>
             <span>{isPartnerOnline ? 'Partner active now' : 'Partner offline'}</span>
           </div>
           <div className="text-gray-500">{isTyping ? 'typing…' : ''}</div>

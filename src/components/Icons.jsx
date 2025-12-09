@@ -194,7 +194,7 @@ export function IconButton({ icon: Icon, label, onClick, variant = "default", si
   const variantClasses = {
     default: "text-gray-600 hover:text-gray-900",
     primary: "text-slate-600 hover:text-slate-700",
-    success: "text-green-600 hover:text-green-700",
+    success: "text-slate-600 hover:text-slate-700",
     danger: "text-red-600 hover:text-red-700",
     light: "text-gray-400 hover:text-gray-600"
   }

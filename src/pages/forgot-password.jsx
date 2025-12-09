@@ -61,10 +61,10 @@ export default function ForgotPassword() {
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3"
+              className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-lg flex items-start gap-3"
             >
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-green-800">
+              <CheckCircle className="w-5 h-5 text-slate-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-slate-800">
                 Password reset link sent! Check your email.
               </p>
             </motion.div>

@@ -176,7 +176,7 @@ export default function SavingsGoals() {
 
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2 text-sm">
-                    <DollarSign className="w-4 h-4 text-green-500" />
+                    <DollarSign className="w-4 h-4 text-slate-600" />
                     <span className="font-semibold">${goal.current_amount?.toFixed(2) || '0.00'}</span>
                     <span className="text-gray-400">/ ${goal.target_amount.toFixed(2)}</span>
                   </div>

@@ -78,7 +78,7 @@ export default function NotificationPrompt() {
           <div className="flex-1">
             <div className="font-semibold">Enable Notifications</div>
             <div className="text-sm text-gray-600 mt-1">Get reminders and message alerts even when the app is closed.</div>
-            {message && <div className="mt-3 text-sm text-green-600">{message}</div>}
+            {message && <div className="mt-3 text-sm text-slate-600">{message}</div>}
           </div>
         </div>
 

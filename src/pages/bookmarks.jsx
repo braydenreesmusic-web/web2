@@ -330,7 +330,7 @@ export default function Bookmarks() {
                               <CategoryBadge category={b.category} />
                               <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
                                 b.visited 
-                                  ? 'bg-green-100 text-green-700' 
+                                  ? 'bg-slate-50 text-slate-700' 
                                   : 'bg-yellow-100 text-yellow-700'
                               }`}>
                                 {b.visited ? (
@@ -367,7 +367,7 @@ export default function Bookmarks() {
                                   onClick={(e) => { e.stopPropagation(); markVisited(b.id) }}
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className="flex-1 px-2 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-medium hover:bg-green-200 transition-all flex items-center justify-center gap-1"
+                                  className="flex-1 px-2 py-1.5 rounded-lg bg-slate-50 text-slate-700 text-xs font-medium hover:bg-slate-100 transition-all flex items-center justify-center gap-1"
                                 >
                                   <Icons.Eye className="w-3.5 h-3.5" />
                                   Visited

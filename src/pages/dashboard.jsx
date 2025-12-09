@@ -106,10 +106,10 @@ export default function Dashboard() {
                 const name = isMe ? myName : partnerName
                 return (
                   <div key={p.user_id} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500"/>
-                    <span className="text-sm font-medium">{name}{isMe ? ' (you)' : ''}</span>
-                    <span className="text-xs text-gray-400"> • {p.updated_at ? new Date(p.updated_at).toLocaleTimeString() : ''}</span>
-                  </div>
+                      <span className="w-2 h-2 rounded-full bg-slate-600"/>
+                      <span className="text-sm font-medium">{name}{isMe ? ' (you)' : ''}</span>
+                      <span className="text-xs text-gray-400"> • {p.updated_at ? new Date(p.updated_at).toLocaleTimeString() : ''}</span>
+                    </div>
                 )
               })}
             </div>

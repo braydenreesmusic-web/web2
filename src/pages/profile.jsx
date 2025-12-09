@@ -253,13 +253,13 @@ export default function Profile() {
         
         {/* Partner Linking Status */}
         {linked ? (
-          <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+          <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
             <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-sm font-semibold text-green-900">Partner Linked!</span>
+              <CheckCircle className="w-5 h-5 text-slate-600" />
+              <span className="text-sm font-semibold text-slate-900">Partner Linked!</span>
             </div>
-            <p className="text-xs text-green-700 mt-2">
-              You can now see each other's online status in the header 💚
+            <p className="text-xs text-slate-700 mt-2">
+              You can now see each other's online status in the header
             </p>
           </div>
         ) : (
@@ -307,7 +307,7 @@ export default function Profile() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleAccept(req.id)}
-                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs flex items-center gap-1"
+                            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs flex items-center gap-1"
                           >
                             <CheckCircle className="w-3 h-3" />
                             Accept
@@ -397,7 +397,7 @@ export default function Profile() {
               }}
               className="p-2 hover:bg-gray-100 rounded-lg transition"
             >
-              {editing ? <Check className="w-4 h-4 text-green-600" /> : <Edit2 className="w-4 h-4 text-gray-400" />}
+              {editing ? <Check className="w-4 h-4 text-slate-600" /> : <Edit2 className="w-4 h-4 text-gray-400" />}
             </button>
           </div>
           {editing ? (

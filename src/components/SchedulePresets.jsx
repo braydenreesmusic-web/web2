@@ -90,7 +90,7 @@ export default function SchedulePresets({ current = {}, onApply, onActivate, act
               <option value="">Apply preset…</option>
               {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <button onClick={()=>setSaving(true)} className="px-3 py-2 rounded-md bg-teal-700 text-white">Save</button>
+            <button onClick={()=>setSaving(true)} className="px-3 py-2 rounded-md bg-slate-700 text-white">Save</button>
             <button onClick={()=>setOpen(false)} className="px-2 py-2 text-sm text-gray-500">Close</button>
           </div>
 
@@ -114,8 +114,8 @@ export default function SchedulePresets({ current = {}, onApply, onActivate, act
               </select>
               <input value={quickNote} onChange={e=>setQuickNote(e.target.value)} placeholder="Note" className="px-2 py-1 rounded border flex-1" />
             </div>
-            <div className="flex gap-2">
-              <button onClick={activateQuick} className="px-3 py-1 rounded bg-teal-700 text-white">Activate Quick</button>
+              <div className="flex gap-2">
+              <button onClick={activateQuick} className="px-3 py-1 rounded bg-slate-700 text-white">Activate Quick</button>
               <button onClick={()=>{ setQuickTitle(''); setQuickNote(''); setQuickTime('09:00') }} className="px-3 py-1 rounded border">Clear</button>
             </div>
           </div>
@@ -125,10 +125,10 @@ export default function SchedulePresets({ current = {}, onApply, onActivate, act
               <input value={name} onChange={e=>setName(e.target.value)} placeholder="Preset name" className="px-3 py-2 rounded-md border flex-1" />
               <div className="flex items-center gap-1 text-sm">
                 {[1,2,3,4,5,6,0].map(d=> (
-                  <button key={d} onClick={()=>toggleWeekday(d)} className={`px-2 py-1 rounded ${weekdays.includes(d)?'bg-teal-700 text-white':'border'}`}>{['S','M','T','W','T','F','S'][d]}</button>
+                  <button key={d} onClick={()=>toggleWeekday(d)} className={`px-2 py-1 rounded ${weekdays.includes(d)?'bg-slate-700 text-white':'border'}`}>{['S','M','T','W','T','F','S'][d]}</button>
                 ))}
               </div>
-              <button onClick={savePreset} className="px-3 py-2 rounded-md bg-green-600 text-white">Save</button>
+              <button onClick={savePreset} className="px-3 py-2 rounded-md bg-slate-700 text-white">Save</button>
               <button onClick={()=>{ setSaving(false); setName(''); setWeekdays([]) }} className="px-3 py-2 rounded-md border">Cancel</button>
             </div>
           )}
@@ -138,7 +138,7 @@ export default function SchedulePresets({ current = {}, onApply, onActivate, act
               {presets.map(p => (
                 <div key={p.id} className="px-3 py-1 rounded-full border bg-white flex items-center gap-2 text-sm">
                   <button onClick={()=>apply(p)} className="font-medium text-gray-800">{p.name}</button>
-                  <button onClick={()=>activate(p)} className={`px-2 py-1 rounded ${activePresetId===p.id ? 'bg-teal-700 text-white' : 'border'}`}>{activePresetId===p.id ? 'Active' : 'Use'}</button>
+                  <button onClick={()=>activate(p)} className={`px-2 py-1 rounded ${activePresetId===p.id ? 'bg-slate-700 text-white' : 'border'}`}>{activePresetId===p.id ? 'Active' : 'Use'}</button>
                   <button onClick={()=>deletePreset(p.id)} className="text-red-500">✕</button>
                 </div>
               ))}

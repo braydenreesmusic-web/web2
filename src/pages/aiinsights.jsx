@@ -43,7 +43,7 @@ export default function AIInsightsPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{background: 'linear-gradient(180deg, var(--accent-50) 0%, var(--bg) 100%)'}}>
+    <div className="min-h-screen" style={{background: 'linear-gradient(180deg, #f7f8f9 0%, var(--bg) 100%)'}}>
       <div className="max-w-3xl mx-auto py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -95,7 +95,7 @@ export default function AIInsightsPage() {
                 className="bg-white rounded-xl shadow-lg hover:shadow-xl transition overflow-hidden"
               >
                 {/* Card Header */}
-                <div className="p-4" style={{background: 'linear-gradient(90deg, var(--accent-700) 0%, var(--accent-600) 100%)', color: 'white'}}>
+                <div className="p-4" style={{background: 'linear-gradient(90deg, #334155 0%, #64748b 100%)', color: 'white'}}>
                   <p className="text-sm opacity-90">Generated</p>
                   <p className="font-semibold">
                     {new Date(insight.generated_at).toLocaleDateString('en-US', {

@@ -14,17 +14,17 @@ body {
 }
 
 :root {
-  --accent: #0f766e; /* teal-700 */
-  --accent-600: #0e6b64; /* teal-600 */
-  --accent-700: #0b524c; /* teal-800 */
-  --accent-50: #f0fdfa;
+  --accent: #334155; /* slate-700 */
+  --accent-600: #475569; /* slate-600 */
+  --accent-700: #1f2937; /* slate-800 */
+  --accent-50: #f8fafc;
   --bg: #fbfbfc;
   --surface: #ffffff;
   --card: var(--surface);
   --border: #eef2f4; /* very light gray */
   --muted: #6b7280; /* gray-500 */
   --text: #071029;
-  --focus-ring: 15, 118, 110; /* rgb components for rgba focus usage */
+  --focus-ring: 51, 65, 85; /* rgb components for slate focus (rgb of #334155) */
   --radius-sm: 8px;
   --radius: 12px;
   --elev-1: 0 6px 18px rgba(7, 16, 41, 0.04);

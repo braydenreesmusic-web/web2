@@ -8,9 +8,9 @@ import { Icons, OwnerBadge } from '../components/Icons'
 import SchedulePresets from '../components/SchedulePresets'
 
 const ownerColors = {
-  hers: 'bg-red-500',
-  yours: 'bg-blue-500',
-  together: 'bg-purple-500',
+  hers: 'bg-slate-500',
+  yours: 'bg-slate-600',
+  together: 'bg-slate-700',
   other: 'bg-gray-500'
 }
 
@@ -22,9 +22,9 @@ const ownerEmojis = {
 }
 
 const categories = {
-  Anniversary: 'bg-red-500',
-  Together: 'bg-purple-500',
-  Work: 'bg-blue-500',
+  Anniversary: 'bg-slate-500',
+  Together: 'bg-slate-700',
+  Work: 'bg-slate-600',
   Other: 'bg-gray-500'
 }
 
@@ -423,7 +423,7 @@ export default function Schedule() {
       {scanning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white/90 p-6 rounded-xl shadow-lg flex items-center gap-4">
-            <div className="w-8 h-8 border-4 border-t-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-t-4 border-slate-400 border-t-transparent rounded-full animate-spin" />
             <div className="text-sm font-medium">Scanning image — this may take a few seconds…</div>
           </div>
         </div>
@@ -436,7 +436,7 @@ export default function Schedule() {
           return (
             <button key={catKey} onClick={() => {
               setCategoryFilter(prev => prev.includes(catKey) ? prev.filter(p=>p!==catKey) : [...prev, catKey])
-            }} className={`flex items-center gap-2 px-3 py-1 rounded-full border ${active ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white'}`}>
+            }} className={`flex items-center gap-2 px-3 py-1 rounded-full border ${active ? 'bg-slate-700 text-white' : 'bg-white'}`}>
               <span className={`w-3 h-3 rounded-full ${categories[catKey]}`} />
               <span className="text-sm font-medium">{catKey}</span>
             </button>
@@ -482,7 +482,7 @@ export default function Schedule() {
                   <button
                     key={e.id}
                     onClick={()=>setSelectedEvent(e)}
-                    className="w-full text-left p-3 rounded-xl border hover:border-purple-300 hover:bg-purple-50/50 transition flex items-center justify-between"
+                    className="w-full text-left p-3 rounded-xl border hover:border-slate-200 hover:bg-slate-50 transition flex items-center justify-between"
                   >
                     <div>
                       <div className="font-medium text-gray-900">{e.title}</div>
@@ -498,7 +498,7 @@ export default function Schedule() {
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Icons.Add className="w-5 h-5 text-purple-600" />
+              <Icons.Add className="w-5 h-5 text-slate-600" />
               <div className="text-lg font-semibold text-gray-900">Quick Actions</div>
             </div>
             <div className="space-y-2">
@@ -605,7 +605,7 @@ export default function Schedule() {
                     {batchSelecting && (
                       <div className="mt-3 flex items-center gap-2">
                         <div className="text-sm text-gray-600">{selectedDays.length} selected</div>
-                        <button onClick={createBatchEvents} className="px-3 py-2 rounded bg-green-600 text-white">Create for selected</button>
+                        <button onClick={createBatchEvents} className="px-3 py-2 rounded bg-slate-700 text-white">Create for selected</button>
                         <button onClick={() => setSelectedDays([])} className="px-3 py-2 rounded border">Clear</button>
                       </div>
                     )}
@@ -648,7 +648,7 @@ export default function Schedule() {
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-7 gap-0 mb-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-2">
+                <div className="grid grid-cols-7 gap-0 mb-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-2">
                   {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
                     <div key={d} className="text-center text-xs font-bold text-gray-600 py-3">{d}</div>
                   ))}
@@ -691,7 +691,7 @@ export default function Schedule() {
                             <span className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-700">View</span>
                           </div>
 
-                        <div className={`flex-1 overflow-hidden space-y-1 ${selectedDays.includes(day) ? 'ring-2 ring-offset-1 ring-green-300 bg-green-50' : ''}`}>
+                        <div className={`flex-1 overflow-hidden space-y-1 ${selectedDays.includes(day) ? 'ring-2 ring-offset-1 ring-slate-300 bg-slate-50' : ''}`}>
                           <AnimatePresence initial={false}>
                             {dayEvents.slice(0, 3).map((e) => (
                               <motion.div
@@ -820,7 +820,7 @@ export default function Schedule() {
                   value={taskTitle} 
                   onChange={e=>setTaskTitle(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addTask()}
-                  className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 flex-1 placeholder-gray-500"
+                  className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 flex-1 placeholder-gray-500"
                   placeholder="Add a task..."
                 />
                 <motion.button 
@@ -844,18 +844,18 @@ export default function Schedule() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 12, height: 0 }}
                       transition={{ delay: i * 0.03, type: 'spring', stiffness: 300, damping: 30 }}
-                      className={`flex items-center gap-3 p-4 rounded-xl transition-all cursor-pointer group border ${t.completed ? 'bg-green-50 border-green-100' : 'hover:bg-gray-50 border-gray-100'}`}
+                      className={`flex items-center gap-3 p-4 rounded-xl transition-all cursor-pointer group border ${t.completed ? 'bg-slate-50 border-slate-100' : 'hover:bg-gray-50 border-gray-100'}`}
                     >
                       <input 
                         type="checkbox" 
                         checked={t.completed}
                         onChange={e=>toggleTask(t.id, e.target.checked)}
-                        className="w-5 h-5 rounded border-gray-300 text-purple-500 cursor-pointer"
+                        className="w-5 h-5 rounded border-gray-300 text-slate-600 cursor-pointer"
                       />
                       <motion.span layout className={`flex-1 font-medium ${t.completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                         {t.title}
                       </motion.span>
-                      {t.completed && <motion.span initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-green-500 text-lg">✓</motion.span>}
+                      {t.completed && <motion.span initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-slate-600 text-lg">✓</motion.span>}
                     </motion.label>
                   ))}
                   </AnimatePresence>
@@ -893,13 +893,13 @@ export default function Schedule() {
                 
                 <form className="flex gap-3" onSubmit={addGoal}>
                   <input 
-                    className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 flex-1 placeholder-gray-500" 
+                    className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 flex-1 placeholder-gray-500" 
                     value={newGoal} 
                     onChange={e=>setNewGoal(e.target.value)} 
                     placeholder="What's your goal?"
                   />
                   <input 
-                    className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-24 placeholder-gray-500" 
+                    className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 w-24 placeholder-gray-500" 
                     type="number" 
                     value={newTarget} 
                     onChange={e=>setNewTarget(e.target.value)} 
@@ -947,7 +947,7 @@ export default function Schedule() {
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
                             transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
-                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                            className="h-full bg-gradient-to-r from-slate-700 to-slate-500 rounded-full"
                           />
                         </div>
 
@@ -1024,18 +1024,18 @@ export default function Schedule() {
                   <button className="text-gray-500 hover:text-gray-800" onClick={()=>setShowAddDialog(false)}><Icons.X className="w-5 h-5" /></button>
                 </div>
                 <div className="space-y-4">
-                  <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Event title" className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full" />
-                  <input type="datetime-local" value={date} onChange={e=>setDate(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full" />
+                  <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Event title" className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 w-full" />
+                  <input type="datetime-local" value={date} onChange={e=>setDate(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 w-full" />
                   <div className="grid md:grid-cols-3 gap-3">
-                    <select value={cat} onChange={e=>setCat(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                    <select value={cat} onChange={e=>setCat(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 w-full">
                       {Object.keys(categories).map(c => (<option key={c} value={c}>{categoryEmojis[c]} {c}</option>))}
                     </select>
-                    <select value={owner} onChange={e=>setOwner(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                    <select value={owner} onChange={e=>setOwner(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 w-full">
                       <option value="hers">{ownerEmojis.hers} Hers</option>
                       <option value="yours">{ownerEmojis.yours} Yours</option>
                       <option value="together">{ownerEmojis.together} Together</option>
                     </select>
-                    <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Note (optional)" className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full" />
+                    <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Note (optional)" className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 w-full" />
                   </div>
                   <div className="flex gap-3 justify-end">
                     <button className="px-4 py-3 rounded-xl border" onClick={()=>setShowAddDialog(false)}>Cancel</button>
