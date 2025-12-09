@@ -193,7 +193,7 @@ export function IconButton({ icon: Icon, label, onClick, variant = "default", si
   
   const variantClasses = {
     default: "text-gray-600 hover:text-gray-900",
-    primary: "text-purple-600 hover:text-purple-700",
+    primary: "text-slate-600 hover:text-slate-700",
     success: "text-green-600 hover:text-green-700",
     danger: "text-red-600 hover:text-red-700",
     light: "text-gray-400 hover:text-gray-600"
@@ -245,7 +245,7 @@ export function OwnerBadge({ owner }) {
   const colorMap = {
     "hers": "bg-red-100 text-red-700",
     "yours": "bg-blue-100 text-blue-700",
-    "together": "bg-purple-100 text-purple-700",
+    "together": "bg-slate-100 text-slate-700",
   }
   
   const Icon = iconMap[owner] || Icons.OwnerTogether

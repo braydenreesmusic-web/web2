@@ -25,7 +25,7 @@ export default function MemoryConstellation({ open, onClose, memories }) {
       <div className="space-y-3">
         <div className="flex gap-2">
           {['all','favorites','photos','notes'].map(f => (
-            <button key={f} onClick={()=>setFilter(f)} className={`px-3 py-1 rounded-xl ${filter===f?'bg-gradient-to-r from-pink-500 to-purple-500 text-white':'bg-gray-100'}`}>{f}</button>
+            <button key={f} onClick={()=>setFilter(f)} className={`px-3 py-1 rounded-xl ${filter===f?'bg-gradient-to-r from-slate-700 to-slate-500 text-white':'bg-gray-100'}`}>{f}</button>
           ))}
         </div>
         <div className="relative h-64 rounded-2xl overflow-hidden" style={{background:'radial-gradient(ellipse at center, rgba(20,10,40,1) 0%, rgba(10,5,20,1) 100%)'}}>
@@ -34,7 +34,7 @@ export default function MemoryConstellation({ open, onClose, memories }) {
             return (
               <div key={m.id} title={m.title||m.caption}
                    style={{ left: `${p.x*100}%`, top: `${p.y*100}%`, transform: 'translate(-50%, -50%)' }}
-                   className="absolute w-2 h-2 rounded-full bg-pink-400 shadow-[0_0_10px_rgba(236,72,153,0.8)]" />
+                   className="absolute w-2 h-2 rounded-full bg-slate-500 shadow-[0_0_10px_rgba(100,116,139,0.6)]" />
             )
           })}
         </div>

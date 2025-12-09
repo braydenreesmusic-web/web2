@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
+import EmptyState from '../components/EmptyState'
 import { getCheckIns, getNotes, getMedia, getSavingsGoals, getPresence, getRelationshipData } from '../services/api'
 import DailyCheckIn from '../components/modals/DailyCheckIn.jsx'
 import MemoryConstellation from '../components/modals/MemoryConstellation.jsx'
@@ -74,7 +75,7 @@ export default function Dashboard() {
         </div>
         <Link to="/savings" className="glass-card p-4 hover:shadow-lg transition-shadow">
           <div className="flex items-center gap-2 mb-2">
-            <PiggyBank className="w-4 h-4 text-pink-500" />
+            <PiggyBank className="w-4 h-4 text-slate-600" />
             <div className="text-sm text-gray-500">Savings Goals</div>
           </div>
           {savings.length > 0 ? (
@@ -82,7 +83,7 @@ export default function Dashboard() {
               <div className="text-xs text-gray-400 mb-1">{savings[0].title}</div>
               <div className="w-full bg-gray-200 rounded-full h-3">
                 <div 
-                  className="h-3 rounded-full bg-gradient-to-r from-pink-500 to-purple-500" 
+                  className="h-3 rounded-full bg-gradient-to-r from-slate-700 to-slate-500" 
                   style={{width: `${Math.min((savings[0].current_amount / savings[0].target_amount) * 100, 100)}%`}}
                 />
               </div>
@@ -144,7 +145,7 @@ export default function Dashboard() {
         {checkIns.slice(0, 3).map(ci => (
           <div key={ci.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-600 to-slate-500 flex items-center justify-center text-white text-xs font-semibold">
                 {ci.author_name?.[0] || 'U'}
               </div>
               <div>
@@ -155,7 +156,11 @@ export default function Dashboard() {
             <div className="text-xs text-gray-400">{new Date(ci.date).toLocaleDateString()}</div>
           </div>
         ))}
-        {!checkIns.length && <div className="text-sm text-gray-400">No check-ins yet</div>}
+        {!checkIns.length && (
+          <div className="py-4">
+            <EmptyState title="No check-ins yet" description="Log a check-in to track your progress and feelings over time." action={<button className="btn">Log Check-In</button>} />
+          </div>
+        )}
       </div>
 
       <DailyCheckIn open={showCheckIn} onClose={()=>setShowCheckIn(false)} onSubmit={(data)=>{ setCheckIns(prev=> [data, ...prev]) }} />

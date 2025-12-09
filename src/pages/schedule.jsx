@@ -3,13 +3,14 @@ import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import { getEvents, createEvent, deleteEvent, getTasks, createTask, updateTask } from '../services/api'
 import { motion, AnimatePresence } from 'framer-motion'
+import EmptyState from '../components/EmptyState'
 import { useToast } from '../contexts/ToastContext'
 import { Icons, OwnerBadge } from '../components/Icons'
 
 const ownerColors = {
   hers: 'bg-red-500',
   yours: 'bg-blue-500',
-  together: 'bg-purple-500',
+  together: 'bg-slate-600',
   other: 'bg-gray-500'
 }
 
@@ -22,7 +23,7 @@ const ownerEmojis = {
 
 const categories = {
   Anniversary: 'bg-red-500',
-  Together: 'bg-purple-500',
+  Together: 'bg-slate-600',
   Work: 'bg-blue-500',
   Other: 'bg-gray-500'
 }
@@ -129,6 +130,96 @@ export default function Schedule() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [presets, setPresets] = useState([])
+  const [savingPreset, setSavingPreset] = useState(false)
+  const [presetName, setPresetName] = useState('')
+
+  // localStorage-backed presets for quick templates (e.g., Workdays)
+  const PRESET_KEY = 'schedule_presets_v1'
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PRESET_KEY)
+      if (raw) setPresets(JSON.parse(raw))
+    } catch (e) {
+      console.warn('Failed to load presets', e)
+    }
+  }, [])
+
+  const persistPresets = (next) => {
+    try {
+      localStorage.setItem(PRESET_KEY, JSON.stringify(next))
+    } catch (e) {
+      console.warn('Failed to persist presets', e)
+    }
+  }
+
+  const savePreset = (name) => {
+    const id = Date.now()
+    // derive simple preset fields from current form
+    // support recurring weekdays via a small inline UI later; for now save time and meta
+    const preset = {
+      id,
+      name: name || `Preset ${new Date(id).toLocaleString()}`,
+      category: cat,
+      owner,
+      note,
+      // capture time portion if date present
+      time: date ? (date.slice(11,16)) : '',
+      weekdays: []
+    }
+    const next = [preset, ...presets]
+    setPresets(next)
+    persistPresets(next)
+    setPresetName('')
+    setSavingPreset(false)
+    showToast && showToast('Preset saved', { type: 'success' })
+  }
+
+  const deletePreset = (id) => {
+    const next = presets.filter(p => p.id !== id)
+    setPresets(next)
+    persistPresets(next)
+    showToast && showToast('Preset removed', { type: 'info' })
+  }
+
+  const getNextDateForWeekday = (weekday, timeHHMM) => {
+    // weekday: 0 Sun - 6 Sat. timeHHMM: 'HH:MM' or ''
+    const now = new Date()
+    const today = now.getDay()
+    let diff = (weekday - today + 7) % 7
+    if (diff === 0) diff = 7 // pick next week if same-day to avoid past times
+    const target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff)
+    if (timeHHMM) {
+      const [hh, mm] = timeHHMM.split(':').map(Number)
+      target.setHours(hh, mm, 0, 0)
+    } else {
+      target.setHours(9,0,0,0)
+    }
+    // convert to local datetime-local value
+    const isoLocal = new Date(target.getTime() - target.getTimezoneOffset()*60000).toISOString().slice(0,16)
+    return isoLocal
+  }
+
+  const applyPreset = (p) => {
+    if (!p) return
+    setCat(p.category || 'Other')
+    setOwner(p.owner || 'together')
+    setNote(p.note || '')
+    if (p.weekdays && p.weekdays.length) {
+      // set to next occurrence of first weekday
+      const next = getNextDateForWeekday(p.weekdays[0], p.time)
+      setDate(next)
+    } else if (p.time) {
+      // if only time, set today with that time
+      const now = new Date()
+      const [hh, mm] = p.time.split(':').map(Number)
+      now.setHours(hh, mm, 0, 0)
+      const isoLocal = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,16)
+      setDate(isoLocal)
+    }
+    showToast && showToast('Preset applied', { type: 'success' })
+  }
 
   const scanImageForSchedule = async () => {
     if (!photoPreview) return
@@ -260,7 +351,7 @@ export default function Schedule() {
       {scanning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white/90 p-6 rounded-xl shadow-lg flex items-center gap-4">
-            <div className="w-8 h-8 border-4 border-t-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-t-4 border-slate-600 border-t-transparent rounded-full animate-spin" />
             <div className="text-sm font-medium">Scanning image — this may take a few seconds…</div>
           </div>
         </div>
@@ -273,7 +364,7 @@ export default function Schedule() {
           return (
             <button key={catKey} onClick={() => {
               setCategoryFilter(prev => prev.includes(catKey) ? prev.filter(p=>p!==catKey) : [...prev, catKey])
-            }} className={`flex items-center gap-2 px-3 py-1 rounded-full border ${active ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white'}`}>
+            }} className={`flex items-center gap-2 px-3 py-1 rounded-full border ${active ? 'bg-gradient-to-r from-slate-700 to-slate-500 text-white' : 'bg-white'}`}>
               <span className={`w-3 h-3 rounded-full ${categories[catKey]}`} />
               <span className="text-sm font-medium">{catKey}</span>
             </button>
@@ -319,7 +410,7 @@ export default function Schedule() {
                   <button
                     key={e.id}
                     onClick={()=>setSelectedEvent(e)}
-                    className="w-full text-left p-3 rounded-xl border hover:border-purple-300 hover:bg-purple-50/50 transition flex items-center justify-between"
+                    className="w-full text-left p-3 rounded-xl border hover:border-slate-300 hover:bg-slate-50/50 transition flex items-center justify-between"
                   >
                     <div>
                       <div className="font-medium text-gray-900">{e.title}</div>
@@ -335,7 +426,7 @@ export default function Schedule() {
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Icons.Add className="w-5 h-5 text-purple-600" />
+              <Icons.Add className="w-5 h-5 text-slate-600" />
               <div className="text-lg font-semibold text-gray-900">Quick Actions</div>
             </div>
             <div className="space-y-2">
@@ -403,13 +494,13 @@ export default function Schedule() {
                       value={title} 
                       onChange={e=>setTitle(e.target.value)} 
                       placeholder="Event title"
-                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 placeholder-gray-500"
+                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 text-gray-900 placeholder-gray-500"
                     />
                     <input 
                       type="datetime-local" 
                       value={date} 
                       onChange={e=>setDate(e.target.value)}
-                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 text-gray-900"
                     />
                   </div>
 
@@ -417,7 +508,7 @@ export default function Schedule() {
                     <select 
                       value={cat} 
                       onChange={e=>setCat(e.target.value)} 
-                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 text-gray-900"
                     >
                       {Object.keys(categories).map(c => (
                         <option key={c} value={c}>{categoryEmojis[c]} {c}</option>
@@ -427,7 +518,7 @@ export default function Schedule() {
                     <select 
                       value={owner} 
                       onChange={e=>setOwner(e.target.value)} 
-                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 text-gray-900"
                     >
                       <option value="hers">{ownerEmojis.hers} Hers</option>
                       <option value="yours">{ownerEmojis.yours} Yours</option>
@@ -438,12 +529,49 @@ export default function Schedule() {
                       value={note} 
                       onChange={e=>setNote(e.target.value)} 
                       placeholder="Add a note"
-                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 placeholder-gray-500"
+                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 text-gray-900 placeholder-gray-500"
                     />
                   </div>
 
-                  <div className="flex flex-wrap gap-3 items-center">
-                    <label className="flex-1 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 hover:border-purple-500 cursor-pointer transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-purple-600">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <select
+                        onChange={(e) => {
+                          const id = Number(e.target.value)
+                          const p = presets.find(x => x.id === id)
+                          if (p) applyPreset(p)
+                        }}
+                        defaultValue=""
+                        className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-gray-800"
+                      >
+                        <option value="">Apply preset…</option>
+                        {presets.map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                      <button onClick={() => setSavingPreset(true)} className="px-3 py-2 rounded-xl bg-slate-700 text-white font-semibold">Save as preset</button>
+                      <div className="flex-1 text-sm text-gray-500">Templates let you quickly apply common settings like workdays and times.</div>
+                    </div>
+                    {savingPreset && (
+                      <div className="flex items-center gap-2">
+                        <input value={presetName} onChange={e=>setPresetName(e.target.value)} placeholder="Preset name (e.g. Workday)" className="px-3 py-2 rounded-xl border border-gray-300 flex-1" />
+                        <button onClick={() => savePreset(presetName)} className="px-3 py-2 rounded-xl bg-green-600 text-white">Save</button>
+                        <button onClick={() => { setSavingPreset(false); setPresetName('') }} className="px-3 py-2 rounded-xl border">Cancel</button>
+                      </div>
+                    )}
+                    {presets.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {presets.map(p => (
+                          <div key={p.id} className="px-3 py-1 rounded-full border bg-white flex items-center gap-2 text-sm">
+                            <button onClick={() => applyPreset(p)} className="text-gray-800 font-medium">{p.name}</button>
+                            <button onClick={() => deletePreset(p.id)} className="text-red-500 px-1">✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-3 items-center">
+                    <label className="flex-1 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 hover:border-slate-600 cursor-pointer transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-slate-600">
                       <Icons.Image className="w-4 h-4" />
                       <span>Photo</span>
                       <input type="file" onChange={handlePhotoUpload} className="hidden"/>
@@ -481,7 +609,7 @@ export default function Schedule() {
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       src={photoPreview} 
-                      className="h-40 rounded-xl object-cover border-2 border-purple-500 w-full"
+                      className="h-40 rounded-xl object-cover border-2 border-slate-600 w-full"
                     />
                   )}
                   {parsedEvents.length > 0 && (
@@ -595,7 +723,7 @@ export default function Schedule() {
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-7 gap-0 mb-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-2">
+                <div className="grid grid-cols-7 gap-0 mb-2 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl p-2">
                   {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
                     <div key={d} className="text-center text-xs font-bold text-gray-600 py-3">{d}</div>
                   ))}
@@ -613,7 +741,7 @@ export default function Schedule() {
                     >
                         <div className="font-bold text-gray-700 text-xs mb-1 flex items-center justify-between">
                           <span>{day}</span>
-                          <span className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-purple-100 text-purple-700">View</span>
+                          <span className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-700">View</span>
                         </div>
                       <div className="flex-1 overflow-hidden space-y-1">
                           <AnimatePresence initial={false}>
@@ -685,7 +813,11 @@ export default function Schedule() {
                       </motion.div>
                     ))}
                   </AnimatePresence>
-                  {!events.length && <div className="text-center py-6 text-gray-500">No events scheduled yet</div>}
+                  {!events.length && (
+                    <div className="py-6">
+                      <EmptyState title="No events" description="You don't have any events scheduled yet. Use the Add button to create one." />
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </motion.div>
@@ -711,7 +843,7 @@ export default function Schedule() {
                   value={taskTitle} 
                   onChange={e=>setTaskTitle(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addTask()}
-                  className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 flex-1 placeholder-gray-500"
+                  className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 flex-1 placeholder-gray-500"
                   placeholder="Add a task..."
                 />
                 <motion.button 
@@ -741,7 +873,7 @@ export default function Schedule() {
                         type="checkbox" 
                         checked={t.completed}
                         onChange={e=>toggleTask(t.id, e.target.checked)}
-                        className="w-5 h-5 rounded border-gray-300 text-purple-500 cursor-pointer"
+                        className="w-5 h-5 rounded border-gray-300 text-slate-600 cursor-pointer"
                       />
                       <motion.span layout className={`flex-1 font-medium ${t.completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                         {t.title}
@@ -784,13 +916,13 @@ export default function Schedule() {
                 
                 <form className="flex gap-3" onSubmit={addGoal}>
                   <input 
-                    className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 flex-1 placeholder-gray-500" 
+                    className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 flex-1 placeholder-gray-500" 
                     value={newGoal} 
                     onChange={e=>setNewGoal(e.target.value)} 
                     placeholder="What's your goal?"
                   />
                   <input 
-                    className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-24 placeholder-gray-500" 
+                    className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 w-24 placeholder-gray-500" 
                     type="number" 
                     value={newTarget} 
                     onChange={e=>setNewTarget(e.target.value)} 
@@ -838,7 +970,7 @@ export default function Schedule() {
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
                             transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
-                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                            className="h-full bg-gradient-to-r from-slate-700 to-slate-500 rounded-full"
                           />
                         </div>
 
@@ -915,18 +1047,18 @@ export default function Schedule() {
                   <button className="text-gray-500 hover:text-gray-800" onClick={()=>setShowAddDialog(false)}><Icons.X className="w-5 h-5" /></button>
                 </div>
                 <div className="space-y-4">
-                  <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Event title" className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full" />
-                  <input type="datetime-local" value={date} onChange={e=>setDate(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full" />
+                  <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Event title" className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 w-full" />
+                  <input type="datetime-local" value={date} onChange={e=>setDate(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 w-full" />
                   <div className="grid md:grid-cols-3 gap-3">
-                    <select value={cat} onChange={e=>setCat(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                    <select value={cat} onChange={e=>setCat(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 w-full">
                       {Object.keys(categories).map(c => (<option key={c} value={c}>{categoryEmojis[c]} {c}</option>))}
                     </select>
-                    <select value={owner} onChange={e=>setOwner(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                    <select value={owner} onChange={e=>setOwner(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 w-full">
                       <option value="hers">{ownerEmojis.hers} Hers</option>
                       <option value="yours">{ownerEmojis.yours} Yours</option>
                       <option value="together">{ownerEmojis.together} Together</option>
                     </select>
-                    <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Note (optional)" className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full" />
+                    <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Note (optional)" className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 w-full" />
                   </div>
                   <div className="flex gap-3 justify-end">
                     <button className="px-4 py-3 rounded-xl border" onClick={()=>setShowAddDialog(false)}>Cancel</button>

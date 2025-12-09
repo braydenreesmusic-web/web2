@@ -288,11 +288,8 @@ export default function MusicTab({ user }) {
           <button
             key={v}
             onClick={() => setView(v)}
-            className={`px-3 py-2 rounded-xl capitalize transition-all ${
-              view === v
-                ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white'
-                : 'bg-gray-100 hover:bg-gray-200'
-            }`}
+            className={`px-3 py-2 rounded-xl capitalize transition-all ${view === v ? 'text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+            style={ view === v ? { background: 'linear-gradient(90deg, var(--accent-700), var(--accent-600))' } : {} }
           >
             {v}
           </button>
@@ -309,7 +306,7 @@ export default function MusicTab({ user }) {
               onChange={e => setSearchQuery(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
               placeholder="Search songs, artists, albums..."
-              className="flex-1 px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="flex-1 input"
             />
             <Button onClick={handleSearch} disabled={searching}>
               <Search className="w-4 h-4" />
@@ -363,7 +360,7 @@ export default function MusicTab({ user }) {
       {/* Synced Listening view */}
       {view === 'listening' && (
         <div className="glass-card p-6 text-center space-y-4">
-          <Users className="w-12 h-12 mx-auto text-purple-500" />
+          <Users className="w-12 h-12 mx-auto" style={{color: 'var(--accent-600)'}} />
           <h3 className="font-semibold text-lg">Listen Together</h3>
           {currentTrack ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
@@ -438,12 +435,12 @@ export default function MusicTab({ user }) {
       {/* New Playlist Dialog */}
       <Dialog open={showNewPlaylist} onClose={() => setShowNewPlaylist(false)} title="Create Playlist">
         <div className="space-y-4">
-          <input
+                  <input
             type="text"
             value={playlistTitle}
             onChange={e => setPlaylistTitle(e.target.value)}
             placeholder="Playlist name"
-            className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full input"
           />
           <div className="flex gap-2 justify-end">
             <button

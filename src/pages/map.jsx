@@ -66,7 +66,7 @@ export default function MapPage() {
         <div>Share your location and add memory pins.</div>
         <div className="grid md:grid-cols-3 gap-2">
           <input value={pinTitle} onChange={e=>setPinTitle(e.target.value)} placeholder="Pin title" className="px-3 py-2 rounded-xl border"/>
-          <button onClick={addPinHere} disabled={busy} className="px-3 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-white disabled:opacity-60">Add Pin Here</button>
+          <button onClick={addPinHere} disabled={busy} className="px-3 py-2 rounded-xl bg-gradient-to-r from-slate-700 to-slate-500 text-white disabled:opacity-60">Add Pin Here</button>
           <button onClick={shareLocation} disabled={busy} className="px-3 py-2 rounded-xl bg-gray-100 disabled:opacity-60">Share Location</button>
         </div>
       </div>

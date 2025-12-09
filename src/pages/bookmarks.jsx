@@ -147,7 +147,7 @@ export default function Bookmarks() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-3 mb-2">
-          <Icons.Bookmark className="w-8 h-8 text-purple-600" />
+          <Icons.Bookmark className="w-8 h-8 text-slate-600" />
           <h1 className="text-4xl font-bold text-gray-900">Saved Bookmarks</h1>
         </div>
         <p className="text-gray-600">Organize and save your favorite places, ideas, and inspiration</p>
@@ -163,7 +163,7 @@ export default function Bookmarks() {
             whileTap={{ scale: 0.95 }}
             className={`px-4 py-2.5 rounded-full font-medium whitespace-nowrap transition-all ${
               cat===c
-                ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg' 
+                ? 'bg-gradient-to-r from-slate-700 to-slate-500 text-white shadow-lg' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -179,7 +179,7 @@ export default function Bookmarks() {
         className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200"
       >
         <div className="flex items-center gap-2 mb-4">
-          <Icons.Add className="w-6 h-6 text-purple-600" />
+          <Icons.Add className="w-6 h-6 text-slate-600" />
           <h2 className="text-xl font-semibold text-gray-900">Add New Bookmark</h2>
         </div>
         <div className="space-y-4">
@@ -188,25 +188,25 @@ export default function Bookmarks() {
               value={title} 
               onChange={e=>setTitle(e.target.value)} 
               placeholder="Bookmark title" 
-              className="px-4 py-3 rounded-lg border border-gray-300 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900 placeholder-gray-500"
+              className="px-4 py-3 rounded-lg border border-gray-300 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 text-gray-900 placeholder-gray-500"
             />
             <input 
               value={url} 
               onChange={e=>setUrl(e.target.value)} 
               placeholder="https://example.com" 
-              className="px-4 py-3 rounded-lg border border-gray-300 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900 placeholder-gray-500 md:col-span-2"
+              className="px-4 py-3 rounded-lg border border-gray-300 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 text-gray-900 placeholder-gray-500 md:col-span-2"
             />
             <select 
               value={category} 
               onChange={e=>setCategory(e.target.value)} 
-              className="px-4 py-3 rounded-lg border border-gray-300 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900"
+              className="px-4 py-3 rounded-lg border border-gray-300 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-600 text-gray-900"
             >
               {cats.filter(c=>c!=='All').map(c=> <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           
           <div className="flex gap-3">
-            <label className="flex-1 px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-pink-500 cursor-pointer transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-pink-600">
+            <label className="flex-1 px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-slate-600 cursor-pointer transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-slate-600">
               <Icons.Image className="w-4 h-4" />
               <span>Add thumbnail</span>
               <input 
@@ -220,7 +220,7 @@ export default function Bookmarks() {
               onClick={add}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="px-6 py-3 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold hover:shadow-lg transition-all"
+              className="px-6 py-3 rounded-lg bg-gradient-to-r from-slate-700 to-slate-500 text-white font-semibold hover:shadow-lg transition-all"
             >
               Save Bookmark
             </motion.button>
@@ -230,7 +230,7 @@ export default function Bookmarks() {
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="relative w-20 h-20 rounded-lg overflow-hidden border-2 border-pink-500"
+              className="relative w-20 h-20 rounded-lg overflow-hidden border-2 border-slate-600"
             >
               <img src={thumbnailPreview} alt="preview" className="w-full h-full object-cover" />
               <button 
@@ -275,7 +275,7 @@ export default function Bookmarks() {
                           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (b.url) window.open(b.url, '_blank', 'noopener'); } }}
                           className={`cursor-pointer relative group rounded-2xl overflow-hidden transition-all h-full
                             ${snapshot.isDragging 
-                              ? 'shadow-2xl ring-2 ring-pink-500 scale-105' 
+                              ? 'shadow-2xl ring-2 ring-slate-600 scale-105' 
                               : 'shadow-md hover:shadow-xl hover:-translate-y-1'
                             }
                           `}
@@ -434,11 +434,11 @@ export default function Bookmarks() {
               className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
             >
               <div className="flex items-center gap-2 mb-4">
-                <Icons.Image className="w-6 h-6 text-purple-600" />
+                <Icons.Image className="w-6 h-6 text-slate-600" />
                 <h3 className="text-xl font-bold text-gray-900">Change Thumbnail</h3>
               </div>
               
-              <label className="block w-full px-4 py-8 rounded-lg border-2 border-dashed border-gray-300 hover:border-pink-500 cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-pink-600 mb-4">
+              <label className="block w-full px-4 py-8 rounded-lg border-2 border-dashed border-gray-300 hover:border-slate-600 cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-slate-600 mb-4">
                 <Icons.Image className="w-8 h-8" />
                 <span className="font-medium">Click to upload or drag</span>
                 <input 
@@ -453,7 +453,7 @@ export default function Bookmarks() {
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="mb-4 rounded-lg overflow-hidden border-2 border-pink-500"
+                  className="mb-4 rounded-lg overflow-hidden border-2 border-slate-600"
                 >
                   <img src={thumbnailPreview} alt="preview" className="w-full h-auto" />
                 </motion.div>
@@ -469,7 +469,7 @@ export default function Bookmarks() {
                 <button 
                   onClick={() => updateThumbnail(editingId, thumbnailPreview)}
                   disabled={!thumbnailPreview}
-                  className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-slate-700 to-slate-500 text-white font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   Save
                 </button>

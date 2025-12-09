@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Dialog from '../components/ui/dialog.jsx'
 import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
+import EmptyState from '../components/EmptyState'
 import { getNotes, createNote, getMedia, uploadMedia } from '../services/api'
 import MusicTab from '../components/MusicTab'
 import { Camera, Sparkles } from 'lucide-react'
@@ -10,7 +11,7 @@ export default function Media() {
   const [tab, setTab] = useState('photos')
   const [open, setOpen] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState(null)
-  const { user} = useAuth()
+  const { user } = useAuth()
   const [notes, setNotes] = useState([])
   const [photos, setPhotos] = useState([])
   const [videos, setVideos] = useState([])
@@ -22,7 +23,7 @@ export default function Media() {
   const fileInput = useRef(null)
   const videoInput = useRef(null)
   const [loading, setLoading] = useState(true)
-  const tabs = ['photos','videos','notes','music']
+  const tabs = ['photos', 'videos', 'notes', 'music']
 
   useEffect(() => {
     let cancelled = false
@@ -48,7 +49,7 @@ export default function Media() {
     load()
     return () => { cancelled = true }
   }, [user])
-  
+
   const generateAIDescription = async () => {
     setLoadingAI(true)
     try {
@@ -68,6 +69,7 @@ export default function Media() {
       setLoadingAI(false)
     }
   }
+
   const addNote = async () => {
     if (!newNote.trim() || !user) return
     const note = {
@@ -76,7 +78,7 @@ export default function Media() {
       content: newNote.trim(),
       date: new Date().toISOString().slice(0,10)
     }
-    setNotes(prev => [{...note, id: Math.random()}, ...prev])
+    setNotes(prev => [{ ...note, id: Math.random() }, ...prev])
     setNewNote('')
     setOpen(false)
     try { await createNote(note) } catch (e) { console.error(e) }
@@ -94,7 +96,6 @@ export default function Media() {
         date: new Date().toISOString().slice(0,10),
         favorite: false
       })
-      console.log('Photo uploaded:', saved)
       setPhotos(prev => [saved, ...prev])
     } catch (err) {
       console.error('Upload failed', err)
@@ -137,8 +138,8 @@ export default function Media() {
 
   const updatePhotoCaption = async (photoId, newCaption) => {
     setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, caption: newCaption } : p))
-    // Caption is updated locally
   }
+
   return (
     <section className="space-y-6 pb-6">
       {/* Tabs */}
@@ -148,11 +149,8 @@ export default function Media() {
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`py-2.5 px-3 rounded-xl font-semibold text-sm capitalize transition-all ${
-                tab === t
-                  ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg'
-                  : 'bg-transparent text-gray-600 hover:bg-gray-100'
-              }`}
+              className={`py-2.5 px-3 rounded-xl font-semibold text-sm capitalize transition-all ${tab === t ? 'text-white' : 'bg-transparent text-gray-600 hover:bg-gray-100'}`}
+              style={ tab === t ? { background: 'linear-gradient(90deg, var(--accent-700), var(--accent-600))', boxShadow: 'var(--elev-1)' } : {} }
             >
               {t}
             </button>
@@ -164,11 +162,7 @@ export default function Media() {
       {tab === 'photos' && (
         <div className="space-y-4">
           <input ref={fileInput} type="file" accept="image/*" onChange={onSelectPhoto} className="hidden" />
-          <Button
-            onClick={() => fileInput.current?.click()}
-            disabled={uploading}
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white flex items-center justify-center gap-2 py-3"
-          >
+          <Button onClick={() => fileInput.current?.click()} disabled={uploading} className="w-full btn flex items-center justify-center gap-2 py-3">
             <Camera size={20} />
             {uploading ? 'Uploading...' : 'Add Photo'}
           </Button>
@@ -195,7 +189,7 @@ export default function Media() {
           {photos.length === 0 && !loading && (
             <div className="text-center py-12 glass-card rounded-2xl">
               <Camera size={48} className="mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500">No photos yet</p>
+              <EmptyState title="No photos" description="Upload photos to preserve memories here." action={<button className="btn">Upload Photo</button>} />
             </div>
           )}
         </div>
@@ -205,10 +199,7 @@ export default function Media() {
       {tab === 'videos' && (
         <div className="space-y-4">
           <input ref={videoInput} type="file" accept="video/*" onChange={onSelectVideo} className="hidden" />
-          <Button
-            onClick={() => videoInput.current?.click()}
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white flex items-center justify-center gap-2 py-3"
-          >
+          <Button onClick={() => videoInput.current?.click()} className="w-full btn flex items-center justify-center gap-2 py-3">
             <Camera size={20} />
             Add Video
           </Button>
@@ -225,7 +216,7 @@ export default function Media() {
           {videos.length === 0 && !loading && (
             <div className="text-center py-12 glass-card rounded-2xl">
               <Camera size={48} className="mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500">No videos yet</p>
+              <EmptyState title="No videos" description="You haven't added any videos yet." action={<button className="btn">Upload Video</button>} />
             </div>
           )}
         </div>
@@ -236,8 +227,8 @@ export default function Media() {
         <div className="space-y-3">
           {notes.length === 0 && !loading && (
             <div className="text-center py-12 glass-card rounded-2xl">
-              <p className="text-gray-500 mb-4">No notes yet</p>
-              <Button onClick={() => setOpen(true)} className="bg-gradient-to-r from-pink-500 to-purple-500 text-white">✍️ Write First Note</Button>
+              <EmptyState title="No notes" description="Write a note to capture thoughts or moments." action={<button className="btn">New Note</button>} />
+              <Button onClick={() => setOpen(true)} className="btn">✍️ Write First Note</Button>
             </div>
           )}
           {notes.map(n => (
@@ -247,7 +238,7 @@ export default function Media() {
             </div>
           ))}
           {notes.length > 0 && (
-            <Button onClick={() => setOpen(true)} className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white">+ Add Note</Button>
+            <Button onClick={() => setOpen(true)} className="w-full btn">+ Add Note</Button>
           )}
         </div>
       )}
@@ -261,7 +252,7 @@ export default function Media() {
           <textarea
             value={newNote}
             onChange={e => setNewNote(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none transition"
             rows={6}
             placeholder="Write something sweet…"
           />
@@ -269,7 +260,7 @@ export default function Media() {
             <Button onClick={() => setOpen(false)} className="bg-gray-200 text-gray-700">
               Cancel
             </Button>
-            <Button onClick={addNote} className="bg-gradient-to-r from-pink-500 to-purple-500 text-white">
+            <Button onClick={addNote} className="btn">
               Save Note
             </Button>
           </div>
@@ -281,7 +272,7 @@ export default function Media() {
         <Dialog open={!!selectedPhoto} onClose={() => {setSelectedPhoto(null); setAiDescription(''); setCaption('')}} title="Photo Details">
           <div className="space-y-4">
             <img src={selectedPhoto.url} alt="Full size" className="w-full rounded-xl" />
-            
+
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700">Caption</label>
               <input
@@ -289,22 +280,22 @@ export default function Media() {
                 value={caption}
                 onChange={e => setCaption(e.target.value)}
                 placeholder="Add a caption..."
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition"
+                className="input"
               />
             </div>
 
             <Button
               onClick={generateAIDescription}
               disabled={loadingAI}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white flex items-center justify-center gap-2"
+              className="w-full btn flex items-center justify-center gap-2"
             >
               <Sparkles size={18} />
               {loadingAI ? 'Generating...' : '✨ Get AI Description'}
             </Button>
 
             {aiDescription && (
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-100">
-                <p className="text-sm text-gray-700">{aiDescription}</p>
+              <div className="p-4 rounded-xl border" style={{background: 'linear-gradient(180deg, var(--accent-50), var(--card))', borderColor: 'var(--border)'}}>
+                <p className="text-sm" style={{color: 'var(--text)'}}>{aiDescription}</p>
               </div>
             )}
 
@@ -316,7 +307,7 @@ export default function Media() {
                   setCaption('')
                   setAiDescription('')
                 }}
-                className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white"
+                className="flex-1 btn"
               >
                 Save
               </Button>

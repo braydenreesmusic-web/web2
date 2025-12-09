@@ -50,7 +50,7 @@ export default function DailyCheckIn({ open, onClose, onSubmit, initial }) {
       <div className="space-y-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-2 mb-3">
-            <Smile className="w-4 h-4 text-purple-500" />
+            <Smile className="w-4 h-4 text-slate-600" />
             <div className="text-sm font-medium text-gray-700">How are you feeling?</div>
           </div>
           <div className="grid grid-cols-4 gap-2">
@@ -60,7 +60,7 @@ export default function DailyCheckIn({ open, onClose, onSubmit, initial }) {
                 onClick={()=>setEmotion(e)} 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`px-3 py-2 rounded-xl capitalize transition-all ${emotion===e?'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md':'bg-gray-100 hover:bg-gray-200'}`}
+                className={`px-3 py-2 rounded-xl capitalize transition-all ${emotion===e?'bg-gradient-to-r from-slate-700 to-slate-500 text-white shadow-md':'bg-gray-100 hover:bg-gray-200'}`}
               >
                 {e}
               </motion.button>
@@ -74,7 +74,7 @@ export default function DailyCheckIn({ open, onClose, onSubmit, initial }) {
               <Zap className="w-4 h-4 text-yellow-500" />
               <span className="text-sm font-medium text-gray-700">Energy Level</span>
             </div>
-            <span className="text-lg font-bold text-purple-600">{energy}</span>
+            <span className="text-lg font-bold text-slate-700">{energy}</span>
           </div>
           <input 
             type="range" 
@@ -82,7 +82,7 @@ export default function DailyCheckIn({ open, onClose, onSubmit, initial }) {
             max="10" 
             value={energy} 
             onChange={e=>setEnergy(e.target.value)} 
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-600"
           />
           <div className="flex justify-between text-xs text-gray-400 mt-1">
             <span>Low</span>
@@ -92,7 +92,7 @@ export default function DailyCheckIn({ open, onClose, onSubmit, initial }) {
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <div className="flex items-center gap-2 mb-3">
-            <Heart className="w-4 h-4 text-pink-500" />
+            <Heart className="w-4 h-4 text-slate-600" />
             <div className="text-sm font-medium text-gray-700">Preferred Love Language Today</div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -102,7 +102,7 @@ export default function DailyCheckIn({ open, onClose, onSubmit, initial }) {
                 onClick={()=>setLove(l)} 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`px-4 py-2 rounded-xl capitalize transition-all ${love===l?'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md':'bg-gray-100 hover:bg-gray-200'}`}
+                className={`px-4 py-2 rounded-xl capitalize transition-all ${love===l?'bg-gradient-to-r from-slate-700 to-slate-500 text-white shadow-md':'bg-gray-100 hover:bg-gray-200'}`}
               >
                 {l}
               </motion.button>

@@ -204,7 +204,7 @@ export default function Profile() {
         className="glass-card p-6"
       >
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--accent-600), var(--accent-700))'}}>
             <User className="w-8 h-8 text-white" />
           </div>
           <div className="flex-1">
@@ -258,10 +258,10 @@ export default function Profile() {
             </div>
 
             {/* Pending Requests (Incoming) - Always show section */}
-            <div className="mt-4 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl border border-pink-200">
+            <div className="mt-4 p-4 rounded-xl border" style={{background: 'linear-gradient(90deg, var(--accent-50), rgba(255,255,255,0.8))', borderColor: 'var(--border)'}}>
               <div className="flex items-center gap-2 mb-3">
-                <Heart className="w-5 h-5 text-pink-600" />
-                <span className="text-sm font-semibold text-pink-900">Partner Requests</span>
+                <Heart className="w-5 h-5" style={{color: 'var(--accent-600)'}} />
+                <span className="text-sm font-semibold" style={{color: 'var(--text)'}}>Partner Requests</span>
               </div>
               {pendingRequests.length > 0 ? (
                 <>
@@ -293,17 +293,17 @@ export default function Profile() {
                   ))}
                 </>
               ) : (
-                <div className="text-xs text-gray-500">No pending requests</div>
+                <div className="text-xs" style={{color: 'var(--muted)'}}>No pending requests</div>
               )}
             </div>
 
             {/* Sent Requests */}
             {sentRequests.length > 0 && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Send className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-semibold text-blue-900">Request Sent</span>
-                </div>
+              <div className="mt-4 p-4 rounded-xl border" style={{background: 'linear-gradient(90deg, rgba(240,249,255,1), rgba(250,255,255,1))', borderColor: 'var(--border)'}}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Send className="w-4 h-4" style={{color: 'var(--accent-700)'}} />
+                    <span className="text-sm font-semibold" style={{color: 'var(--text)'}}>Request Sent</span>
+                  </div>
                 {sentRequests.map(req => (
                   <div key={req.id} className="text-xs text-blue-700">
                     Waiting for {req.to_email} to accept...
@@ -314,10 +314,10 @@ export default function Profile() {
 
             {/* Send New Request */}
             {sentRequests.length === 0 && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+              <div className="mt-4 p-4 rounded-xl border" style={{background: 'linear-gradient(90deg, var(--accent-50), rgba(255,255,255,0.9))', borderColor: 'var(--border)'}}>
                 <div className="flex items-center gap-2 mb-3">
-                  <UserPlus className="w-5 h-5 text-purple-600" />
-                  <span className="text-sm font-semibold text-purple-900">Link Your Partner</span>
+                  <UserPlus className="w-5 h-5" style={{color: 'var(--accent-600)'}} />
+                  <span className="text-sm font-semibold" style={{color: 'var(--text)'}}>Link Your Partner</span>
                 </div>
                 <div className="flex gap-2">
                   <input
@@ -325,19 +325,19 @@ export default function Profile() {
                     value={partnerEmail}
                     onChange={e => setPartnerEmail(e.target.value)}
                     placeholder="partner@example.com"
-                    className="flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="input"
                     onKeyPress={e => e.key === 'Enter' && sendRequest()}
                   />
                   <button
                     onClick={sendRequest}
                     disabled={sending || !partnerEmail.trim()}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg transition text-sm flex items-center gap-2"
+                    className="btn"
                   >
                     <Mail className="w-4 h-4" />
                     {sending ? 'Sending...' : 'Send'}
                   </button>
                 </div>
-                <p className="text-xs text-purple-600 mt-2">
+                <p className="text-xs mt-2" style={{color: 'var(--muted)'}}>
                   Enter your partner's email address. They'll get a request to link accounts!
                 </p>
               </div>
@@ -354,8 +354,8 @@ export default function Profile() {
           className="glass-card p-6"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Heart className="w-5 h-5 text-pink-500" />
+              <div className="flex items-center gap-2">
+              <Heart className="w-5 h-5" style={{color: 'var(--accent-600)'}} />
               <div className="font-semibold">Relationship</div>
             </div>
             <button
@@ -376,7 +376,7 @@ export default function Profile() {
                   type="date"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                  className="input text-sm"
                 />
               </div>
               <div>
@@ -386,7 +386,7 @@ export default function Profile() {
                   value={partners}
                   onChange={e => setPartners(e.target.value)}
                   placeholder="Partner A & Partner B"
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                  className="input text-sm"
                 />
               </div>
             </div>
@@ -407,15 +407,15 @@ export default function Profile() {
           <div className="font-semibold mb-3">Stats</div>
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm">
-              <FileText className="w-4 h-4 text-purple-500" />
+              <FileText className="w-4 h-4" style={{color: 'var(--accent-600)'}} />
               <span>Notes: {counts.notes}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <Camera className="w-4 h-4 text-pink-500" />
+              <Camera className="w-4 h-4" style={{color: 'var(--accent-600)'}} />
               <span>Photos: {counts.photos}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <Calendar className="w-4 h-4 text-blue-500" />
+              <Calendar className="w-4 h-4" style={{color: 'var(--accent-600)'}} />
               <span>Events: {counts.events}</span>
             </div>
           </div>

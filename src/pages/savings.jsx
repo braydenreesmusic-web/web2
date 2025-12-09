@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import EmptyState from '../components/EmptyState'
 import { useAuth } from '../contexts/AuthContext'
 import { motion } from 'framer-motion'
 import { PiggyBank, Plus, TrendingUp, DollarSign, Calendar, Trash2 } from 'lucide-react'
@@ -103,8 +104,8 @@ export default function SavingsGoals() {
     <section className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <PiggyBank className="w-6 h-6 text-pink-500" />
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+          <PiggyBank className="w-6 h-6 text-slate-600" />
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-700 to-slate-500 bg-clip-text text-transparent">
             Savings Goals
           </h2>
         </div>
@@ -123,7 +124,7 @@ export default function SavingsGoals() {
           className="glass-card p-8 text-center"
         >
           <PiggyBank className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <p className="text-gray-500 mb-4">No savings goals yet. Start saving together!</p>
+          <EmptyState title="No savings goals" description="Start a savings goal to begin tracking progress together." action={<button className="btn">Create Goal</button>} />
           <Button onClick={() => setShowNewGoal(true)}>Create Your First Goal</Button>
         </motion.div>
       )}
@@ -160,14 +161,15 @@ export default function SavingsGoals() {
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-gray-600">Progress</span>
-                    <span className="font-semibold text-purple-600">{progress.toFixed(0)}%</span>
+                    <span className="font-semibold text-slate-700">{progress.toFixed(0)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${progress}%` }}
                       transition={{ duration: 0.8, ease: 'easeOut' }}
-                      className="h-full bg-gradient-to-r from-pink-500 to-purple-600 rounded-full"
+                      className="h-full rounded-full"
+                      style={{background: 'linear-gradient(90deg, var(--accent-700), var(--accent-600))'}}
                     />
                   </div>
                 </div>
@@ -206,7 +208,7 @@ export default function SavingsGoals() {
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="Summer Vacation"
-              className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="input"
             />
           </div>
 
@@ -219,7 +221,7 @@ export default function SavingsGoals() {
               placeholder="5000"
               min="0"
               step="0.01"
-              className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="input"
             />
           </div>
 
@@ -228,7 +230,7 @@ export default function SavingsGoals() {
             <select
               value={category}
               onChange={e => setCategory(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500 capitalize"
+              className="input capitalize"
             >
               {categories.map(cat => (
                 <option key={cat} value={cat} className="capitalize">{cat}</option>
@@ -242,7 +244,7 @@ export default function SavingsGoals() {
               type="date"
               value={deadline}
               onChange={e => setDeadline(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="input"
             />
           </div>
 
@@ -276,7 +278,7 @@ export default function SavingsGoals() {
               placeholder="100.00"
               min="0"
               step="0.01"
-              className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="input"
             />
           </div>
 
@@ -287,7 +289,7 @@ export default function SavingsGoals() {
               onChange={e => setNote(e.target.value)}
               placeholder="Birthday money"
               rows={3}
-              className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-3 rounded-xl border"
             />
           </div>
 

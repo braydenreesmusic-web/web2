@@ -27,7 +27,7 @@ export default function TrackCard({ track, onPlay, onAdd, compact = false }) {
             className="p-2 rounded-full hover:bg-gray-100"
             aria-label={`Play ${title}`}
           >
-            <Play className="w-4 h-4 text-purple-600" />
+            <Play className="w-4 h-4" style={{color: 'var(--accent-600)'}} />
           </button>
         ) : null}
         {onAdd ? (
@@ -36,7 +36,7 @@ export default function TrackCard({ track, onPlay, onAdd, compact = false }) {
             className="p-2 rounded-full hover:bg-gray-100"
             aria-label={`Add ${title} to library`}
           >
-            <Plus className="w-4 h-4 text-pink-600" />
+            <Plus className="w-4 h-4" style={{color: 'var(--accent-600)'}} />
           </button>
         ) : null}
       </div>

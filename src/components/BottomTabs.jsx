@@ -31,14 +31,14 @@ export default function BottomTabs() {
             <li key={t.to}>
               <Link 
                 to={t.to} 
-                className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${active ? 'text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500' : 'text-gray-600 hover:bg-gray-100'}`}
+                className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${active ? 'text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-slate-500' : 'text-gray-600 hover:bg-gray-100'}`}
               >
                 <motion.div
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   <Icon 
-                    className={`w-5 h-5 mb-1 ${active ? 'text-purple-500' : ''}`}
+                    className={`w-5 h-5 mb-1 ${active ? 'text-slate-600' : ''}`}
                     strokeWidth={active ? 2.5 : 2}
                   />
                 </motion.div>

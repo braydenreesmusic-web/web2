@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Zap, Loader, RotateCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getAIInsights, generateRelationshipInsights } from '../services/aiInsights';
+import EmptyState from '../components/EmptyState';
 
 export default function AIInsightsPage() {
   const { user } = useAuth();
@@ -42,18 +43,18 @@ export default function AIInsightsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen" style={{background: 'linear-gradient(180deg, var(--accent-50) 0%, var(--bg) 100%)'}}>
+      <div className="max-w-3xl mx-auto py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <Zap size={32} className="text-purple-600" />
+            <Zap size={32} className="text-slate-600" />
             <h1 className="text-3xl font-bold text-gray-900">AI Insights</h1>
           </div>
           <button
             onClick={generateNew}
             disabled={loading}
-            className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 text-white px-6 py-2 rounded-lg transition font-semibold"
+            className="flex items-center gap-2 btn"
           >
             {loading ? (
               <>
@@ -71,7 +72,7 @@ export default function AIInsightsPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-700">
+          <div className="rounded-lg p-4 mb-6" style={{backgroundColor: '#fff6f6', border: '1px solid rgba(239,68,68,0.12)', color: '#b91c1c'}}>
             <p className="font-semibold">Error</p>
             <p>{error}</p>
           </div>
@@ -80,8 +81,8 @@ export default function AIInsightsPage() {
         {/* Loading State */}
         {loading && insights.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <Loader size={48} className="text-purple-500 animate-spin" />
-            <p className="text-gray-600 text-lg">Analyzing your relationship...</p>
+            <Loader size={48} className="text-slate-600 animate-spin" />
+            <p className="text-sm" style={{color: 'var(--muted)'}}>Analyzing your relationship...</p>
           </div>
         )}
 
@@ -94,7 +95,7 @@ export default function AIInsightsPage() {
                 className="bg-white rounded-xl shadow-lg hover:shadow-xl transition overflow-hidden"
               >
                 {/* Card Header */}
-                <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-4 text-white">
+                <div className="p-4" style={{background: 'linear-gradient(90deg, var(--accent-700) 0%, var(--accent-600) 100%)', color: 'white'}}>
                   <p className="text-sm opacity-90">Generated</p>
                   <p className="font-semibold">
                     {new Date(insight.generated_at).toLocaleDateString('en-US', {
@@ -111,8 +112,8 @@ export default function AIInsightsPage() {
                 {/* Card Content */}
                 <div className="p-6">
                   <div className="prose prose-sm max-w-none">
-                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border border-purple-100">
-                      <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                    <div className="rounded-lg p-6 border" style={{borderColor: 'var(--border)', backgroundColor: 'var(--card)'}}>
+                      <div className="whitespace-pre-wrap leading-relaxed" style={{color: 'var(--text)'}}>
                         {insight.insights}
                       </div>
                     </div>
@@ -123,7 +124,7 @@ export default function AIInsightsPage() {
                     <div className="mt-4 pt-4 border-t border-gray-200 flex gap-6 text-sm text-gray-600">
                       {insight.check_in_count && (
                         <div>
-                          <span className="font-semibold text-purple-600">
+                          <span className="font-semibold text-slate-700">
                             {insight.check_in_count}
                           </span>{' '}
                           check-ins analyzed
@@ -131,7 +132,7 @@ export default function AIInsightsPage() {
                       )}
                       {insight.notes_count && (
                         <div>
-                          <span className="font-semibold text-pink-600">{insight.notes_count}</span>{' '}
+                          <span className="font-semibold text-slate-700">{insight.notes_count}</span>{' '}
                           notes reviewed
                         </div>
                       )}
@@ -145,17 +146,12 @@ export default function AIInsightsPage() {
 
         {/* Empty State */}
         {!loading && insights.length === 0 && !error && (
-          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-            <Zap size={48} className="mx-auto text-purple-300 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No insights yet</h3>
-            <p className="text-gray-600 mb-6">Generate your first AI insight to get started!</p>
-            <button
-              onClick={generateNew}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-3 rounded-lg transition font-semibold"
-            >
-              Generate First Insight
-            </button>
-          </div>
+          <EmptyState
+            icon={<Zap size={28} />}
+            title="No insights yet"
+            description="Generate your first AI insight to get started!"
+            action={<button onClick={generateNew} className="btn">Generate First Insight</button>}
+          />
         )}
       </div>
     </div>
