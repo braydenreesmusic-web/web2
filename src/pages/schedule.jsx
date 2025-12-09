@@ -22,9 +22,9 @@ const ownerEmojis = {
 }
 
 const categories = {
-  Anniversary: 'bg-slate-500',
-  Together: 'bg-slate-700',
-  Work: 'bg-slate-600',
+  Anniversary: 'bg-red-500',
+  Together: 'bg-purple-500',
+  Work: 'bg-blue-500',
   Other: 'bg-gray-500'
 }
 
@@ -436,7 +436,7 @@ export default function Schedule() {
           return (
             <button key={catKey} onClick={() => {
               setCategoryFilter(prev => prev.includes(catKey) ? prev.filter(p=>p!==catKey) : [...prev, catKey])
-            }} className={`flex items-center gap-2 px-3 py-1 rounded-full border ${active ? 'bg-slate-700 text-white' : 'bg-white'}`}>
+            }} className={`flex items-center gap-2 px-3 py-1 rounded-full border ${active ? 'bg-slate-50 ring-1 ring-slate-200' : 'bg-white'}`}>
               <span className={`w-3 h-3 rounded-full ${categories[catKey]}`} />
               <span className="text-sm font-medium">{catKey}</span>
             </button>
