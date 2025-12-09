@@ -6,6 +6,11 @@ export default function SchedulePresets({ current = {}, onApply, onActivate, act
   const [saving, setSaving] = useState(false)
   const [name, setName] = useState('')
   const [weekdays, setWeekdays] = useState([])
+  const [quickTitle, setQuickTitle] = useState('')
+  const [quickTime, setQuickTime] = useState('09:00')
+  const [quickCategory, setQuickCategory] = useState('Other')
+  const [quickOwner, setQuickOwner] = useState('together')
+  const [quickNote, setQuickNote] = useState('')
 
   useEffect(() => {
     try {
@@ -61,6 +66,19 @@ export default function SchedulePresets({ current = {}, onApply, onActivate, act
     if (onActivate) onActivate(p)
   }
 
+  const activateQuick = () => {
+    const p = {
+      id: 'quick',
+      name: quickTitle || 'Quick Event',
+      category: quickCategory,
+      owner: quickOwner,
+      note: quickNote,
+      time: quickTime,
+      weekdays: []
+    }
+    if (onActivate) onActivate(p)
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
@@ -70,6 +88,32 @@ export default function SchedulePresets({ current = {}, onApply, onActivate, act
         </select>
         <button onClick={()=>setSaving(true)} className="px-3 py-2 rounded-xl bg-slate-700 text-white">Save as preset</button>
         <div className="text-sm text-gray-500">Templates for quick event setup</div>
+      </div>
+
+      {/* Quick preset inline inputs (non-persistent) */}
+      <div className="mt-2 p-3 border rounded bg-white">
+        <div className="flex gap-2 items-center mb-2">
+          <input value={quickTitle} onChange={e=>setQuickTitle(e.target.value)} placeholder="Title (e.g. Work)" className="px-2 py-1 rounded border flex-1" />
+          <input type="time" value={quickTime} onChange={e=>setQuickTime(e.target.value)} className="px-2 py-1 rounded border" />
+        </div>
+        <div className="flex gap-2 items-center mb-2">
+          <select value={quickCategory} onChange={e=>setQuickCategory(e.target.value)} className="px-2 py-1 rounded border">
+            <option>Other</option>
+            <option>Work</option>
+            <option>Together</option>
+            <option>Anniversary</option>
+          </select>
+          <select value={quickOwner} onChange={e=>setQuickOwner(e.target.value)} className="px-2 py-1 rounded border">
+            <option value="together">Together</option>
+            <option value="hers">Hers</option>
+            <option value="yours">Yours</option>
+          </select>
+          <input value={quickNote} onChange={e=>setQuickNote(e.target.value)} placeholder="Note" className="px-2 py-1 rounded border flex-1" />
+        </div>
+        <div className="flex gap-2">
+          <button onClick={activateQuick} className="px-3 py-1 rounded bg-slate-700 text-white">Activate Quick</button>
+          <button onClick={()=>{ setQuickTitle(''); setQuickNote(''); setQuickTime('09:00') }} className="px-3 py-1 rounded border">Clear</button>
+        </div>
       </div>
 
       {saving && (
