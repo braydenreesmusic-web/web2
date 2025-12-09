@@ -16,6 +16,13 @@ export const Icons = {
       <polyline points="22 4 12 14.01 9 11.01"></polyline>
     </svg>
   ),
+
+  Clock: (props) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <circle cx="12" cy="12" r="10"></circle>
+      <polyline points="12 6 12 12 16 14"></polyline>
+    </svg>
+  ),
   
   Target: (props) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
