@@ -46,6 +46,42 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
+### Step 2.5: SendGrid (Email fallback)
+
+If you want the app to send email fallbacks (for partners without push), create a SendGrid API key and configure server-side env vars.
+
+1. Create an API key in SendGrid: Sign in → Settings → API Keys → Create API Key. Give it the **Mail Send** permission.
+2. Add these values to your local `.env` (or to your deployment environment). DO NOT prefix the key with `VITE_` — it must remain server-side only.
+
+```env
+SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+EMAIL_FROM=you@yourdomain.com
+```
+
+3. In Vercel, set the same values under Project → Settings → Environment Variables (mark them as secret):
+
+```bash
+# example using Vercel CLI - you'll be prompted for the value
+vercel env add SENDGRID_API_KEY production
+vercel env add SENDGRID_API_KEY preview
+vercel env add SENDGRID_API_KEY development
+vercel env add EMAIL_FROM production
+vercel env add EMAIL_FROM preview
+vercel env add EMAIL_FROM development
+```
+
+4. Test the serverless function locally with `vercel dev` (recommended) and this curl command:
+
+```bash
+curl -X POST 'http://localhost:3000/api/send-email' \
+  -H 'Content-Type: application/json' \
+  -d '{"to":"you@example.com","subject":"Test","text":"This is a test"}'
+```
+
+If the endpoint returns `200 {"ok":true}` SendGrid accepted the request. If it fails, check `vercel dev` logs for the `send-email called` debug line.
+
+Security reminder: Never commit `SENDGRID_API_KEY` to git or expose it in client-side code. Use server-side envs only.
+
 ### Step 3: Set Up Database Schema
 
 Run these SQL commands in your Supabase SQL Editor (**SQL Editor** → **New Query**):
