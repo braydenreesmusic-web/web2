@@ -107,6 +107,7 @@ export default function Schedule() {
   const [scanning, setScanning] = useState(false)
   const [parsedEvents, setParsedEvents] = useState([])
   const [lastDebug, setLastDebug] = useState(null)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const scanImageForSchedule = async () => {
     if (!photoPreview) return
@@ -292,9 +293,9 @@ export default function Schedule() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
               >
-                <div className="flex items-center gap-2 mb-6">
+                <div className="flex items-center gap-3 mb-6">
                   <Icons.Add className="w-6 h-6 text-purple-600" />
-                  <h2 className="text-2xl font-bold text-gray-900">Create New Event</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">Create Event</h2>
                 </div>
 
                 <div className="space-y-4">
@@ -342,7 +343,7 @@ export default function Schedule() {
                     />
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-3 items-center">
                     <label className="flex-1 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 hover:border-purple-500 cursor-pointer transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-purple-600">
                       <Icons.Image className="w-4 h-4" />
                       <span>Photo</span>
@@ -352,9 +353,9 @@ export default function Schedule() {
                       onClick={addEvent}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:shadow-lg transition-all"
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:shadow-lg transition-all"
                     >
-                      Add Event
+                      Save
                     </motion.button>
                     <motion.button
                       onClick={scanImageForSchedule}
@@ -365,6 +366,15 @@ export default function Schedule() {
                     >
                       {scanning ? 'Scanning…' : 'Scan Image'}
                     </motion.button>
+                    {photoPreview && (
+                      <button
+                        type="button"
+                        onClick={() => { setPhoto(null); setPhotoPreview(''); setParsedEvents([]) }}
+                        className="px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                      >
+                        Clear Photo
+                      </button>
+                    )}
                   </div>
 
                   {photoPreview && (
@@ -376,22 +386,22 @@ export default function Schedule() {
                     />
                   )}
                   {parsedEvents.length > 0 && (
-                    <div className="mt-4 bg-gray-50 p-3 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="font-semibold">Parsed events</div>
+                    <div className="mt-6 bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="text-lg font-semibold text-gray-900">Detected Events</div>
                         <div className="text-sm text-gray-500">{parsedEvents.length} found</div>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {parsedEvents.map((pe, idx) => {
                           const localDt = pe.date ? new Date(pe.date) : null
                           const dtValue = localDt ? new Date(localDt.getTime() - localDt.getTimezoneOffset()*60000).toISOString().slice(0,16) : ''
                           return (
-                          <div key={idx} className="p-3 rounded-lg border border-gray-100 bg-white">
-                            <div className="grid md:grid-cols-3 gap-3">
+                          <div key={idx} className="p-4 rounded-xl border border-gray-200 bg-white">
+                            <div className="grid md:grid-cols-3 gap-4">
                               <input
                                 value={pe.title || ''}
                                 onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, title: e.target.value} : p))}
-                                className="px-3 py-2 rounded-md border w-full"
+                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 placeholder="Event title"
                               />
                               <input
@@ -402,23 +412,23 @@ export default function Schedule() {
                                   const iso = val ? new Date(val).toISOString() : null
                                   setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, date: iso} : p))
                                 }}
-                                className="px-3 py-2 rounded-md border w-full"
+                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
                               />
                               <select
                                 value={pe.category || 'Other'}
                                 onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, category: e.target.value} : p))}
-                                className="px-3 py-2 rounded-md border w-full"
+                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
                               >
                                 {Object.keys(categories).map(c => (
                                   <option key={c} value={c}>{categoryEmojis[c]} {c}</option>
                                 ))}
                               </select>
                             </div>
-                            <div className="mt-2 grid md:grid-cols-2 gap-3">
+                            <div className="mt-3 grid md:grid-cols-2 gap-3">
                               <input
                                 value={pe.note || ''}
                                 onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, note: e.target.value} : p))}
-                                className="px-3 py-2 rounded-md border w-full"
+                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 placeholder="Note (optional)"
                               />
                               <div className="flex items-center gap-2">
@@ -441,27 +451,28 @@ export default function Schedule() {
                                     console.error('Import single error', err)
                                     showToast && showToast('Failed to import event', { type: 'error' })
                                   })
-                                }} className="px-3 py-2 rounded-md bg-purple-600 text-white">Import</button>
-                                <button onClick={() => setParsedEvents(prev => prev.filter((_, i) => i !== idx))} className="px-3 py-2 rounded-md border">Remove</button>
+                                }} className="px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700">Import</button>
+                                <button onClick={() => setParsedEvents(prev => prev.filter((_, i) => i !== idx))} className="px-3 py-2 rounded-lg border hover:bg-gray-50">Remove</button>
                               </div>
                             </div>
                           </div>
                         )})}
                       </div>
-                      <div className="mt-3 flex gap-2">
-                        <button onClick={importParsedEvents} className="px-4 py-2 rounded-lg bg-purple-600 text-white">Import all</button>
-                        <button onClick={() => setParsedEvents([])} className="px-4 py-2 rounded-lg bg-white border">Clear</button>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button onClick={importParsedEvents} className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow">Import All</button>
+                        <button onClick={() => setParsedEvents([])} className="px-4 py-2 rounded-xl bg-white border">Clear</button>
+                        <button onClick={() => setShowAdvanced(v=>!v)} className="ml-auto text-sm text-gray-600 underline">{showAdvanced ? 'Hide' : 'Show'} advanced</button>
                       </div>
-                      {lastDebug && (
-                        <div className="mt-3 p-3 bg-white border rounded text-xs text-gray-700">
-                          <div className="font-semibold mb-1">Scan debug</div>
+                      {showAdvanced && lastDebug && (
+                        <div className="mt-3 p-3 bg-gray-50 border rounded text-xs text-gray-700">
+                          <div className="font-semibold mb-1">Scan details</div>
                           <div className="grid grid-cols-2 gap-2">
                             <div><strong>Started:</strong> {new Date(lastDebug.startedAt).toLocaleString()}</div>
                             <div><strong>Received:</strong> {lastDebug.receivedAt ? new Date(lastDebug.receivedAt).toLocaleString() : '—'}</div>
                             <div><strong>Payload size:</strong> {lastDebug.payloadSize}</div>
                             <div><strong>Status:</strong> {lastDebug.status ?? '—'}</div>
-                            <div className="col-span-2"><strong>OCR text (excerpt):</strong>
-                              <pre className="whitespace-pre-wrap max-h-36 overflow-auto text-xs bg-gray-50 p-2 rounded mt-1">{(lastDebug.raw_text || '').slice(0, 1000)}</pre>
+                            <div className="col-span-2"><strong>OCR excerpt:</strong>
+                              <pre className="whitespace-pre-wrap max-h-36 overflow-auto text-xs bg-white p-2 rounded mt-1">{(lastDebug.raw_text || '').slice(0, 1000)}</pre>
                             </div>
                           </div>
                         </div>
