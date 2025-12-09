@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { sendFallbackEmail } from './notify'
 
 // Helper: trigger a server-side push broadcast via our send-push endpoint.
 // Keep payload small; server will broadcast to all stored subscriptions.
@@ -145,6 +146,21 @@ export const createEvent = async (eventData) => {
   
   if (error) throw error
   triggerNotification({ title: 'New event', body: `${eventData.title || 'Event'} created` })
+  // Attempt email fallback for partner if configured
+  (async () => {
+    try {
+      const rel = await getRelationshipData(eventData.user_id)
+      const to = rel?.fallback_email || rel?.partner_email
+      const enabled = rel?.email_fallback || rel?.enable_email_fallback
+      if (to && enabled) {
+        const subject = `New event: ${eventData.title || 'Event'}`
+        const text = `${eventData.title || 'Event'} scheduled for ${new Date(eventData.date).toLocaleString()}\n\n${eventData.note || ''}`
+        await sendFallbackEmail(to, subject, text)
+      }
+    } catch (e) {
+      console.warn('email fallback check failed', e)
+    }
+  })()
   return data
 }
 

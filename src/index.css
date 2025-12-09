@@ -14,23 +14,23 @@ body {
 }
 
 :root {
-  --accent: #64748B; /* slate-500 */
-  --accent-600: #475569; /* slate-600 */
-  --accent-700: #334155; /* slate-700 */
-  --accent-50: #f1f5f9;
-  --bg: #f7f8f9;
+  --accent: #0f766e; /* teal-700 */
+  --accent-600: #0e6b64; /* teal-600 */
+  --accent-700: #0b524c; /* teal-800 */
+  --accent-50: #f0fdfa;
+  --bg: #fbfbfc;
   --surface: #ffffff;
   --card: var(--surface);
-  --border: #e6e9ed; /* subtle gray */
+  --border: #eef2f4; /* very light gray */
   --muted: #6b7280; /* gray-500 */
-  --text: #0f172a;
-  --focus-ring: 22, 71, 105; /* rgb components for rgba focus usage */
+  --text: #071029;
+  --focus-ring: 15, 118, 110; /* rgb components for rgba focus usage */
   --radius-sm: 8px;
-  --radius: 14px;
-  --elev-1: 0 6px 18px rgba(15, 23, 42, 0.06);
-  --elev-2: 0 12px 36px rgba(15, 23, 42, 0.08);
-  --motion-short: 180ms;
-  --motion-medium: 320ms;
+  --radius: 12px;
+  --elev-1: 0 6px 18px rgba(7, 16, 41, 0.04);
+  --elev-2: 0 10px 30px rgba(7, 16, 41, 0.06);
+  --motion-short: 150ms;
+  --motion-medium: 260ms;
 }
 
 h1, .heading {
@@ -41,9 +41,9 @@ h1, .heading {
 }
 
 .glass-card {
-  background: var(--card);
+  background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.95));
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   box-shadow: var(--elev-1);
 }
 .gradient-text {
@@ -57,7 +57,7 @@ h1, .heading {
 .expensive-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   box-shadow: var(--elev-1);
   transition: transform var(--motion-medium) cubic-bezier(0.28, 0.11, 0.32, 1), box-shadow var(--motion-medium);
 }
@@ -68,9 +68,9 @@ h1, .heading {
 }
 .expensive-btn {
   @apply px-6 py-3 font-semibold text-white;
-  border-radius: 9999px;
+  border-radius: 10px;
   background: linear-gradient(180deg, var(--accent-700), var(--accent-600));
-  box-shadow: 0 8px 24px rgba(51, 65, 85, 0.12);
+  box-shadow: 0 10px 30px rgba(11, 82, 76, 0.08);
   transition: transform var(--motion-short) ease, box-shadow var(--motion-short) ease, filter var(--motion-short) ease;
   letter-spacing: -0.01em;
 }
@@ -107,19 +107,19 @@ h1, .heading {
 }
 .btn:hover { background: var(--accent-600); }
 .btn-ghost {
-  @apply inline-flex items-center justify-center gap-2 px-4 py-2 font-medium transition-all;
-  border-radius: 10px;
+  @apply inline-flex items-center justify-center gap-2 px-3 py-2 font-medium transition-all;
+  border-radius: 8px;
   background: transparent;
   color: var(--text);
 }
 .btn-outline {
-  @apply inline-flex items-center justify-center gap-2 px-4 py-2 font-medium transition-all border;
-  border-radius: 10px;
+  @apply inline-flex items-center justify-center gap-2 px-3 py-2 font-medium transition-all border;
+  border-radius: 8px;
   border-color: var(--border);
   color: var(--text);
 }
 .input {
-  @apply w-full px-4 py-3 border bg-gray-50 focus:bg-white focus:outline-none;
+  @apply w-full px-3 py-2 border bg-white focus:outline-none;
   border-color: var(--border);
   color: var(--text);
   border-radius: var(--radius-sm);
@@ -130,15 +130,14 @@ h1, .heading {
 
 /* Typographic scale and spacing */
 html { font-size: 16px; }
-body { line-height: 1.5; color: var(--text); }
-h1, .heading { font-size: clamp(1.6rem, 2.6vw, 2.4rem); font-weight:700; }
+h1, .heading { font-size: clamp(1.6rem, 2.4vw, 2.2rem); font-weight:700; }
 h2 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 h3 { font-size: 1rem; }
 .muted { color: var(--muted); }
 
 /* Global radii and transitions */
-.rounded-xl { border-radius: 12px; }
-.rounded-2xl { border-radius: 16px; }
+.rounded-xl { border-radius: 10px; }
+.rounded-2xl { border-radius: 14px; }
 * { transition: color var(--motion-short) ease, background-color var(--motion-short) ease, box-shadow var(--motion-medium) ease, transform var(--motion-short) ease; }
 
 /* Container max width for harmony */

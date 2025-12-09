@@ -59,6 +59,8 @@ export default function Schedule() {
   const [note, setNote] = useState('')
   const [photo, setPhoto] = useState(null)
   const [photoPreview, setPhotoPreview] = useState('')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
   const [taskTitle, setTaskTitle] = useState('')
 
   useEffect(() => {
@@ -133,6 +135,7 @@ export default function Schedule() {
   const [activePreset, setActivePreset] = useState(null)
   const [batchSelecting, setBatchSelecting] = useState(false)
   const [selectedDays, setSelectedDays] = useState([])
+  const [expandedGroups, setExpandedGroups] = useState({})
 
   const scanImageForSchedule = async () => {
     if (!photoPreview) return
@@ -252,16 +255,16 @@ export default function Schedule() {
     if (!activePreset || !selectedDays.length) return
     try {
       const creations = selectedDays.map(day => {
-        const [hh, mm] = (activePreset.time || '09:00').split(':').map(Number)
-        const dt = new Date(currentYear, currentMonth, day, hh, mm, 0, 0)
-        const payload = {
-          user_id: user.id,
-          title: activePreset.name || 'Preset Event',
-          date: dt.toISOString(),
-          category: activePreset.category || 'Other',
-          owner: activePreset.owner || 'together',
-          note: activePreset.note || ''
-        }
+                            const [hh, mm] = (activePreset.time || '09:00').split(':').map(Number)
+                            const dt = new Date(Date.UTC(currentYear, currentMonth, day, hh, mm, 0, 0))
+                            const payload = {
+                              user_id: user.id,
+                              title: activePreset.name || 'Preset Event',
+                              date: dt.toISOString(),
+                              category: activePreset.category || 'Other',
+                              owner: activePreset.owner || 'together',
+                              note: activePreset.note || ''
+                            }
         return createEvent(payload)
       })
       const results = await Promise.all(creations)
@@ -281,20 +284,102 @@ export default function Schedule() {
     if (photo) {
       photo_url = photoPreview
     }
+
+    // build ISO date using startTime if provided (preserve selected day)
+    const buildIso = (dateStr) => {
+      try {
+        if (!dateStr) return new Date().toISOString()
+        if (dateStr.includes('T')) {
+          const base = new Date(dateStr)
+          if (startTime) {
+            const [sh, sm] = startTime.split(':').map(Number)
+            base.setHours(sh, sm, 0, 0)
+          }
+          return base.toISOString()
+        }
+        // date-only YYYY-MM-DD
+        const [y, m, d] = dateStr.split('-').map(Number)
+        if (startTime) {
+          const [sh, sm] = startTime.split(':').map(Number)
+          return new Date(Date.UTC(y, m - 1, d, sh, sm, 0, 0)).toISOString()
+        }
+        // fallback: use 09:00 UTC on the selected day
+        return new Date(Date.UTC(y, m - 1, d, 9, 0, 0, 0)).toISOString()
+      } catch (err) {
+        return new Date(dateStr).toISOString()
+      }
+    }
+
+    let finalNote = note.trim()
+    if (startTime && endTime) {
+      const tf = `${startTime}–${endTime}`
+      finalNote = finalNote ? `${finalNote}\nTimeframe: ${tf}` : `Timeframe: ${tf}`
+    }
+
     const payload = {
       user_id: user.id,
       title: title.trim(),
-      date: new Date(date).toISOString(),
+      date: buildIso(date),
       category: cat,
       owner,
-      note: note.trim(),
+      note: finalNote,
       photo_url,
       is_shared: owner === 'together'
     }
     try {
       const saved = await createEvent(payload)
       setEvents(prev => [...prev, saved])
-      setTitle(''); setDate(''); setCat('Other'); setOwner('together'); setNote(''); setPhoto(null); setPhotoPreview('')
+      setTitle(''); setDate(''); setCat('Other'); setOwner('together'); setNote(''); setPhoto(null); setPhotoPreview(''); setStartTime(''); setEndTime('')
+    } catch (e) { console.error(e) }
+  }
+
+  const addEventKeep = async () => {
+    if (!title.trim() || !date) return
+    let photo_url = ''
+    if (photo) photo_url = photoPreview
+
+    const buildIso = (dateStr) => {
+      try {
+        if (!dateStr) return new Date().toISOString()
+        if (dateStr.includes('T')) {
+          const base = new Date(dateStr)
+          if (startTime) {
+            const [sh, sm] = startTime.split(':').map(Number)
+            base.setHours(sh, sm, 0, 0)
+          }
+          return base.toISOString()
+        }
+        const [y, m, d] = dateStr.split('-').map(Number)
+        if (startTime) {
+          const [sh, sm] = startTime.split(':').map(Number)
+          return new Date(Date.UTC(y, m - 1, d, sh, sm, 0, 0)).toISOString()
+        }
+        return new Date(Date.UTC(y, m - 1, d, 9, 0, 0, 0)).toISOString()
+      } catch (err) {
+        return new Date(dateStr).toISOString()
+      }
+    }
+
+    let finalNote = note.trim()
+    if (startTime && endTime) {
+      const tf = `${startTime}–${endTime}`
+      finalNote = finalNote ? `${finalNote}\nTimeframe: ${tf}` : `Timeframe: ${tf}`
+    }
+
+    const payload = {
+      user_id: user.id,
+      title: title.trim(),
+      date: buildIso(date),
+      category: cat,
+      owner,
+      note: finalNote,
+      photo_url,
+      is_shared: owner === 'together'
+    }
+    try {
+      const saved = await createEvent(payload)
+      setEvents(prev => [...prev, saved])
+      showToast && showToast('Event added — fields retained', { type: 'success' })
     } catch (e) { console.error(e) }
   }
 
@@ -481,199 +566,71 @@ export default function Schedule() {
                       value={title} 
                       onChange={e=>setTitle(e.target.value)} 
                       placeholder="Event title"
-                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 placeholder-gray-500"
+                      className="px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 text-gray-900 placeholder-gray-500"
                     />
                     <input 
-                      type="datetime-local" 
-                      value={date} 
-                      onChange={e=>setDate(e.target.value)}
-                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                      type="date" 
+                      value={date ? (date.includes('T') ? date.split('T')[0] : date) : ''} 
+                      onChange={(e)=>{
+                        const d = e.target.value
+                        if (date && date.includes('T')) {
+                          const time = date.split('T')[1]
+                          setDate(`${d}T${time}`)
+                        } else {
+                          setDate(d)
+                        }
+                      }}
+                      className="px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 text-gray-900"
                     />
                   </div>
 
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <select 
-                      value={cat} 
-                      onChange={e=>setCat(e.target.value)} 
-                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                    >
-                      {Object.keys(categories).map(c => (
-                        <option key={c} value={c}>{categoryEmojis[c]} {c}</option>
-                      ))}
-                    </select>
-
-                    <select 
-                      value={owner} 
-                      onChange={e=>setOwner(e.target.value)} 
-                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                    >
-                      <option value="hers">{ownerEmojis.hers} Hers</option>
-                      <option value="yours">{ownerEmojis.yours} Yours</option>
-                      <option value="together">{ownerEmojis.together} Together</option>
-                    </select>
-
-                    <input 
-                      value={note} 
-                      onChange={e=>setNote(e.target.value)} 
-                      placeholder="Add a note"
-                      className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 placeholder-gray-500"
-                    />
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-medium text-gray-700">Start</label>
+                      <input type="time" value={startTime} onChange={e=>setStartTime(e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-slate-400" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-700">End</label>
+                      <input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)} className="w-full mt-1 px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-slate-400" />
+                    </div>
                   </div>
 
                   <div>
-                    <div className="space-y-2">
-                      <SchedulePresets current={{ category: cat, owner, note, date }} onApply={applyPreset} onActivate={activatePreset} activePresetId={activePreset?.id} />
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setBatchSelecting(s => !s)} className={`px-3 py-2 rounded ${batchSelecting ? 'bg-slate-700 text-white' : 'border'}`}>
-                          {batchSelecting ? 'Batch selecting: ON' : 'Batch select days'}
-                        </button>
-                        {batchSelecting && (
-                          <>
-                            <div className="text-sm text-gray-600">{selectedDays.length} selected</div>
-                            <button onClick={createBatchEvents} className="px-3 py-2 rounded bg-green-600 text-white">Create for selected</button>
-                            <button onClick={() => setSelectedDays([])} className="px-3 py-2 rounded border">Clear</button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-3 items-center">
-                    <label className="flex-1 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 hover:border-purple-500 cursor-pointer transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-purple-600">
-                      <Icons.Image className="w-4 h-4" />
-                      <span>Photo</span>
-                      <input type="file" onChange={handlePhotoUpload} className="hidden"/>
-                    </label>
-                    <motion.button 
-                      onClick={addEvent}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="px-6 py-3 rounded-xl bg-slate-700 text-white font-semibold hover:shadow transition-all"
-                    >
-                      Save
-                    </motion.button>
-                    <motion.button
-                      onClick={scanImageForSchedule}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      disabled={!photoPreview || scanning}
-                      className="px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 font-semibold hover:shadow-sm transition-all disabled:opacity-50"
-                    >
-                      {scanning ? 'Scanning…' : 'Scan Image'}
-                    </motion.button>
-                    {photoPreview && (
-                      <button
-                        type="button"
-                        onClick={() => { setPhoto(null); setPhotoPreview(''); setParsedEvents([]) }}
-                        className="px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-                      >
-                        Clear Photo
+                    <div className="flex items-center gap-3">
+                      <SchedulePresets current={{ category: cat, owner, note, date, time: startTime }} onApply={applyPreset} onActivate={activatePreset} activePresetId={activePreset?.id} />
+                      <button onClick={() => setBatchSelecting(s => !s)} className={`px-3 py-2 rounded ${batchSelecting ? 'bg-slate-700 text-white' : 'border'}`}>
+                        {batchSelecting ? 'Batch: ON' : 'Batch days'}
                       </button>
+                    </div>
+                    {batchSelecting && (
+                      <div className="mt-3 flex items-center gap-2">
+                        <div className="text-sm text-gray-600">{selectedDays.length} selected</div>
+                        <button onClick={createBatchEvents} className="px-3 py-2 rounded bg-green-600 text-white">Create for selected</button>
+                        <button onClick={() => setSelectedDays([])} className="px-3 py-2 rounded border">Clear</button>
+                      </div>
                     )}
+
+                    <div className="mt-4 flex gap-3 items-center">
+                      <motion.button 
+                        onClick={addEvent}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="px-6 py-3 rounded-xl bg-slate-700 text-white font-semibold hover:shadow transition-all"
+                      >
+                        Save
+                      </motion.button>
+                      <motion.button 
+                        onClick={addEventKeep}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 font-semibold hover:shadow-sm transition-all"
+                      >
+                        Save & Add Another
+                      </motion.button>
+                    </div>
                   </div>
 
-                  {photoPreview && (
-                    <motion.img 
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      src={photoPreview} 
-                      className="h-40 rounded-xl object-cover border-2 border-purple-500 w-full"
-                    />
-                  )}
-                  {parsedEvents.length > 0 && (
-                    <div className="mt-6 bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="text-lg font-semibold text-gray-900">Detected Events</div>
-                        <div className="text-sm text-gray-500">{parsedEvents.length} found</div>
-                      </div>
-                      <div className="space-y-3">
-                        {parsedEvents.map((pe, idx) => {
-                          const localDt = pe.date ? new Date(pe.date) : null
-                          const dtValue = localDt ? new Date(localDt.getTime() - localDt.getTimezoneOffset()*60000).toISOString().slice(0,16) : ''
-                          return (
-                          <div key={idx} className="p-4 rounded-xl border border-gray-200 bg-white">
-                            <div className="grid md:grid-cols-3 gap-4">
-                              <input
-                                value={pe.title || ''}
-                                onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, title: e.target.value} : p))}
-                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-slate-500"
-                                placeholder="Event title"
-                              />
-                              <input
-                                type="datetime-local"
-                                value={dtValue}
-                                onChange={(e) => {
-                                  const val = e.target.value
-                                  const iso = val ? new Date(val).toISOString() : null
-                                  setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, date: iso} : p))
-                                }}
-                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-slate-500"
-                              />
-                              <select
-                                value={pe.category || 'Other'}
-                                onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, category: e.target.value} : p))}
-                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-slate-500"
-                              >
-                                {Object.keys(categories).map(c => (
-                                  <option key={c} value={c}>{categoryEmojis[c]} {c}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="mt-3 grid md:grid-cols-2 gap-3">
-                              <input
-                                value={pe.note || ''}
-                                onChange={(e) => setParsedEvents(prev => prev.map((p,i)=> i===idx ? {...p, note: e.target.value} : p))}
-                                className="px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-slate-500"
-                                placeholder="Note (optional)"
-                              />
-                              <div className="flex items-center gap-2">
-                                <button onClick={() => {
-                                  // import single parsed event
-                                  const ev = parsedEvents[idx]
-                                  const payload = {
-                                    user_id: user.id,
-                                    title: ev.title || 'Imported event',
-                                    date: ev.date ? new Date(ev.date).toISOString() : new Date().toISOString(),
-                                    category: ev.category || 'Other',
-                                    owner: 'together',
-                                    note: ev.note || ''
-                                  }
-                                  createEvent(payload).then(saved => {
-                                    setEvents(prev => [...prev, saved])
-                                    setParsedEvents(prev => prev.filter((_, i) => i !== idx))
-                                    showToast && showToast('Event imported', { type: 'success' })
-                                  }).catch(err => {
-                                    console.error('Import single error', err)
-                                    showToast && showToast('Failed to import event', { type: 'error' })
-                                  })
-                                }} className="px-3 py-2 rounded-lg bg-slate-700 text-white hover:bg-slate-800">Import</button>
-                                <button onClick={() => setParsedEvents(prev => prev.filter((_, i) => i !== idx))} className="px-3 py-2 rounded-lg border hover:bg-gray-50">Remove</button>
-                              </div>
-                            </div>
-                          </div>
-                        )})}
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <button onClick={importParsedEvents} className="px-4 py-2 rounded-xl bg-slate-700 text-white hover:shadow">Import All</button>
-                        <button onClick={() => setParsedEvents([])} className="px-4 py-2 rounded-xl bg-white border">Clear</button>
-                        <button onClick={() => setShowAdvanced(v=>!v)} className="ml-auto text-sm text-gray-600 underline">{showAdvanced ? 'Hide' : 'Show'} advanced</button>
-                      </div>
-                      {showAdvanced && lastDebug && (
-                        <div className="mt-3 p-3 bg-gray-50 border rounded text-xs text-gray-700">
-                          <div className="font-semibold mb-1">Scan details</div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div><strong>Started:</strong> {new Date(lastDebug.startedAt).toLocaleString()}</div>
-                            <div><strong>Received:</strong> {lastDebug.receivedAt ? new Date(lastDebug.receivedAt).toLocaleString() : '—'}</div>
-                            <div><strong>Payload size:</strong> {lastDebug.payloadSize}</div>
-                            <div><strong>Status:</strong> {lastDebug.status ?? '—'}</div>
-                            <div className="col-span-2"><strong>OCR excerpt:</strong>
-                              <pre className="whitespace-pre-wrap max-h-36 overflow-auto text-xs bg-white p-2 rounded mt-1">{(lastDebug.raw_text || '').slice(0, 1000)}</pre>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  
                 </div>
               </motion.div>
 
@@ -708,7 +665,7 @@ export default function Schedule() {
                           if (activePreset) {
                             try {
                               const [hh, mm] = (activePreset.time || '09:00').split(':').map(Number)
-                              const dt = new Date(currentYear, currentMonth, day, hh, mm, 0, 0)
+                              const dt = new Date(Date.UTC(currentYear, currentMonth, day, hh, mm, 0, 0))
                               const payload = {
                                 user_id: user.id,
                                 title: activePreset.name || 'Preset Event',
@@ -779,35 +736,63 @@ export default function Schedule() {
                 </div>
                 <div className="space-y-3">
                   <AnimatePresence>
-                    {events.slice(0, 10).map((e, i) => (
-                      <motion.div
-                        key={e.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ delay: i * 0.05 }}
-                              className={`p-4 rounded-xl border flex items-start justify-between gap-4 group hover:shadow-md transition-all bg-white`}
-                              onClick={()=>setSelectedEvent(e)}
-                      >
-                        <div className="flex-1">
-                          <div className="font-semibold text-gray-900 flex items-center gap-2">
-                            {e.title}
-                          </div>
-                          <div className="text-xs text-gray-600 mt-1">
-                            {new Date(e.date).toLocaleString()} • <OwnerBadge owner={e.owner} />
-                          </div>
-                          {e.note && <div className="text-xs text-gray-700 mt-2 italic">{e.note}</div>}
-                        </div>
-                        <motion.button 
-                          onClick={() => removeEvent(e.id)}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="px-3 py-2 rounded-lg bg-red-100 text-red-600 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Icons.Trash className="w-4 h-4" />
-                        </motion.button>
-                      </motion.div>
-                    ))}
+                    {(() => {
+                      // group events by title+category
+                      const groups = {}
+                      events.slice(0, 50).forEach(e => {
+                        const key = `${(e.title||'').toLowerCase()}|||${e.category||'Other'}`
+                        groups[key] = groups[key] || []
+                        groups[key].push(e)
+                      })
+                      // keep keys ordered by earliest event date
+                      const orderedKeys = Object.keys(groups).sort((a,b) => new Date(groups[a][0].date) - new Date(groups[b][0].date))
+                      return orderedKeys.map((k, gi) => {
+                        const items = groups[k]
+                        const primary = items[0]
+                        const expanded = !!expandedGroups[k]
+                        if (items.length === 1) {
+                          const e = primary
+                          return (
+                            <motion.div key={e.id} layout initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }} transition={{ delay: gi * 0.02 }} className={`p-4 rounded-xl border flex items-start justify-between gap-4 group hover:shadow-md transition-all bg-white`}>
+                              <div className="flex-1" onClick={()=>setSelectedEvent(e)}>
+                                <div className="font-semibold text-gray-900 flex items-center gap-2">{e.title}</div>
+                                <div className="text-xs text-gray-600 mt-1">{new Date(e.date).toLocaleString()} • <OwnerBadge owner={e.owner} /></div>
+                                {e.note && <div className="text-xs text-gray-700 mt-2 italic">{e.note}</div>}
+                              </div>
+                              <motion.button onClick={() => removeEvent(e.id)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-3 py-2 rounded-lg bg-red-100 text-red-600 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"><Icons.Trash className="w-4 h-4" /></motion.button>
+                            </motion.div>
+                          )
+                        }
+
+                        // group with multiple items
+                        return (
+                          <motion.div key={k} layout initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }} transition={{ delay: gi * 0.02 }} className="p-4 rounded-xl border bg-white">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3" onClick={() => setExpandedGroups(prev => ({ ...prev, [k]: !prev[k] }))}>
+                                <div className="font-semibold text-gray-900">{primary.title} <span className="ml-2 text-sm text-gray-500">({items.length})</span></div>
+                                <div className="text-xs text-gray-600">{new Date(primary.date).toLocaleString()}</div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => setExpandedGroups(prev => ({ ...prev, [k]: !prev[k] }))} className="px-3 py-1 rounded-md border text-sm">{expanded ? 'Hide' : 'Show all'}</button>
+                              </div>
+                            </div>
+                            {expanded && (
+                              <div className="mt-3 space-y-2">
+                                {items.map(it => (
+                                  <div key={it.id} className="flex items-center justify-between p-2 rounded-md border hover:bg-gray-50">
+                                    <div className="text-sm" onClick={()=>setSelectedEvent(it)}>
+                                      <div className="font-medium">{it.title}</div>
+                                      <div className="text-xs text-gray-500">{new Date(it.date).toLocaleString()} • <OwnerBadge owner={it.owner} /></div>
+                                    </div>
+                                    <button onClick={() => removeEvent(it.id)} className="px-2 py-1 rounded text-red-600 text-sm border">Delete</button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </motion.div>
+                        )
+                      })
+                    })()}
                   </AnimatePresence>
                   {!events.length && <div className="text-center py-6 text-gray-500">No events scheduled yet</div>}
                 </div>

@@ -6,6 +6,7 @@ import { LogOut, User, Heart, Calendar, Camera, FileText, Edit2, Check, Send, Us
 import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../services/api'
 import NotificationsButton from '../components/NotificationsButton'
 import NotificationPrompt from '../components/NotificationPrompt'
+import { sendFallbackEmail } from '../services/notify'
 import { supabase } from '../lib/supabase'
 
 export default function Profile() {
@@ -16,6 +17,8 @@ export default function Profile() {
   const [startDate, setStartDate] = useState('')
   const [partners, setPartners] = useState('')
   const [partnerEmail, setPartnerEmail] = useState('')
+  const [fallbackEmail, setFallbackEmail] = useState('')
+  const [emailFallbackEnabled, setEmailFallbackEnabled] = useState(false)
   const [sending, setSending] = useState(false)
   const [linked, setLinked] = useState(false)
   const [relationshipRaw, setRelationshipRaw] = useState(null)
@@ -39,6 +42,8 @@ export default function Profile() {
         if (relationship) {
           setRelationshipRaw(relationship)
           setStartDate(relationship.start_date || '')
+          setFallbackEmail(relationship.fallback_email || relationship.partner_email || '')
+          setEmailFallbackEnabled(Boolean(relationship.email_fallback || relationship.enable_email_fallback))
           // Prefer stored partner display names if present
           const a = relationship.partner_a || ''
           const b = relationship.partner_b || ''
@@ -186,12 +191,33 @@ export default function Profile() {
         start_date: startDate || null,
         partner_a,
         partner_b
+        ,
+        fallback_email: fallbackEmail || null,
+        email_fallback: !!emailFallbackEnabled
       })
       setEditing(false)
       alert('Relationship updated')
     } catch (e) {
       console.error('Failed to save relationship', e)
       alert('Failed to save relationship')
+    }
+  }
+
+  const sendTestEmail = async () => {
+    const to = fallbackEmail?.trim()
+    if (!to) return alert('Please enter a fallback email first')
+    try {
+      setSending(true)
+      const subject = `Test: Notifications from your app`
+      const text = `This is a test notification email. If you received this, fallback emails are working. Sent: ${new Date().toLocaleString()}`
+      const ok = await sendFallbackEmail(to, subject, text)
+      if (ok) alert('Test email sent — check the inbox (or spam).')
+      else alert('Failed to send test email — check server logs and environment variables.')
+    } catch (e) {
+      console.error('test email error', e)
+      alert('An error occurred while sending the test email')
+    } finally {
+      setSending(false)
     }
   }
 
@@ -389,11 +415,38 @@ export default function Profile() {
                   className="input text-sm"
                 />
               </div>
+              <div>
+                <label className="text-xs text-gray-500">Email Fallback</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="email"
+                    value={fallbackEmail}
+                    onChange={e => setFallbackEmail(e.target.value)}
+                    placeholder="partner-fallback@example.com"
+                    className="input text-sm"
+                  />
+                  <label className="flex items-center gap-2 text-xs">
+                    <input type="checkbox" checked={emailFallbackEnabled} onChange={e => setEmailFallbackEnabled(e.target.checked)} />
+                    <span>Enable</span>
+                  </label>
+                  <button
+                    onClick={sendTestEmail}
+                    disabled={!fallbackEmail || sending}
+                    className="px-3 py-1 rounded bg-indigo-600 text-white text-xs ml-2"
+                  >
+                    {sending ? 'Sending…' : 'Send test'}
+                  </button>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">If enabled, your partner will receive an email when push fails.</div>
+              </div>
             </div>
           ) : (
             <div className="text-sm text-gray-600 space-y-1">
               <div>Start: {startDate || 'Not set'}</div>
               <div>Partners: {partners || 'Not set'}</div>
+              {relationshipRaw && (
+                <div className="text-xs text-gray-500">Email fallback: {relationshipRaw.fallback_email ? `${relationshipRaw.fallback_email} (${relationshipRaw.email_fallback ? 'enabled' : 'disabled'})` : 'Not configured'}</div>
+              )}
             </div>
           )}
         </motion.div>
