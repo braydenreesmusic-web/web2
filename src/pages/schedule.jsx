@@ -37,6 +37,9 @@ const categoryEmojis = {
 export default function Schedule() {
   const { user } = useAuth()
   const [tab, setTab] = useState('calendar')
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth()) // 0-indexed
+  const [categoryFilter, setCategoryFilter] = useState(Object.keys(categories))
   const [goals, setGoals] = useState([
     { id: 1, title: 'Workout 3× a week', progress: 2, target: 3 },
     { id: 2, title: 'Save $200 for a trip', progress: 120, target: 200 },
@@ -76,20 +79,36 @@ export default function Schedule() {
   }, [user])
 
   const daysInMonth = useMemo(() => {
-    const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-  }, [])
+    return new Date(currentYear, currentMonth + 1, 0).getDate()
+  }, [currentYear, currentMonth])
 
   const eventsByDay = useMemo(() => {
     const map = {}
     for (let d = 1; d <= daysInMonth; d++) map[d] = []
     events.forEach(e => {
       const dt = new Date(e.date)
-      const day = dt.getDate()
-      if (map[day]) map[day].push(e)
+      if (dt.getFullYear() === currentYear && dt.getMonth() === currentMonth) {
+        const day = dt.getDate()
+        if (map[day]) map[day].push(e)
+      }
+    })
+    // apply category filter
+    Object.keys(map).forEach(k => {
+      map[k] = map[k].filter(ev => categoryFilter.includes(ev.category || 'Other'))
     })
     return map
-  }, [events, daysInMonth])
+  }, [events, daysInMonth, currentYear, currentMonth, categoryFilter])
+
+  const monthLabel = useMemo(() => new Date(currentYear, currentMonth, 1).toLocaleString('default', { month: 'long', year: 'numeric' }), [currentYear, currentMonth])
+
+  function gotoNextMonth() {
+    if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y + 1) }
+    else setCurrentMonth(m => m + 1)
+  }
+  function gotoPrevMonth() {
+    if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1) }
+    else setCurrentMonth(m => m - 1)
+  }
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0]
@@ -245,6 +264,22 @@ export default function Schedule() {
             <div className="text-sm font-medium">Scanning image — this may take a few seconds…</div>
           </div>
         </div>
+
+        {/* Category legend & filters */}
+        <div className="mb-6 flex items-center gap-3">
+          {Object.keys(categories).map(catKey => {
+            const active = categoryFilter.includes(catKey)
+            return (
+              <button key={catKey} onClick={() => {
+                setCategoryFilter(prev => prev.includes(catKey) ? prev.filter(p=>p!==catKey) : [...prev, catKey])
+              }} className={`flex items-center gap-2 px-3 py-1 rounded-full border ${active ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' : 'bg-white'}`}>
+                <span className={`w-3 h-3 rounded-full ${categories[catKey]}`} />
+                <span className="text-sm font-medium">{catKey}</span>
+              </button>
+            )
+          })}
+          <button onClick={()=>setCategoryFilter(Object.keys(categories))} className="ml-auto text-sm text-gray-600 underline">Reset filters</button>
+        </div>
       )}
       <div className="max-w-6xl mx-auto py-8 px-4">
         {/* Header */}
@@ -311,7 +346,18 @@ export default function Schedule() {
         </motion.div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-8 bg-white p-1.5 rounded-full w-fit shadow-sm border border-gray-200">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-2 bg-white p-1.5 rounded-full shadow-sm border border-gray-200 w-fit">
+            <button onClick={gotoPrevMonth} className="px-3 py-2 rounded-full hover:bg-gray-100">‹</button>
+            <div className="px-4 text-sm font-semibold">{monthLabel}</div>
+            <button onClick={gotoNextMonth} className="px-3 py-2 rounded-full hover:bg-gray-100">›</button>
+            <input type="month" value={`${currentYear}-${String(currentMonth+1).padStart(2,'0')}`} onChange={(e)=>{
+              const [y, m] = e.target.value.split('-').map(Number)
+              setCurrentYear(y); setCurrentMonth(m-1)
+            }} className="ml-3 px-2 py-1 rounded-md border text-sm" />
+          </div>
+
+          <div className="flex items-center gap-2 bg-white p-1.5 rounded-full w-fit shadow-sm border border-gray-200">
           {['calendar','lists','goals'].map((t, i) => (
             <motion.button
               key={t}
@@ -326,6 +372,7 @@ export default function Schedule() {
               {t.charAt(0).toUpperCase()+t.slice(1)}
             </motion.button>
           ))}
+          </div>
         </div>
 
         {/* CALENDAR TAB */}
@@ -555,7 +602,7 @@ export default function Schedule() {
                 </div>
 
                 <div className="grid grid-cols-7 gap-0.5 bg-gray-100 p-0.5 rounded-xl overflow-hidden">
-                  {Array.from({length: daysInMonth}, (_,i)=>i+1).map(day => (
+                    {Array.from({length: daysInMonth}, (_,i)=>i+1).map(day => (
                     <div
                       key={day}
                       className="aspect-square bg-white p-2 flex flex-col group transition-all text-sm cursor-pointer rounded-md"
@@ -564,23 +611,28 @@ export default function Schedule() {
                         if (evs[0]) setSelectedEvent(evs[0])
                       }}
                     >
-                      <div className="font-bold text-gray-700 text-xs mb-1 flex items-center justify-between">
-                        <span>{day}</span>
-                        <span className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-purple-100 text-purple-700">View</span>
-                      </div>
+                        <div className="font-bold text-gray-700 text-xs mb-1 flex items-center justify-between">
+                          <span>{day}</span>
+                          <span className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-purple-100 text-purple-700">View</span>
+                        </div>
                       <div className="flex-1 overflow-hidden space-y-1">
-                        {(eventsByDay[day] || []).slice(0,3).map(e => (
-                          <motion.div 
-                            key={e.id}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className={`text-xs px-2 py-1 rounded-lg font-semibold text-white truncate shadow-sm hover:shadow ${ownerColors[e.owner]}`} 
-                            title={e.title}
-                            onClick={(ev)=>{ev.stopPropagation(); setSelectedEvent(e)}}
-                          >
-                            {e.title}
-                          </motion.div>
-                        ))}
+                          <AnimatePresence initial={false}>
+                          {(eventsByDay[day] || []).slice(0,3).map(e => (
+                            <motion.div 
+                              key={e.id}
+                              layout
+                              initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                              className={`text-xs px-2 py-1 rounded-lg font-semibold text-white truncate shadow-sm hover:shadow ${ownerColors[e.owner]}`} 
+                              title={e.title}
+                              onClick={(ev)=>{ev.stopPropagation(); setSelectedEvent(e)}}
+                            >
+                              {e.title}
+                            </motion.div>
+                          ))}
+                          </AnimatePresence>
                         {(eventsByDay[day] || []).length > 3 && (
                           <div className="text-xs text-gray-500 px-1.5 font-semibold">+{(eventsByDay[day] || []).length - 3}</div>
                         )}
@@ -610,8 +662,8 @@ export default function Schedule() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ delay: i * 0.05 }}
-                        className={`p-4 rounded-xl border flex items-start justify-between gap-4 group hover:shadow-md transition-all bg-white`}
-                        onClick={()=>setSelectedEvent(e)}
+                              className={`p-4 rounded-xl border flex items-start justify-between gap-4 group hover:shadow-md transition-all bg-white`}
+                              onClick={()=>setSelectedEvent(e)}
                       >
                         <div className="flex-1">
                           <div className="font-semibold text-gray-900 flex items-center gap-2">
@@ -674,14 +726,16 @@ export default function Schedule() {
 
               <div className="space-y-2">
                 <AnimatePresence>
+                  <AnimatePresence initial={false}>
                   {tasks.map((t, i) => (
                     <motion.label
                       key={t.id}
-                      initial={{ opacity: 0, x: -20 }}
+                      layout
+                      initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="flex items-center gap-3 p-4 rounded-xl hover:bg-gray-50 transition-all cursor-pointer group border border-gray-100"
+                      exit={{ opacity: 0, x: 12, height: 0 }}
+                      transition={{ delay: i * 0.03, type: 'spring', stiffness: 300, damping: 30 }}
+                      className={`flex items-center gap-3 p-4 rounded-xl transition-all cursor-pointer group border ${t.completed ? 'bg-green-50 border-green-100' : 'hover:bg-gray-50 border-gray-100'}`}
                     >
                       <input 
                         type="checkbox" 
@@ -689,12 +743,13 @@ export default function Schedule() {
                         onChange={e=>toggleTask(t.id, e.target.checked)}
                         className="w-5 h-5 rounded border-gray-300 text-purple-500 cursor-pointer"
                       />
-                      <span className={`flex-1 font-medium transition-all ${t.completed ? "line-through text-gray-400" : "text-gray-900"}`}>
+                      <motion.span layout className={`flex-1 font-medium ${t.completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                         {t.title}
-                      </span>
-                      {t.completed && <span className="text-green-500 text-lg">✓</span>}
+                      </motion.span>
+                      {t.completed && <motion.span initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-green-500 text-lg">✓</motion.span>}
                     </motion.label>
                   ))}
+                  </AnimatePresence>
                 </AnimatePresence>
                 {!tasks.length && !loading && (
                   <div className="text-center py-12 text-gray-500">
