@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-export default function SchedulePresets({ current = {}, onApply }) {
+export default function SchedulePresets({ current = {}, onApply, onActivate, activePresetId }) {
   const KEY = 'schedule_presets_v1'
   const [presets, setPresets] = useState([])
   const [saving, setSaving] = useState(false)
@@ -57,6 +57,10 @@ export default function SchedulePresets({ current = {}, onApply }) {
     if (onApply) onApply(p)
   }
 
+  const activate = (p) => {
+    if (onActivate) onActivate(p)
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
@@ -86,6 +90,7 @@ export default function SchedulePresets({ current = {}, onApply }) {
           {presets.map(p => (
             <div key={p.id} className="px-3 py-1 rounded-full border bg-white flex items-center gap-2 text-sm">
               <button onClick={()=>apply(p)} className="font-medium text-gray-800">{p.name}</button>
+              <button onClick={()=>activate(p)} className={`px-2 py-1 rounded ${activePresetId===p.id ? 'bg-slate-700 text-white' : 'border'}`}>{activePresetId===p.id ? 'Active' : 'Use on calendar'}</button>
               <button onClick={()=>deletePreset(p.id)} className="text-red-500">✕</button>
             </div>
           ))}

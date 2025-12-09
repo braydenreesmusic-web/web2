@@ -66,6 +66,10 @@ export default function Schedule() {
     ;(async () => {
       try {
         const [ev, tk] = await Promise.all([
+                        const evs = (eventsByDay[day]||[])
+                        if (evs[0]) setSelectedEvent(evs[0])
+                      }}
+                    <div key={day} className={`aspect-square p-2 flex flex-col group transition-all text-sm rounded-md ${activePreset ? 'cursor-pointer bg-slate-50 hover:bg-slate-100' : 'bg-white cursor-pointer'}`}
           getEvents(user.id),
           getTasks(user.id)
         ])
@@ -130,6 +134,7 @@ export default function Schedule() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [activePreset, setActivePreset] = useState(null)
 
   const scanImageForSchedule = async () => {
     if (!photoPreview) return
@@ -225,6 +230,16 @@ export default function Schedule() {
       const isoLocal = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,16)
       setDate(isoLocal)
     }
+  }
+
+  const activatePreset = (p) => {
+    if (!p) {
+      setActivePreset(null)
+      showToast && showToast('Calendar preset cleared', { type: 'info' })
+      return
+    }
+    setActivePreset(p)
+    showToast && showToast(`Preset "${p.name}" active — click days to add events`, { type: 'info' })
   }
 
   const addEvent = async () => {
@@ -636,43 +651,71 @@ export default function Schedule() {
                 </div>
 
                 <div className="grid grid-cols-7 gap-0.5 bg-gray-100 p-0.5 rounded-xl overflow-hidden">
-                    {Array.from({length: daysInMonth}, (_,i)=>i+1).map(day => (
-                    <div
-                      key={day}
-                      className="aspect-square bg-white p-2 flex flex-col group transition-all text-sm cursor-pointer rounded-md"
-                      onClick={()=>{
-                        const evs = (eventsByDay[day]||[])
-                        if (evs[0]) setSelectedEvent(evs[0])
-                      }}
-                    >
+                  {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+                    const dayEvents = eventsByDay[day] || []
+                    return (
+                      <div
+                        key={day}
+                        className={`aspect-square p-2 flex flex-col group transition-all text-sm rounded-md ${activePreset ? 'cursor-pointer bg-slate-50 hover:bg-slate-100' : 'bg-white cursor-pointer'}`}
+                        onClick={async () => {
+                          if (activePreset) {
+                            try {
+                              const [hh, mm] = (activePreset.time || '09:00').split(':').map(Number)
+                              const dt = new Date(currentYear, currentMonth, day, hh, mm, 0, 0)
+                              const payload = {
+                                user_id: user.id,
+                                title: activePreset.name || 'Preset Event',
+                                date: dt.toISOString(),
+                                category: activePreset.category || 'Other',
+                                owner: activePreset.owner || 'together',
+                                note: activePreset.note || ''
+                              }
+                              const saved = await createEvent(payload)
+                              setEvents((prev) => [...prev, saved])
+                              showToast && showToast('Event created from preset', { type: 'success' })
+                            } catch (err) {
+                              console.error('Create preset event', err)
+                              showToast && showToast('Failed to create event from preset', { type: 'error' })
+                            }
+                            return
+                          }
+                          if (dayEvents[0]) setSelectedEvent(dayEvents[0])
+                        }}
+                      >
                         <div className="font-bold text-gray-700 text-xs mb-1 flex items-center justify-between">
                           <span>{day}</span>
-                          <span className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-purple-100 text-purple-700">View</span>
+                          <span className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-700">View</span>
                         </div>
-                      <div className="flex-1 overflow-hidden space-y-1">
+
+                        <div className="flex-1 overflow-hidden space-y-1">
                           <AnimatePresence initial={false}>
-                          {(eventsByDay[day] || []).slice(0,3).map(e => (
-                            <motion.div 
-                              key={e.id}
-                              layout
-                              initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-                              className={`text-xs px-2 py-1 rounded-lg font-semibold text-white truncate shadow-sm hover:shadow ${ownerColors[e.owner]}`} 
-                              title={e.title}
-                              onClick={(ev)=>{ev.stopPropagation(); setSelectedEvent(e)}}
-                            >
-                              {e.title}
-                            </motion.div>
-                          ))}
+                            {dayEvents.slice(0, 3).map((e) => (
+                              <motion.div
+                                key={e.id}
+                                layout
+                                initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                                transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                                className={`text-xs px-2 py-1 rounded-lg font-semibold text-white truncate shadow-sm hover:shadow ${ownerColors[e.owner]}`}
+                                title={e.title}
+                                onClick={(ev) => {
+                                  ev.stopPropagation()
+                                  setSelectedEvent(e)
+                                }}
+                              >
+                                {e.title}
+                              </motion.div>
+                            ))}
                           </AnimatePresence>
-                        {(eventsByDay[day] || []).length > 3 && (
-                          <div className="text-xs text-gray-500 px-1.5 font-semibold">+{(eventsByDay[day] || []).length - 3}</div>
-                        )}
+
+                          {dayEvents.length > 3 && (
+                            <div className="text-xs text-gray-500 px-1.5 font-semibold">+{dayEvents.length - 3}</div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </motion.div>
 
