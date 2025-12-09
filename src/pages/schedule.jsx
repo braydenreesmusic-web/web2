@@ -131,6 +131,8 @@ export default function Schedule() {
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [activePreset, setActivePreset] = useState(null)
+  const [batchSelecting, setBatchSelecting] = useState(false)
+  const [selectedDays, setSelectedDays] = useState([])
 
   const scanImageForSchedule = async () => {
     if (!photoPreview) return
@@ -236,6 +238,41 @@ export default function Schedule() {
     }
     setActivePreset(p)
     showToast && showToast(`Preset "${p.name}" active — click days to add events`, { type: 'info' })
+  }
+
+  const toggleDaySelection = (day) => {
+    setSelectedDays(prev => {
+      const exists = prev.includes(day)
+      if (exists) return prev.filter(d => d !== day)
+      return [...prev, day].sort((a,b)=>a-b)
+    })
+  }
+
+  const createBatchEvents = async () => {
+    if (!activePreset || !selectedDays.length) return
+    try {
+      const creations = selectedDays.map(day => {
+        const [hh, mm] = (activePreset.time || '09:00').split(':').map(Number)
+        const dt = new Date(currentYear, currentMonth, day, hh, mm, 0, 0)
+        const payload = {
+          user_id: user.id,
+          title: activePreset.name || 'Preset Event',
+          date: dt.toISOString(),
+          category: activePreset.category || 'Other',
+          owner: activePreset.owner || 'together',
+          note: activePreset.note || ''
+        }
+        return createEvent(payload)
+      })
+      const results = await Promise.all(creations)
+      setEvents(prev => [...prev, ...results])
+      showToast && showToast(`Created ${results.length} event(s)`, { type: 'success' })
+      setSelectedDays([])
+      setBatchSelecting(false)
+    } catch (err) {
+      console.error('Batch create error', err)
+      showToast && showToast('Failed to create some events', { type: 'error' })
+    }
   }
 
   const addEvent = async () => {
@@ -484,7 +521,21 @@ export default function Schedule() {
                   </div>
 
                   <div>
-                    <SchedulePresets current={{ category: cat, owner, note, date }} onApply={applyPreset} />
+                    <div className="space-y-2">
+                      <SchedulePresets current={{ category: cat, owner, note, date }} onApply={applyPreset} onActivate={activatePreset} activePresetId={activePreset?.id} />
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setBatchSelecting(s => !s)} className={`px-3 py-2 rounded ${batchSelecting ? 'bg-slate-700 text-white' : 'border'}`}>
+                          {batchSelecting ? 'Batch selecting: ON' : 'Batch select days'}
+                        </button>
+                        {batchSelecting && (
+                          <>
+                            <div className="text-sm text-gray-600">{selectedDays.length} selected</div>
+                            <button onClick={createBatchEvents} className="px-3 py-2 rounded bg-green-600 text-white">Create for selected</button>
+                            <button onClick={() => setSelectedDays([])} className="px-3 py-2 rounded border">Clear</button>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap gap-3 items-center">
@@ -678,12 +729,12 @@ export default function Schedule() {
                           if (dayEvents[0]) setSelectedEvent(dayEvents[0])
                         }}
                       >
-                        <div className="font-bold text-gray-700 text-xs mb-1 flex items-center justify-between">
-                          <span>{day}</span>
-                          <span className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-700">View</span>
-                        </div>
+                          <div className="font-bold text-gray-700 text-xs mb-1 flex items-center justify-between">
+                            <span>{day}</span>
+                            <span className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-700">View</span>
+                          </div>
 
-                        <div className="flex-1 overflow-hidden space-y-1">
+                        <div className={`flex-1 overflow-hidden space-y-1 ${selectedDays.includes(day) ? 'ring-2 ring-offset-1 ring-green-300 bg-green-50' : ''}`}>
                           <AnimatePresence initial={false}>
                             {dayEvents.slice(0, 3).map((e) => (
                               <motion.div
