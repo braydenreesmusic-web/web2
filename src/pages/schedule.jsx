@@ -66,10 +66,6 @@ export default function Schedule() {
     ;(async () => {
       try {
         const [ev, tk] = await Promise.all([
-                        const evs = (eventsByDay[day]||[])
-                        if (evs[0]) setSelectedEvent(evs[0])
-                      }}
-                    <div key={day} className={`aspect-square p-2 flex flex-col group transition-all text-sm rounded-md ${activePreset ? 'cursor-pointer bg-slate-50 hover:bg-slate-100' : 'bg-white cursor-pointer'}`}
           getEvents(user.id),
           getTasks(user.id)
         ])
