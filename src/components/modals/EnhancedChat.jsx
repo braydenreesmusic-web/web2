@@ -3,6 +3,7 @@ import Dialog from '../../components/ui/dialog.jsx'
 import Button from '../../components/ui/button.jsx'
 import { useAuth } from '../../contexts/AuthContext'
 import { getNotes, createNote, subscribeToNotes, getCheckIns } from '../../services/api'
+import { usePresence } from '../../hooks/usePresence'
 
 function suggestionFromEmotion(emotion) {
   if (!emotion) return 'Thinking of you ❤️'
@@ -21,6 +22,9 @@ export default function EnhancedChat({ open, onClose }) {
   const [input, setInput] = useState('')
   const timer = useRef(null)
   const [latestEmotion, setLatestEmotion] = useState('')
+  const { isPartnerOnline, partnerPresence } = usePresence()
+  const [isTyping, setIsTyping] = useState(false)
+  const typingTimeout = useRef(null)
 
   useEffect(() => {
     if (!open || !user) return
@@ -70,10 +74,26 @@ export default function EnhancedChat({ open, onClose }) {
     }
   }
 
+  const onInputChange = (e) => {
+    const val = e.target.value
+    setInput(val)
+    // local typing indicator; in a fuller implementation we'd emit presence typing events
+    setIsTyping(true)
+    if (typingTimeout.current) clearTimeout(typingTimeout.current)
+    typingTimeout.current = setTimeout(() => setIsTyping(false), 1200)
+  }
+
   return (
     <Dialog open={open} onClose={onClose} title="Love Notes">
       <div className="space-y-3">
-        <div className="max-h-72 overflow-y-auto space-y-2">
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${isPartnerOnline ? 'bg-green-500' : 'bg-gray-300'}`}/>
+            <span>{isPartnerOnline ? 'Partner active now' : 'Partner offline'}</span>
+          </div>
+          <div className="text-gray-500">{isTyping ? 'typing…' : ''}</div>
+        </div>
+        <div className="max-h-72 overflow-y-auto space-y-2 mt-2">
           {messages.map((m, i) => (
             <div key={i} className="glass-card p-2">
               <div className="text-xs text-gray-500">{m.author} • {m.date}</div>
@@ -86,7 +106,7 @@ export default function EnhancedChat({ open, onClose }) {
           <div className="text-gray-800">{suggestionFromEmotion(latestEmotion)}</div>
         </div>
         <div className="flex gap-2">
-          <input value={input} onChange={e=>setInput(e.target.value)} placeholder="Send a love note…" className="flex-1 px-3 py-2 rounded-xl border"/>
+          <input value={input} onChange={onInputChange} placeholder="Send a love note…" className="flex-1 px-3 py-2 rounded-xl border"/>
           <Button onClick={send}>Send</Button>
         </div>
       </div>

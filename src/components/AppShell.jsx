@@ -9,7 +9,7 @@ export default function AppShell({ title, children }) {
   const navigate = useNavigate();
   const showBack = pathname !== '/';
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <main className="min-h-screen" style={{background:'linear-gradient(180deg, #F6F7F8 0%, #FFFFFF 40%)'}}>
       <div className="fixed top-0 left-0 right-0 z-40 flex justify-center px-4 pt-6">
         <div className="w-full flex justify-center px-4">
           <div className="w-full app-container">
@@ -19,7 +19,9 @@ export default function AppShell({ title, children }) {
       </div>
       <div className="pt-[120px] pb-32">
         <div className="app-container">
-          {children}
+          <div className="space-y-8">
+            {children}
+          </div>
         </div>
       </div>
     </main>

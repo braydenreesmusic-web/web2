@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import EmptyState from '../components/EmptyState'
 import { getCheckIns, getNotes, getMedia, getSavingsGoals, getPresence, getRelationshipData } from '../services/api'
 import DailyCheckIn from '../components/modals/DailyCheckIn.jsx'
-import MemoryConstellation from '../components/modals/MemoryConstellation.jsx'
+import Memories from '../components/modals/Memories.jsx'
 import RelationshipInsights from '../components/modals/RelationshipInsights.jsx'
 import EnhancedChat from '../components/modals/EnhancedChat.jsx'
 import { PiggyBank } from 'lucide-react'
@@ -98,14 +98,12 @@ export default function Dashboard() {
             <div className="flex flex-col gap-1">
               {presence.filter(p => p.is_online).map(p => {
                 const isMe = p.user_id === user.id
-                const name = isMe
-                  ? (user.user_metadata?.name || 'You')
-                  : (
-                      // prefer stored partner names if available
-                      (relationship?.partner_a && relationship?.partner_b)
-                        ? (relationship.partner_a && relationship.partner_b ? `${relationship.partner_a} & ${relationship.partner_b}` : relationship.display_name)
-                        : 'Partner'
-                    )
+                const myName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'You'
+                const partnerName = relationship?.display_name 
+                  || relationship?.partner_b 
+                  || relationship?.partner_a 
+                  || 'Partner'
+                const name = isMe ? myName : partnerName
                 return (
                   <div key={p.user_id} className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-green-500"/>
@@ -127,8 +125,8 @@ export default function Dashboard() {
           <div className="text-sm text-gray-500">Daily mood & energy</div>
         </button>
         <button onClick={()=>setShowGalaxy(true)} className="glass-card p-4 text-left hover:scale-[1.02] transition">
-          <div className="text-lg font-semibold gradient-text">Memory Galaxy</div>
-          <div className="text-sm text-gray-500">Explore memories</div>
+          <div className="text-lg font-semibold gradient-text">Memories</div>
+          <div className="text-sm text-gray-500">Timeline & grid</div>
         </button>
         <button onClick={()=>setShowInsights(true)} className="glass-card p-4 text-left hover:scale-[1.02] transition">
           <div className="text-lg font-semibold gradient-text">Insights</div>
@@ -164,7 +162,7 @@ export default function Dashboard() {
       </div>
 
       <DailyCheckIn open={showCheckIn} onClose={()=>setShowCheckIn(false)} onSubmit={(data)=>{ setCheckIns(prev=> [data, ...prev]) }} />
-      <MemoryConstellation open={showGalaxy} onClose={()=>setShowGalaxy(false)} memories={memories} />
+      <Memories open={showGalaxy} onClose={()=>setShowGalaxy(false)} memories={memories} />
       <RelationshipInsights open={showInsights} onClose={()=>setShowInsights(false)} />
       <EnhancedChat open={showChat} onClose={()=>setShowChat(false)} />
     </section>

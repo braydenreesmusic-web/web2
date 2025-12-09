@@ -20,7 +20,7 @@ export default function BottomTabs() {
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="w-full max-w-2xl glass-card px-2 sm:px-3 py-2 shadow-lg" 
+        className="w-full max-w-2xl glass-card px-2 sm:px-3 py-2 shadow-lg blur-bg" 
         style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
       >
       <ul className="grid grid-cols-7 gap-1">
