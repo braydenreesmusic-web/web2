@@ -108,6 +108,8 @@ export default function Schedule() {
   const [parsedEvents, setParsedEvents] = useState([])
   const [lastDebug, setLastDebug] = useState(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [showAddDialog, setShowAddDialog] = useState(false)
 
   const scanImageForSchedule = async () => {
     if (!photoPreview) return
@@ -256,6 +258,56 @@ export default function Schedule() {
             <h1 className="text-5xl font-bold text-gray-900">Schedule & Planning</h1>
           </div>
           <p className="text-gray-600">Keep track of events, tasks, and couple goals together</p>
+        </motion.div>
+
+        {/* Quick Today Agenda */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 grid md:grid-cols-3 gap-4"
+        >
+          <div className="md:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Icons.Clock className="w-5 h-5 text-purple-600" />
+              <div className="text-lg font-semibold text-gray-900">Today</div>
+            </div>
+            <div className="space-y-2">
+              {events
+                .filter(e => {
+                  const d = new Date(e.date)
+                  const now = new Date()
+                  return d.toDateString() === now.toDateString()
+                })
+                .sort((a,b)=> new Date(a.date)-new Date(b.date))
+                .slice(0,5)
+                .map(e => (
+                  <button
+                    key={e.id}
+                    onClick={()=>setSelectedEvent(e)}
+                    className="w-full text-left p-3 rounded-xl border hover:border-purple-300 hover:bg-purple-50/50 transition flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="font-medium text-gray-900">{e.title}</div>
+                      <div className="text-xs text-gray-600">{new Date(e.date).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} • <OwnerBadge owner={e.owner} /></div>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded ${ownerColors[e.owner].replace('bg-','text-')}`}>{e.owner}</span>
+                  </button>
+                ))}
+              {events.filter(e=> new Date(e.date).toDateString() === new Date().toDateString()).length === 0 && (
+                <div className="text-sm text-gray-500">No events today</div>
+              )}
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Icons.Add className="w-5 h-5 text-purple-600" />
+              <div className="text-lg font-semibold text-gray-900">Quick Actions</div>
+            </div>
+            <div className="space-y-2">
+              <button onClick={()=>setShowAddDialog(true)} className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold">Add Event</button>
+              <button onClick={()=>setTab('lists')} className="w-full px-4 py-3 rounded-xl border">Open Tasks</button>
+            </div>
+          </div>
         </motion.div>
 
         {/* Tabs */}
@@ -506,17 +558,25 @@ export default function Schedule() {
                   {Array.from({length: daysInMonth}, (_,i)=>i+1).map(day => (
                     <div
                       key={day}
-                      className="aspect-square bg-white p-2 flex flex-col hover:bg-gradient-to-br hover:from-purple-50 hover:to-pink-50 transition-all text-sm cursor-pointer"
+                      className="aspect-square bg-white p-2 flex flex-col group transition-all text-sm cursor-pointer rounded-md"
+                      onClick={()=>{
+                        const evs = (eventsByDay[day]||[])
+                        if (evs[0]) setSelectedEvent(evs[0])
+                      }}
                     >
-                      <div className="font-bold text-gray-700 text-xs mb-1">{day}</div>
-                      <div className="flex-1 overflow-hidden space-y-0.5">
+                      <div className="font-bold text-gray-700 text-xs mb-1 flex items-center justify-between">
+                        <span>{day}</span>
+                        <span className="opacity-0 group-hover:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-purple-100 text-purple-700">View</span>
+                      </div>
+                      <div className="flex-1 overflow-hidden space-y-1">
                         {(eventsByDay[day] || []).slice(0,3).map(e => (
                           <motion.div 
                             key={e.id}
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className={`text-xs px-1.5 py-0.5 rounded font-semibold text-white truncate ${ownerColors[e.owner]}`} 
+                            className={`text-xs px-2 py-1 rounded-lg font-semibold text-white truncate shadow-sm hover:shadow ${ownerColors[e.owner]}`} 
                             title={e.title}
+                            onClick={(ev)=>{ev.stopPropagation(); setSelectedEvent(e)}}
                           >
                             {e.title}
                           </motion.div>
@@ -550,9 +610,8 @@ export default function Schedule() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ delay: i * 0.05 }}
-                        className={`p-4 rounded-xl border-2 flex items-start justify-between gap-4 group hover:shadow-md transition-all ${
-                          ownerColors[e.owner].replace('bg-', 'border-').replace('-500', '-300') + ' bg-gradient-to-br'
-                        }`}
+                        className={`p-4 rounded-xl border flex items-start justify-between gap-4 group hover:shadow-md transition-all bg-white`}
+                        onClick={()=>setSelectedEvent(e)}
                       >
                         <div className="flex-1">
                           <div className="font-semibold text-gray-900 flex items-center gap-2">
@@ -748,6 +807,78 @@ export default function Schedule() {
                   <p className="text-gray-500 text-lg">No goals yet - set one to inspire each other!</p>
                 </motion.div>
               )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {/* Event Details Modal */}
+        <AnimatePresence>
+          {selectedEvent && (
+            <motion.div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 20, opacity: 0 }}
+                className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-xl font-semibold text-gray-900">{selectedEvent.title}</div>
+                    <div className="text-sm text-gray-600 mt-1">{new Date(selectedEvent.date).toLocaleString()} • <OwnerBadge owner={selectedEvent.owner} /></div>
+                  </div>
+                  <button className="text-gray-500 hover:text-gray-800" onClick={()=>setSelectedEvent(null)}><Icons.X className="w-5 h-5" /></button>
+                </div>
+                {selectedEvent.note && <div className="mt-3 text-sm text-gray-700">{selectedEvent.note}</div>}
+                <div className="mt-6 flex gap-2">
+                  <button className="px-4 py-2 rounded-xl bg-red-100 text-red-700" onClick={()=>{ removeEvent(selectedEvent.id); setSelectedEvent(null) }}>Delete</button>
+                  <button className="px-4 py-2 rounded-xl border" onClick={()=>setSelectedEvent(null)}>Close</button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Add Event Dialog */}
+        <AnimatePresence>
+          {showAddDialog && (
+            <motion.div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 20, opacity: 0 }}
+                className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="text-xl font-semibold text-gray-900">Add Event</div>
+                  <button className="text-gray-500 hover:text-gray-800" onClick={()=>setShowAddDialog(false)}><Icons.X className="w-5 h-5" /></button>
+                </div>
+                <div className="space-y-4">
+                  <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Event title" className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full" />
+                  <input type="datetime-local" value={date} onChange={e=>setDate(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full" />
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <select value={cat} onChange={e=>setCat(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                      {Object.keys(categories).map(c => (<option key={c} value={c}>{categoryEmojis[c]} {c}</option>))}
+                    </select>
+                    <select value={owner} onChange={e=>setOwner(e.target.value)} className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full">
+                      <option value="hers">{ownerEmojis.hers} Hers</option>
+                      <option value="yours">{ownerEmojis.yours} Yours</option>
+                      <option value="together">{ownerEmojis.together} Together</option>
+                    </select>
+                    <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Note (optional)" className="px-4 py-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 w-full" />
+                  </div>
+                  <div className="flex gap-3 justify-end">
+                    <button className="px-4 py-3 rounded-xl border" onClick={()=>setShowAddDialog(false)}>Cancel</button>
+                    <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold" onClick={() => { addEvent(); setShowAddDialog(false) }}>Save</button>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
