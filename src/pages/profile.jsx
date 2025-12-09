@@ -210,9 +210,15 @@ export default function Profile() {
       setSending(true)
       const subject = `Test: Notifications from your app`
       const text = `This is a test notification email. If you received this, fallback emails are working. Sent: ${new Date().toLocaleString()}`
-      const ok = await sendFallbackEmail(to, subject, text)
-      if (ok) alert('Test email sent — check the inbox (or spam).')
-      else alert('Failed to send test email — check server logs and environment variables.')
+      const res = await sendFallbackEmail(to, subject, text)
+      if (res?.ok) {
+        alert('Test email sent — check the inbox (or spam).')
+      } else {
+        // show detailed server response for debugging
+        const details = res?.body || `status: ${res?.status || 'unknown'}`
+        alert(`Failed to send test email — server response: ${details}`)
+        console.error('send test email failed', res)
+      }
     } catch (e) {
       console.error('test email error', e)
       alert('An error occurred while sending the test email')

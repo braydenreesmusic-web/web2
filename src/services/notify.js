@@ -6,14 +6,14 @@ export async function sendFallbackEmail(to, subject, text, html) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to, subject, text, html })
     })
+    const body = await res.text().catch(() => '')
     if (!res.ok) {
-      const txt = await res.text().catch(() => '')
-      console.warn('sendFallbackEmail failed', res.status, txt)
-      return false
+      console.warn('sendFallbackEmail failed', res.status, body)
+      return { ok: false, status: res.status, body }
     }
-    return true
+    return { ok: true, status: res.status, body }
   } catch (err) {
     console.warn('sendFallbackEmail error', err)
-    return false
+    return { ok: false, status: 0, body: String(err) }
   }
 }
