@@ -5,6 +5,7 @@ import { getEvents, createEvent, deleteEvent, getTasks, createTask, updateTask }
 import { motion, AnimatePresence } from 'framer-motion'
 import { useToast } from '../contexts/ToastContext'
 import { Icons, OwnerBadge } from '../components/Icons'
+import SchedulePresets from '../components/SchedulePresets'
 
 const ownerColors = {
   hers: 'bg-red-500',
@@ -194,6 +195,35 @@ export default function Schedule() {
     } catch (err) {
       console.error('Import error', err)
       showToast && showToast('Failed to import events: ' + (err.message || err), { type: 'error' })
+    }
+  }
+
+  const applyPreset = (p) => {
+    if (!p) return
+    setCat(p.category || 'Other')
+    setOwner(p.owner || 'together')
+    setNote(p.note || '')
+    if (p.weekdays && p.weekdays.length) {
+      const now = new Date()
+      const today = now.getDay()
+      const weekday = p.weekdays[0]
+      let diff = (weekday - today + 7) % 7
+      if (diff === 0) diff = 7
+      const target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff)
+      if (p.time) {
+        const [hh, mm] = p.time.split(':').map(Number)
+        target.setHours(hh, mm, 0, 0)
+      } else {
+        target.setHours(9,0,0,0)
+      }
+      const isoLocal = new Date(target.getTime() - target.getTimezoneOffset()*60000).toISOString().slice(0,16)
+      setDate(isoLocal)
+    } else if (p.time) {
+      const now = new Date()
+      const [hh, mm] = p.time.split(':').map(Number)
+      now.setHours(hh, mm, 0, 0)
+      const isoLocal = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,16)
+      setDate(isoLocal)
     }
   }
 
@@ -440,6 +470,10 @@ export default function Schedule() {
                       placeholder="Add a note"
                       className="px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 placeholder-gray-500"
                     />
+                  </div>
+
+                  <div>
+                    <SchedulePresets current={{ category: cat, owner, note, date }} onApply={applyPreset} />
                   </div>
 
                   <div className="flex flex-wrap gap-3 items-center">
