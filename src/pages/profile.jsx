@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { LogOut, User, Heart, Calendar, Camera, FileText, Edit2, Check, Send, UserPlus, CheckCircle, XCircle, Mail } from 'lucide-react'
 import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../services/api'
 import NotificationsButton from '../components/NotificationsButton'
+import { useToast } from '../contexts/ToastContext'
 import NotificationPrompt from '../components/NotificationPrompt'
 import { sendFallbackEmail } from '../services/notify'
 import { supabase } from '../lib/supabase'
@@ -24,6 +25,7 @@ export default function Profile() {
   const [relationshipRaw, setRelationshipRaw] = useState(null)
   const [pendingRequests, setPendingRequests] = useState([])
   const [sentRequests, setSentRequests] = useState([])
+  const { showToast } = useToast()
 
   useEffect(() => {
     if (!user) return
@@ -227,6 +229,30 @@ export default function Profile() {
     }
   }
 
+  const sendTestPush = async () => {
+    if (!user) return
+    try {
+      showToast && showToast('Sending test push…', { type: 'info' })
+      const res = await fetch('/api/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Test Push', body: 'This is a test push from the server', user_id: user.id })
+      })
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '')
+        console.error('send-push failed', res.status, txt)
+        showToast && showToast('Server push failed — check server envs (VAPID/Supabase keys)', { type: 'error' })
+        return
+      }
+      const j = await res.json().catch(() => null)
+      console.debug('send-push result', j)
+      showToast && showToast('Test push sent (server attempted delivery)', { type: 'success' })
+    } catch (e) {
+      console.error('sendTestPush error', e)
+      showToast && showToast('Failed to send test push — see console', { type: 'error' })
+    }
+  }
+
   return (
     <section className="space-y-6">
       <NotificationPrompt />
@@ -243,7 +269,15 @@ export default function Profile() {
             <div className="font-semibold text-xl">{user?.user_metadata?.name || 'User'}</div>
               <div className="text-sm text-gray-500 flex items-center justify-between">
                 <span>{user?.email}</span>
-                <NotificationsButton />
+                <div className="flex items-center gap-2">
+                  <NotificationsButton />
+                  <button
+                    onClick={sendTestPush}
+                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs"
+                  >
+                    Send Test Push
+                  </button>
+                </div>
               </div>
                 <div className="mt-3">
                   <SubscriptionDebug />

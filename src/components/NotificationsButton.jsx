@@ -27,7 +27,19 @@ export default function NotificationsButton() {
   const handleSubscribe = async () => {
     setLoading(true)
     try {
-      const vapid = import.meta.env.VITE_VAPID_PUBLIC
+      let vapid = import.meta.env.VITE_VAPID_PUBLIC
+      // If the public key isn't baked into the build, try fetching it from the server
+      if (!vapid) {
+        try {
+          const r = await fetch('/api/push/vapid')
+          if (r.ok) {
+            const j = await r.json()
+            vapid = j.publicKey
+          }
+        } catch (e) {
+          console.warn('Failed to fetch vapid from server', e)
+        }
+      }
       if (!vapid) throw new Error('VAPID public key not configured (VITE_VAPID_PUBLIC)')
       // Request permission from a direct user gesture
       if (Notification.permission === 'denied') {
@@ -42,9 +54,24 @@ export default function NotificationsButton() {
       }
 
       // permission is granted now — perform registration & subscribe
-      const sub = await subscribeToPush(vapid)
-      // convenience wrapper left for compatibility
-      await subscribeToPushAndReturn(vapid)
+      const sub = await subscribeToPushAndReturn(vapid)
+      // After subscribing, attempt a quick test push to the subscription so users
+      // immediately observe a notification (best-effort).
+      try {
+        const r = await fetch('/api/push/send-direct', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: sub, title: 'Notifications Enabled', body: 'You will receive updates from the app.' })
+        })
+        if (!r.ok) {
+          const txt = await r.text().catch(() => '')
+          console.warn('test push send failed', r.status, txt)
+          showToast && showToast('Subscribed locally. Server push not fully configured — check VAPID envs.', { type: 'warning' })
+        }
+      } catch (e) {
+        console.warn('test push send failed', e)
+        showToast && showToast('Subscribed locally. Server push not fully configured — check VAPID envs.', { type: 'warning' })
+      }
       setSubscribed(true)
       showToast && showToast('Notifications enabled', { type: 'success' })
     } catch (e) {
