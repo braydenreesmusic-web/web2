@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import clsx from 'clsx'
 import Dialog from '../../components/ui/dialog.jsx'
 import Button from '../../components/ui/button.jsx'
 import { useAuth } from '../../contexts/AuthContext'
@@ -33,6 +34,7 @@ export default function EnhancedChat({ open, onClose }) {
   const [board, setBoard] = useState(emptyBoard)
   const [currentPlayer, setCurrentPlayer] = useState('X')
   const [winner, setWinner] = useState(null)
+  const [winningLine, setWinningLine] = useState(null)
   const [playersMap, setPlayersMap] = useState({}) // e.g. { X: 'Alice', O: 'Bob' }
   const [myPlayer, setMyPlayer] = useState(null)
   const [moveHistory, setMoveHistory] = useState([])
@@ -280,6 +282,18 @@ export default function EnhancedChat({ open, onClose }) {
     return null
   }
 
+  function findWinningLine(b) {
+    const lines = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ]
+    for (const line of lines) {
+      if (b[line[0]] && b[line[0]] === b[line[1]] && b[line[0]] === b[line[2]]) return line
+    }
+    return null
+  }
+
   const handleCellClick = (idx) => {
     if (board[idx] || winner || mode !== 'play' || !user) return
     // Enforce turn: if myPlayer is assigned and it's not my turn, block
@@ -294,7 +308,13 @@ export default function EnhancedChat({ open, onClose }) {
     nb[idx] = currentPlayer
     setBoard(nb)
     const w = checkWinner(nb)
-    if (w) setWinner(w)
+    if (w) {
+      setWinner(w)
+      const line = findWinningLine(nb)
+      setWinningLine(line)
+    } else {
+      setWinningLine(null)
+    }
     const nextPlayer = currentPlayer === 'X' ? 'O' : 'X'
     setCurrentPlayer(nextPlayer)
 
@@ -478,12 +498,26 @@ export default function EnhancedChat({ open, onClose }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 w-64">
-              {board.map((cell, i) => (
-                <button key={i} onClick={() => handleCellClick(i)} className="h-16 w-16 rounded-lg glass-card flex items-center justify-center text-2xl transition transform hover:scale-105">
-                  <span className={`select-none`}>{cell}</span>
-                </button>
-              ))}
+            <div className="grid grid-cols-3 gap-2 w-full max-w-xs mx-auto">
+              {board.map((cell, i) => {
+                const disabled = Boolean(cell || winner || mode !== 'play' || (myPlayer && myPlayer !== currentPlayer))
+                const isWin = Array.isArray(winningLine) && winningLine.includes(i)
+                return (
+                  <button
+                    key={i}
+                    onClick={() => handleCellClick(i)}
+                    disabled={disabled}
+                    aria-label={cell ? `${cell} at ${i}` : `empty cell ${i}`}
+                    className={clsx('rounded-lg glass-card flex items-center justify-center text-2xl transition-colors',
+                      'w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28',
+                      disabled ? 'opacity-80 cursor-not-allowed' : 'active:scale-95',
+                      isWin ? 'ring-2 ring-emerald-300 bg-emerald-50' : 'bg-white'
+                    )}
+                  >
+                    <span className="select-none text-xl sm:text-2xl">{cell}</span>
+                  </button>
+                )
+              })}
             </div>
 
             <div className="text-sm text-gray-600">
