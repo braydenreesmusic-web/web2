@@ -28,7 +28,10 @@ export const usePresence = () => {
           setPartnerUserId(partnerId)
           const allPresence = await getPresence()
           const partner = allPresence?.find(p => p.user_id === partnerId)
-          setPartnerPresence(partner || { is_online: false, last_seen: null })
+          const initial = partner || { is_online: false, last_seen: null, updated_at: null }
+          setPartnerPresence(initial)
+          // dev diagnostics: log initial presence for debugging
+          if (process.env.NODE_ENV === 'development') console.debug('presence:init', partnerId, initial)
         }
 
         if (partnerId) {
@@ -75,20 +78,35 @@ export const usePresence = () => {
         if (partnerId) {
           subscription = subscribeToPresence(partnerId, (payload) => {
             const { eventType, new: newRecord, old: oldRecord } = payload
-            if ((eventType === 'INSERT' || eventType === 'UPDATE') && newRecord?.user_id === partnerId) {
-              setPartnerPresence({
-                is_online: newRecord.is_online,
-                last_seen: newRecord.last_seen,
-                updated_at: newRecord.updated_at
-              })
-            }
+            // dev diagnostics: surface realtime payloads
+            if (process.env.NODE_ENV === 'development') console.debug('presence:event', partnerId, eventType, { new: newRecord, old: oldRecord })
 
-            if (eventType === 'DELETE' && oldRecord?.user_id === partnerId) {
-              setPartnerPresence({
-                is_online: false,
-                last_seen: oldRecord.last_seen || new Date().toISOString(),
-                updated_at: oldRecord?.updated_at || new Date().toISOString()
-              })
+            // debounce rapid presence updates to avoid flicker
+            const next = (() => {
+              if ((eventType === 'INSERT' || eventType === 'UPDATE') && newRecord?.user_id === partnerId) {
+                return {
+                  is_online: newRecord.is_online,
+                  last_seen: newRecord.last_seen,
+                  updated_at: newRecord.updated_at
+                }
+              }
+              if (eventType === 'DELETE' && oldRecord?.user_id === partnerId) {
+                return {
+                  is_online: false,
+                  last_seen: oldRecord.last_seen || new Date().toISOString(),
+                  updated_at: oldRecord?.updated_at || new Date().toISOString()
+                }
+              }
+              return null
+            })()
+
+            if (next) {
+              // postpone applying the update by a short delay to smooth any rapid successive events
+              if (visTimer.current) clearTimeout(visTimer.current)
+              visTimer.current = setTimeout(() => {
+                setPartnerPresence(next)
+                visTimer.current = null
+              }, 500)
             }
           })
         }
@@ -145,8 +163,10 @@ export const usePresence = () => {
     partnerUserId,
     isPartnerOnline: (() => {
       if (!partnerPresence) return false
-      const updated = partnerPresence.updated_at ? new Date(partnerPresence.updated_at).getTime() : 0
-      const fresh = Date.now() - updated < 40000
+      // prefer updated_at but fall back to last_seen for older rows
+      const updatedTs = partnerPresence.updated_at ? new Date(partnerPresence.updated_at).getTime() : (partnerPresence.last_seen ? new Date(partnerPresence.last_seen).getTime() : 0)
+      // use a slightly larger freshness window to account for network delays
+      const fresh = Date.now() - updatedTs < 60000
       return Boolean(partnerPresence.is_online && fresh)
     })(),
     partnerLastSeen: partnerPresence?.last_seen,

@@ -142,3 +142,70 @@ h3 { font-size: 1rem; }
 
 /* Container max width for harmony */
 .app-container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+/* Tic-tac-toe animations */
+@keyframes winner-pop {
+  0% { transform: scale(1); box-shadow: none; }
+  50% { transform: scale(1.06); box-shadow: 0 8px 24px rgba(250,180,60,0.18); }
+  100% { transform: scale(1); box-shadow: 0 10px 30px rgba(250,180,60,0.12); }
+}
+
+.winner-glow {
+  animation: winner-pop 600ms ease;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateY(80px) rotate(200deg); opacity: 0; }
+}
+.tic-confetti {
+  position: absolute;
+  pointer-events: none;
+}
+.tic-confetti span {
+  display: inline-block;
+  font-size: 18px;
+  animation: confetti-fall 900ms linear forwards;
+}
+
+/* Enhanced Chat specific styles */
+.enhanced-chat { padding: 12px; }
+.enhanced-header { display: flex; align-items: center; gap: 12px; }
+.presence-badge { display:flex; align-items:center; gap:10px }
+.presence-dot { width:12px; height:12px; border-radius:999px; box-shadow: 0 2px 8px rgba(16,24,40,0.08); }
+.presence-dot.online { background: linear-gradient(180deg,#10b981,#059669); box-shadow: 0 6px 18px rgba(6,95,70,0.12); }
+.presence-dot.offline { background: linear-gradient(180deg,#e6e9ee,#cfd6df); }
+.presence-text { line-height:1 }
+.mode-toggle { display:inline-flex; gap:6px; background: rgba(17,24,39,0.02); padding:4px; border-radius:999px }
+.mode-btn { padding:6px 10px; border-radius:999px; font-weight:600; font-size:0.9rem; color:var(--muted); background:transparent; border:1px solid transparent; cursor:pointer }
+.mode-btn.active { color:var(--accent-700); background: linear-gradient(180deg, rgba(51,65,85,0.06), rgba(71,85,105,0.03)); border-color: rgba(17,24,39,0.04); }
+
+.chat-scroll { max-height: 18rem; overflow-y:auto; padding-right:6px; display:flex; flex-direction:column-reverse; gap:10px }
+.chat-message { padding:12px; border-radius:12px; background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(250,250,250,0.95)); border:1px solid var(--border); }
+.chat-message .meta { font-size:0.75rem; color:var(--muted); margin-bottom:6px }
+
+.game-notes { display:flex; flex-direction:column; gap:8px }
+.game-note-card { padding:10px; border-radius:10px; background: linear-gradient(180deg, #ffffff, #fbfdff); border:1px solid #eef2f6 }
+.unread-badge { background: linear-gradient(90deg,#ef4444,#f97316); color:white; padding:4px 8px; border-radius:999px; font-weight:700; font-size:0.75rem }
+
+.game-panel { display:flex; flex-direction:column; gap:12px }
+.player-card { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:12px; background: linear-gradient(180deg,#ffffff,#fbfbff); border:1px solid var(--border) }
+.player-avatar { width:36px; height:36px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; color:white }
+.player-avatar.x { background: linear-gradient(180deg,#ef4444,#dc2626) }
+.player-avatar.o { background: linear-gradient(180deg,#3b82f6,#1e40af) }
+
+.game-board { display:grid; grid-template-columns: repeat(3, 64px); gap:10px }
+.game-cell { width:64px; height:64px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; transition: transform var(--motion-short) ease, box-shadow var(--motion-short) ease; background: linear-gradient(180deg,#fff,#fbfdff); border:1px solid #edf2f7; cursor:pointer }
+.game-cell:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(16,24,40,0.06) }
+.game-cell.disabled { opacity:0.85; cursor:not-allowed; transform:none; box-shadow:none }
+.game-cell.x { color: #b91c1c } /* red */
+.game-cell.o { color: #1e40af } /* blue */
+.game-cell.winner { box-shadow: 0 14px 40px rgba(250,180,60,0.12); transform: scale(1.04) }
+
+.tic-confetti { display:flex; gap:6px }
+
+@media (max-width:640px) {
+  .game-board { grid-template-columns: repeat(3, 52px); gap:8px }
+  .game-cell { width:52px; height:52px; font-size:20px }
+}

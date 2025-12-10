@@ -297,6 +297,19 @@ export const getNotes = async (userId) => {
   return data
 }
 
+// Get game-related notes (TICTACTOE_*) so UI can surface persistent game notifications
+export const getGameNotes = async (userId) => {
+  // notes table stores game events; filter by content prefix
+  const { data, error } = await supabase
+    .from('notes')
+    .select('*')
+    .ilike('content', 'TICTACTOE_%')
+    .order('date', { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
 export const createNote = async (noteData) => {
   const { data, error } = await supabase
     .from('notes')
