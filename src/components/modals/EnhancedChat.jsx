@@ -24,7 +24,7 @@ export default function EnhancedChat({ open, onClose }) {
   const [input, setInput] = useState('')
   const timer = useRef(null)
   const [latestEmotion, setLatestEmotion] = useState('')
-  const { isPartnerOnline, partnerPresence } = usePresence()
+  const { isPartnerOnline, partnerPresence, partnerUserId } = usePresence()
   const [isTyping, setIsTyping] = useState(false)
   const typingTimeout = useRef(null)
   const [mode, setMode] = useState('chat') // 'chat' or 'play'
@@ -143,6 +143,12 @@ export default function EnhancedChat({ open, onClose }) {
     const sub = subscribeToNotes(user.id, (payload) => {
       if (payload.eventType === 'INSERT') {
         const n = payload.new
+        if (!n) return
+        // Only process notes that are relevant: authored by me, by partner, or game events (TICTACTOE_*)
+        const mine = n.user_id === user.id
+        const partnerRow = partnerUserId && n.user_id === partnerUserId
+        const isGameEvent = (n.content || '').startsWith('TICTACTOE_')
+        if (!mine && !partnerRow && !isGameEvent) return
         // parse tic-tac-toe messages specially
         const content = n.content || ''
         // START
@@ -226,6 +232,21 @@ export default function EnhancedChat({ open, onClose }) {
         } else {
           setMessages(prev => [{ author: n.author, content: n.content, date: n.date }, ...prev])
         }
+        // show a browser notification for partner messages / game events (best-effort)
+        try {
+          const me = user.user_metadata?.name || user.email
+          if (Notification && Notification.permission === 'granted') {
+            const from = n.author || 'Partner'
+            if (from !== me) {
+              const title = n.content && n.content.startsWith('TICTACTOE_') ? 'Game update' : `${from}`
+              const body = (n.content && n.content.replace(/^TICTACTOE_.*\|?/, '')) || 'New note'
+              new Notification(title, { body })
+            }
+          }
+        } catch (e) {
+          console.warn('notify failed', e)
+        }
+
         // update myPlayer if needed (compute from latest changes)
         const me = user.user_metadata?.name || user.email
         // If playersMap was updated above via setPlayersMap, we should set myPlayer

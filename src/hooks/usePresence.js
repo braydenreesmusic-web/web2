@@ -115,6 +115,8 @@ export const usePresence = () => {
       }
     }
 
+    // Notify the app when partner presence changes (optional UI/notifications handled by consumer)
+
     initialize()
 
     const handleBeforeUnload = async () => {

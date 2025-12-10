@@ -324,19 +324,22 @@ export const createNote = async (noteData) => {
 
 // Real-time subscription for notes
 export const subscribeToNotes = (userId, callback) => {
-  return supabase
-    .channel('notes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'notes',
-        filter: `user_id=eq.${userId}`
-      },
-      callback
-    )
-    .subscribe()
+  const ch = supabase.channel('notes')
+  // If userId provided, we still subscribe to whole table and let the client filter
+  // to avoid missing partner rows that may be returned via RLS in queries but not emitted
+  // for the filtered realtime channel. Subscribing to the whole table is acceptable
+  // for small apps; if needed we can add server-side routing later.
+  ch.on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'notes'
+    },
+    callback
+  )
+
+  return ch.subscribe()
 }
 
 // ============== Location & Pins ==============
