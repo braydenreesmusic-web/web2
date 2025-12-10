@@ -15,6 +15,19 @@ export default function Header({ title }) {
       className="w-full glass-card flex items-center justify-between px-4 sm:px-6 py-2"
     >
       <div className="flex items-center gap-3">
+        <button
+          aria-label="Home"
+          onClick={() => navigate('/')}
+          className="flex items-center gap-3 p-0 bg-transparent border-0"
+        >
+          <img
+            src="/logo.png"
+            alt="YouRees"
+            className="w-8 h-8 rounded-md"
+            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/logo.svg' }}
+          />
+          <span className="text-lg font-semibold hidden sm:inline">YouRees</span>
+        </button>
         {showBack && (
           <button
             aria-label="Back"
@@ -24,7 +37,7 @@ export default function Header({ title }) {
             <ArrowLeft className="w-4 h-4" />
           </button>
         )}
-        <h1 className="text-lg font-semibold">{title}</h1>
+        {title && <h1 className="text-lg font-semibold ml-2">{title}</h1>}
       </div>
 
       <div className="flex items-center gap-3">
