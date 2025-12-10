@@ -10,7 +10,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "generate-vapid": "node -e \"const wp=require('web-push');console.log(JSON.stringify(wp.generateVAPIDKeys()));\"",
-    "send-push": "node scripts/send-push.js"
+    "send-push": "node scripts/send-push.js",
+    "generate:favicons": "node scripts/generate-favicons.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.86.2",
@@ -36,5 +37,8 @@
     "node-fetch": "^2.6.7",
     "express": "^4.18.2",
     "concurrently": "^9.2.1"
+  ,
+    "sharp": "^0.32.4",
+    "png-to-ico": "^2.0.0"
   }
 }
