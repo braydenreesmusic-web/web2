@@ -142,6 +142,23 @@ export default function EnhancedChat({ open, onClose }) {
         const n = payload.new
         // parse tic-tac-toe messages specially
         const content = n.content || ''
+        // START
+        if (content.startsWith('TICTACTOE_START|')) {
+          const parts = content.split('|')
+          if (parts.length >= 3) {
+            const side = parts[1]
+            const author = parts[2]
+            const other = side === 'X' ? 'O' : 'X'
+            setPlayersMap(prev => ({ ...prev, [side]: author, [other]: prev[other] || null }))
+            resetGame()
+            // if I started, claim the side locally
+            const me = user.user_metadata?.name || user.email
+            if (author === me) setMyPlayer(side)
+            setMessages(prev => [{ author: n.author, content: `${author} started as ${side}`, date: n.date }, ...prev])
+          }
+          return
+        }
+
         // PROPOSE
         if (content.startsWith('TICTACTOE_PROPOSE|')) {
           const parts = content.split('|')
@@ -164,6 +181,10 @@ export default function EnhancedChat({ open, onClose }) {
             setPlayersMap(prev => ({ ...prev, [side]: proposer, [other]: accepter }))
             setPendingProposal(null)
             setMessages(prev => [{ author: n.author, content: `${accepter} accepted ${proposer}'s proposal for ${side}`, date: n.date }, ...prev])
+            // assign myPlayer if I'm one of the participants
+            const me = user.user_metadata?.name || user.email
+            if (proposer === me) setMyPlayer(side)
+            if (accepter === me) setMyPlayer(other)
           }
           return
         }
@@ -182,10 +203,15 @@ export default function EnhancedChat({ open, onClose }) {
               setCurrentPlayer(player === 'X' ? 'O' : 'X')
               return nb
             })
-            // map player to author
+            // map player to author and set myPlayer if this move was by me
             setPlayersMap(prev => {
               const next = { ...prev }
               if (!next[player]) next[player] = n.author
+              // If the author of the move is me, ensure myPlayer is set to that side
+              const me = user.user_metadata?.name || user.email
+              if (n.author === me) {
+                try { setMyPlayer(player) } catch (e) {}
+              }
               return next
             })
             setMoveHistory(prev => [{ idx, player, author: n.author, date: n.date }, ...prev])
@@ -197,12 +223,20 @@ export default function EnhancedChat({ open, onClose }) {
         } else {
           setMessages(prev => [{ author: n.author, content: n.content, date: n.date }, ...prev])
         }
-        // update myPlayer if needed
+        // update myPlayer if needed (compute from latest changes)
         const me = user.user_metadata?.name || user.email
+        // If playersMap was updated above via setPlayersMap, we should set myPlayer
+        // based on the recent assignment. For safety, check the relevant branches
+        // where players are assigned and set myPlayer there. As a fallback, try
+        // to derive from the current playersMap state value.
         setMyPlayer(prev => {
           if (prev) return prev
-          const found = Object.keys(playersMap).find(p => playersMap[p] === me)
-          return found || prev
+          try {
+            const found = Object.keys(playersMap).find(p => playersMap[p] === me)
+            return found || prev
+          } catch (e) {
+            return prev
+          }
         })
       }
     })
