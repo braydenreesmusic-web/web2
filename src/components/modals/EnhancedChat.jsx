@@ -4,6 +4,7 @@ import Button from '../../components/ui/button.jsx'
 import { useAuth } from '../../contexts/AuthContext'
 import { getNotes, createNote, subscribeToNotes, getCheckIns } from '../../services/api'
 import { usePresence } from '../../hooks/usePresence'
+import { timeAgo } from '../../lib/time'
 
 function suggestionFromEmotion(emotion) {
   if (!emotion) return 'Thinking of you ❤️'
@@ -390,10 +391,15 @@ export default function EnhancedChat({ open, onClose }) {
   return (
     <Dialog open={open} onClose={onClose} title="Love Notes">
       <div className="space-y-3">
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${isPartnerOnline ? 'bg-slate-600' : 'bg-gray-300'}`}/>
-            <span>{isPartnerOnline ? 'Partner active now' : 'Partner offline'}</span>
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-3">
+            <div className={`inline-flex items-center gap-2 px-2 py-0.5 rounded-full text-xs font-medium ${isPartnerOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'}`}>
+              <span className={`inline-block w-2 h-2 rounded-full ${isPartnerOnline ? 'bg-emerald-600' : 'bg-gray-300'}`} />
+              <span>{isPartnerOnline ? 'Active now' : (partnerPresence?.last_seen ? `Last seen ${timeAgo(partnerPresence.last_seen)}` : 'Offline')}</span>
+            </div>
+            {partnerPresence?.updated_at && (
+              <div className="text-xs text-gray-400">Updated {timeAgo(partnerPresence.updated_at)}</div>
+            )}
           </div>
           <div className="text-gray-500">{isTyping ? 'typing…' : ''}</div>
         </div>
@@ -404,16 +410,19 @@ export default function EnhancedChat({ open, onClose }) {
 
         <div className="max-h-72 overflow-y-auto space-y-2 mt-2">
           {messages.map((m, i) => (
-            <div key={i} className="glass-card p-2">
-              <div className="text-xs text-gray-500">{m.author} • {m.date}</div>
-              <div>{m.content}</div>
+            <div key={i} className="glass-card p-2 hover:shadow-sm transition">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-gray-500">{m.author}</div>
+                <div className="text-xs text-gray-400">{m.date ? timeAgo(m.date) : ''}</div>
+              </div>
+              <div className="mt-1 text-sm text-gray-800">{m.content}</div>
             </div>
           ))}
         </div>
         {mode === 'chat' && (
           <>
             <div className="flex gap-2">
-              <input value={input} onChange={onInputChange} placeholder="Send a love note…" className="flex-1 px-3 py-2 rounded-xl border"/>
+              <textarea value={input} onChange={onInputChange} placeholder="Send a love note…" className="flex-1 px-3 py-2 rounded-xl border resize-none" rows={2} onKeyDown={(e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); } }} />
               <Button onClick={send}>Send</Button>
             </div>
           </>
