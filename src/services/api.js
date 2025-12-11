@@ -3,7 +3,7 @@ import { sendFallbackEmail } from './notify'
 
 // Helper: trigger a server-side push broadcast via our send-push endpoint.
 // Keep payload small; server will broadcast to all stored subscriptions.
-async function triggerNotification({ title, body, user_id = null } = {}) {
+export async function triggerNotification({ title, body, user_id = null } = {}) {
   try {
     await fetch('/api/send-push', {
       method: 'POST',

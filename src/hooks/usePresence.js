@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { updatePresence, subscribeToPresence, getPresence, getRelationshipData, subscribeToListeningSession, updateListeningSession } from '../services/api'
+import { updatePresence, subscribeToPresence, getPresence, getRelationshipData, subscribeToListeningSession, updateListeningSession, triggerNotification } from '../services/api'
 
 export const usePresence = () => {
   const { user } = useAuth()
   const [partnerPresence, setPartnerPresence] = useState(null)
   const [partnerUserId, setPartnerUserId] = useState(null)
   const [partnerListeningSession, setPartnerListeningSession] = useState(null)
+  const [presenceEvents, setPresenceEvents] = useState([])
 
   // refs must be at top-level of the hook
   const inFlight = useRef(false)
@@ -18,6 +19,7 @@ export const usePresence = () => {
     let subscription = null
     let listenSubscription = null
     let heartbeatInterval = null
+    const prevOnline = { current: false }
 
     const initialize = async () => {
       try {
@@ -30,6 +32,7 @@ export const usePresence = () => {
           const partner = allPresence?.find(p => p.user_id === partnerId)
           const initial = partner || { is_online: false, last_seen: null, updated_at: null }
           setPartnerPresence(initial)
+          if (process.env.NODE_ENV === 'development') setPresenceEvents(prev => [{ ts: new Date().toISOString(), type: 'init', partnerId, payload: initial }, ...prev].slice(0,50))
           // dev diagnostics: log initial presence for debugging
           if (process.env.NODE_ENV === 'development') console.debug('presence:init', partnerId, initial)
         }
@@ -55,6 +58,20 @@ export const usePresence = () => {
           inFlight.current = true
           try {
             await updatePresence(user.id, true)
+            // Notify partner via server push when we transition to online
+            try {
+              const enabled = import.meta.env.VITE_PRESENCE_PUSH_ONLINE === '1'
+              if (enabled && partnerId) {
+                // Only trigger when transitioning from offline -> online
+                if (!prevOnline.current) {
+                  const me = user.user_metadata?.name || user.email
+                  triggerNotification({ title: 'Partner active', body: `${me} is active now`, user_id: partnerId })
+                }
+                prevOnline.current = true
+              }
+            } catch (e) {
+              console.warn('presence push trigger failed', e)
+            }
           } finally {
             inFlight.current = false
           }
@@ -66,6 +83,8 @@ export const usePresence = () => {
             if (document.visibilityState === 'visible' && !inFlight.current) {
               inFlight.current = true
               await updatePresence(user.id, true)
+              // heartbeat shouldn't re-trigger push if already online; ensure prevOnline set
+              prevOnline.current = true
             }
           } catch (e) {
             console.error('Heartbeat failed', e)
@@ -80,6 +99,10 @@ export const usePresence = () => {
             const { eventType, new: newRecord, old: oldRecord } = payload
             // dev diagnostics: surface realtime payloads
             if (process.env.NODE_ENV === 'development') console.debug('presence:event', partnerId, eventType, { new: newRecord, old: oldRecord })
+
+            if (process.env.NODE_ENV === 'development') {
+              setPresenceEvents(prev => [{ ts: new Date().toISOString(), type: eventType, new: newRecord || null, old: oldRecord || null }, ...prev].slice(0,50))
+            }
 
             // debounce rapid presence updates to avoid flicker
             const next = (() => {
@@ -122,6 +145,7 @@ export const usePresence = () => {
     const handleBeforeUnload = async () => {
       if (navigator.sendBeacon) {
         await updatePresence(user.id, false)
+        prevOnline.current = false
       }
     }
 
@@ -133,6 +157,18 @@ export const usePresence = () => {
             inFlight.current = true
             const isVisible = document.visibilityState === 'visible'
             await updatePresence(user.id, isVisible)
+            // Fire presence push on become-visible if enabled
+            try {
+              const enabled = import.meta.env.VITE_PRESENCE_PUSH_ONLINE === '1'
+              if (enabled && isVisible && partnerId && !prevOnline.current) {
+                const me = user.user_metadata?.name || user.email
+                triggerNotification({ title: 'Partner active', body: `${me} is active now`, user_id: partnerId })
+                prevOnline.current = true
+              }
+              if (!isVisible) prevOnline.current = false
+            } catch (e) {
+              console.warn('presence push (visibility) failed', e)
+            }
           }
         } catch (e) {
           console.error('Visibility presence update failed', e)
@@ -173,6 +209,7 @@ export const usePresence = () => {
     })(),
     partnerLastSeen: partnerPresence?.last_seen,
     partnerListeningSession,
+    presenceEvents,
     setMyListeningSession: async (sessionData) => {
       try {
         return await updateListeningSession(user.id, sessionData)

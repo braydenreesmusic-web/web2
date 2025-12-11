@@ -21,10 +21,15 @@ function suggestionFromEmotion(emotion) {
 export default function EnhancedChat({ open, onClose }) {
   const { user } = useAuth()
   const [messages, setMessages] = useState([])
+  const [gameMessages, setGameMessages] = useState([])
   const [input, setInput] = useState('')
+  const [gameInput, setGameInput] = useState('')
   const timer = useRef(null)
   const [latestEmotion, setLatestEmotion] = useState('')
-  const { isPartnerOnline, partnerPresence, partnerUserId } = usePresence()
+  const { isPartnerOnline, partnerPresence, partnerUserId, presenceEvents, partnerListeningSession } = usePresence()
+  const [showPresenceDebug, setShowPresenceDebug] = useState(false)
+  const [expandedEvents, setExpandedEvents] = useState({})
+  const [allExpanded, setAllExpanded] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const typingTimeout = useRef(null)
   const [mode, setMode] = useState('chat') // 'chat' or 'play'
@@ -41,6 +46,9 @@ export default function EnhancedChat({ open, onClose }) {
   const [turnMessage, setTurnMessage] = useState('')
   const turnMessageTimeout = useRef(null)
   const [pendingProposal, setPendingProposal] = useState(null)
+  const [pendingRematch, setPendingRematch] = useState(null)
+  const rematchTimer = useRef(null)
+  const REMATCH_TIMEOUT_MS = 2 * 60 * 1000 // 2 minutes
 
   useEffect(() => {
     if (!open || !user) return
@@ -57,6 +65,7 @@ export default function EnhancedChat({ open, onClose }) {
         // sort ascending by date to replay moves
         notes.sort((a,b) => new Date(a.date) - new Date(b.date))
         const msgs = []
+        const gmsgs = []
         let replayBoard = Array(9).fill(null)
         let replayCurrent = 'X'
         let replayWinner = null
@@ -94,6 +103,24 @@ export default function EnhancedChat({ open, onClose }) {
               replayPlayers.__proposal = { side, author, date: n.date }
               continue
             }
+            if (content.startsWith('TICTACTOE_REMATCH|')) {
+              const parts = content.split('|')
+              if (parts.length >= 3) {
+                const action = parts[1]
+                if (action === 'PROPOSE') {
+                  const author = parts[2]
+                  replayPlayers.__rematch = { author, date: n.date }
+                  continue
+                }
+                if (action === 'ACCEPT') {
+                  const proposer = parts[2]
+                  const accepter = parts[3]
+                  // rematch accepted in history; we'll show a message
+                  msgs.push({ author: n.author, content: `${accepter} accepted rematch from ${proposer}`, date: n.date })
+                  continue
+                }
+              }
+            }
           }
           if (content.startsWith('TICTACTOE_ACCEPT|')) {
             const parts = content.split('|')
@@ -117,11 +144,17 @@ export default function EnhancedChat({ open, onClose }) {
             }
           }
           if (!applyMoveNote(n)) {
+            const content = n.content || ''
+            if (content.startsWith('TICTACTOE_MSG|')) {
+              gmsgs.push({ author: n.author, content: content.replace(/^TICTACTOE_MSG\|/, ''), date: n.date })
+              continue
+            }
             msgs.push({ author: n.author, content: n.content, date: n.date })
           }
         }
 
         setMessages(msgs)
+        setGameMessages(gmsgs)
         setBoard(replayBoard)
         setCurrentPlayer(replayCurrent)
         setWinner(replayWinner)
@@ -129,6 +162,9 @@ export default function EnhancedChat({ open, onClose }) {
         if (proposal) delete replayPlayers.__proposal
         setPlayersMap(replayPlayers)
         setPendingProposal(proposal)
+        const rem = replayPlayers.__rematch || null
+        if (rem) delete replayPlayers.__rematch
+        setPendingRematch(rem)
         setMoveHistory(replayHistory)
         // determine myPlayer based on playersMap
         const me = user.user_metadata?.name || user.email
@@ -151,6 +187,13 @@ export default function EnhancedChat({ open, onClose }) {
         if (!mine && !partnerRow && !isGameEvent) return
         // parse tic-tac-toe messages specially
         const content = n.content || ''
+        // game chat messages
+        if (content.startsWith('TICTACTOE_MSG|')) {
+          const body = content.replace(/^TICTACTOE_MSG\|/, '')
+          setGameMessages(prev => [{ author: n.author, content: body, date: n.date }, ...prev])
+          // also show a small system message in the main chat stream if desired
+          return
+        }
         // START
         if (content.startsWith('TICTACTOE_START|')) {
           const parts = content.split('|')
@@ -176,6 +219,43 @@ export default function EnhancedChat({ open, onClose }) {
             const author = parts[2]
             setPendingProposal({ side, author, date: n.date })
             setMessages(prev => [{ author: n.author, content: `Proposed: ${author} as ${side}`, date: n.date }, ...prev])
+          }
+          return
+        }
+        // REMATCH
+        if (content.startsWith('TICTACTOE_REMATCH|')) {
+          const parts = content.split('|')
+          if (parts.length >= 3) {
+            const action = parts[1]
+            if (action === 'PROPOSE') {
+              const author = parts[2]
+              setPendingRematch({ author, date: n.date })
+              setMessages(prev => [{ author: n.author, content: `${author} proposed a rematch`, date: n.date }, ...prev])
+            }
+            if (action === 'ACCEPT') {
+              const proposer = parts[2]
+              const accepter = parts[3]
+              // perform rematch locally: reset board and swap players if assigned
+              setPendingRematch(null)
+              setBoard(emptyBoard)
+              setMoveHistory([])
+              setWinner(null)
+              setWinningLine(null)
+              // swap players if both are known and update myPlayer accordingly
+              setPlayersMap(prev => {
+                try {
+                  if (prev && prev.X && prev.O) {
+                    const next = { X: prev.O, O: prev.X }
+                    const me = user.user_metadata?.name || user.email
+                    const found = Object.keys(next).find(p => next[p] === me)
+                    if (found) setMyPlayer(found)
+                    return next
+                  }
+                } catch (e) {}
+                return prev
+              })
+              setMessages(prev => [{ author: n.author, content: `${accepter} accepted rematch from ${proposer}`, date: n.date }, ...prev])
+            }
           }
           return
         }
@@ -238,8 +318,8 @@ export default function EnhancedChat({ open, onClose }) {
           if (Notification && Notification.permission === 'granted') {
             const from = n.author || 'Partner'
             if (from !== me) {
-              const title = n.content && n.content.startsWith('TICTACTOE_') ? 'Game update' : `${from}`
-              const body = (n.content && n.content.replace(/^TICTACTOE_.*\|?/, '')) || 'New note'
+              const title = content && content.startsWith('TICTACTOE_') ? 'Game update' : `${from}`
+              const body = content.startsWith('TICTACTOE_MSG|') ? content.replace(/^TICTACTOE_MSG\|/, '') : (content.replace(/^TICTACTOE_.*\|?/, '') || 'New note')
               new Notification(title, { body })
             }
           }
@@ -385,6 +465,47 @@ export default function EnhancedChat({ open, onClose }) {
     createNote(note).catch(() => {})
   }
 
+  const proposeRematch = () => {
+    if (!user) return
+    const me = user.user_metadata?.name || user.email
+    const note = {
+      user_id: user.id,
+      author: me,
+      content: `TICTACTOE_REMATCH|PROPOSE|${me}`,
+      date: new Date().toISOString().slice(0,10)
+    }
+    setPendingRematch({ author: me, date: note.date })
+    // start/refresh local expiry timer
+    if (rematchTimer.current) clearTimeout(rematchTimer.current)
+    rematchTimer.current = setTimeout(() => {
+      setPendingRematch(null)
+      setMessages(prev => [{ author: 'System', content: `Rematch proposal from ${me} expired`, date: new Date().toISOString() }, ...prev])
+    }, REMATCH_TIMEOUT_MS)
+    setMessages(prev => [{ author: me, content: 'Proposed a rematch', date: note.date }, ...prev])
+    createNote(note).catch(() => {})
+  }
+
+  const acceptRematch = (proposal) => {
+    if (!user || !proposal) return
+    const me = user.user_metadata?.name || user.email
+    const note = {
+      user_id: user.id,
+      author: me,
+      content: `TICTACTOE_REMATCH|ACCEPT|${proposal.author}|${me}`,
+      date: new Date().toISOString().slice(0,10)
+    }
+    // assign local rematch acceptance
+    setPendingRematch(null)
+    if (rematchTimer.current) { clearTimeout(rematchTimer.current); rematchTimer.current = null }
+    setMessages(prev => [{ author: me, content: `Accepted rematch from ${proposal.author}`, date: note.date }, ...prev])
+    createNote(note).catch(() => {})
+  }
+
+  const declineRematch = (proposal) => {
+    setPendingRematch(null)
+    if (rematchTimer.current) { clearTimeout(rematchTimer.current); rematchTimer.current = null }
+  }
+
   const acceptProposal = (proposal) => {
     if (!user || !proposal) return
     const me = user.user_metadata?.name || user.email
@@ -406,6 +527,26 @@ export default function EnhancedChat({ open, onClose }) {
 
   const declineProposal = (proposal) => {
     setPendingProposal(null)
+  }
+
+  const sendGameMessage = async () => {
+    if (!gameInput.trim() || !user) return
+    const me = user.user_metadata?.name || user.email
+    const content = `TICTACTOE_MSG|${gameInput.trim()}`
+    const note = {
+      user_id: user.id,
+      author: me,
+      content,
+      date: new Date().toISOString().slice(0,10)
+    }
+    // optimistic update to gameMessages
+    setGameMessages(prev => [{ author: note.author, content: gameInput.trim(), date: note.date }, ...prev])
+    setGameInput('')
+    try {
+      await createNote(note)
+    } catch (e) {
+      console.error('sendGameMessage failed', e)
+    }
   }
 
   useEffect(() => {
@@ -447,6 +588,9 @@ export default function EnhancedChat({ open, onClose }) {
         <div className="flex items-center gap-2 text-sm">
           <button onClick={() => setMode('chat')} className={`px-3 py-1 rounded-xl ${mode==='chat' ? 'bg-slate-100' : 'bg-transparent'}`}>Chat</button>
           <button onClick={() => setMode('play')} className={`px-3 py-1 rounded-xl ${mode==='play' ? 'bg-slate-100' : 'bg-transparent'}`}>Play</button>
+          {import.meta.env.DEV && (
+            <button onClick={() => setShowPresenceDebug(s => !s)} className="ml-3 px-2 py-1 text-xs rounded-md bg-gray-100">{showPresenceDebug ? 'Hide' : 'Show'} Presence Debug</button>
+          )}
         </div>
 
         <div className="max-h-72 overflow-y-auto space-y-2 mt-2">
@@ -467,6 +611,55 @@ export default function EnhancedChat({ open, onClose }) {
               <Button onClick={send}>Send</Button>
             </div>
           </>
+        )}
+
+        {showPresenceDebug && import.meta.env.DEV && (
+          <div className="mt-2 p-2 bg-slate-50 border rounded text-xs">
+            <div className="flex items-center justify-between">
+              <div className="font-medium text-sm">Presence Debug</div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const payload = JSON.stringify({ partnerPresence, partnerListeningSession, presenceEvents }, null, 2)
+                      await navigator.clipboard.writeText(payload)
+                    } catch (e) {
+                      console.warn('copy failed', e)
+                    }
+                  }}
+                  className="px-2 py-1 bg-white border rounded text-xs"
+                >Copy JSON</button>
+                <button
+                  onClick={() => { setAllExpanded(s => { const next = !s; setExpandedEvents(() => { const map = {}; if (next && presenceEvents) { presenceEvents.forEach((_, idx) => map[idx]=true) } return map }); return next }) }}
+                  className="px-2 py-1 bg-white border rounded text-xs"
+                >{allExpanded ? 'Collapse All' : 'Expand All'}</button>
+              </div>
+            </div>
+
+            <div className="mt-2 text-xs text-gray-600">Partner Presence</div>
+            <pre className="text-xs bg-white p-2 rounded border overflow-auto">{JSON.stringify(partnerPresence, null, 2)}</pre>
+
+            <div className="mt-2 text-xs text-gray-600">Listening Session</div>
+            <pre className="text-xs bg-white p-2 rounded border overflow-auto">{JSON.stringify(partnerListeningSession, null, 2)}</pre>
+
+            <div className="mt-2 text-xs font-medium">Recent Events</div>
+            <div className="max-h-48 overflow-y-auto text-xs mt-1 space-y-2">
+              {presenceEvents && presenceEvents.length ? presenceEvents.map((e, i) => (
+                <div key={i} className="p-1 bg-white border rounded">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-medium">{e.ts} — {e.type}</div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setExpandedEvents(prev => ({ ...prev, [i]: !prev[i] }))} className="px-2 py-0.5 text-xs bg-gray-100 rounded">{expandedEvents[i] || allExpanded ? 'Hide' : 'Show'}</button>
+                      <button onClick={async () => { try { await navigator.clipboard.writeText(JSON.stringify(e, null, 2)) } catch (err) { console.warn('copy failed', err) } }} className="px-2 py-0.5 text-xs bg-gray-100 rounded">Copy</button>
+                    </div>
+                  </div>
+                  {(expandedEvents[i] || allExpanded) && (
+                    <pre className="mt-1 text-xs bg-gray-50 p-2 rounded border overflow-auto">{JSON.stringify(e, null, 2)}</pre>
+                  )}
+                </div>
+              )) : <div className="text-gray-400">No events yet</div>}
+            </div>
+          </div>
         )}
 
         {mode === 'play' && (
@@ -500,6 +693,7 @@ export default function EnhancedChat({ open, onClose }) {
                     <Button onClick={() => proposeStart('O')}>Propose O</Button>
                     <Button onClick={() => startGame('X')}>Start (X immediate)</Button>
                     <Button onClick={() => startGame('O')}>Start (O immediate)</Button>
+                    <Button onClick={() => proposeRematch()}>Propose Rematch</Button>
                   </>
                 )}
 
@@ -511,6 +705,14 @@ export default function EnhancedChat({ open, onClose }) {
                   </>
                 )}
 
+                {pendingRematch && pendingRematch.author !== (user.user_metadata?.name || user.email) && (
+                  <>
+                    <div className="text-xs text-gray-500">{pendingRematch.author} proposed a rematch</div>
+                    <Button onClick={() => acceptRematch(pendingRematch)}>Accept Rematch</Button>
+                    <Button onClick={() => declineRematch(pendingRematch)}>Decline</Button>
+                  </>
+                )}
+
                 {pendingProposal && pendingProposal.author === (user.user_metadata?.name || user.email) && (
                   <div className="text-xs text-gray-500">Proposal sent: {pendingProposal.side}</div>
                 )}
@@ -519,46 +721,71 @@ export default function EnhancedChat({ open, onClose }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 w-full max-w-xs mx-auto">
-              {board.map((cell, i) => {
-                const disabled = Boolean(cell || winner || mode !== 'play' || (myPlayer && myPlayer !== currentPlayer))
-                const isWin = Array.isArray(winningLine) && winningLine.includes(i)
-                return (
-                  <button
-                    key={i}
-                    onClick={() => handleCellClick(i)}
-                    disabled={disabled}
-                    aria-label={cell ? `${cell} at ${i}` : `empty cell ${i}`}
-                    className={clsx('rounded-lg glass-card flex items-center justify-center text-2xl transition-colors',
-                      'w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28',
-                      disabled ? 'opacity-80 cursor-not-allowed' : 'active:scale-95',
-                      isWin ? 'ring-2 ring-emerald-300 bg-emerald-50' : 'bg-white'
-                    )}
-                  >
-                    <span className="select-none text-xl sm:text-2xl">{cell}</span>
-                  </button>
-                )
-              })}
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                  <div>
+                    <div className="grid grid-cols-3 gap-2 w-full max-w-xs mx-auto">
+                      {board.map((cell, i) => {
+                        const disabled = Boolean(cell || winner || mode !== 'play' || (myPlayer && myPlayer !== currentPlayer))
+                        const isWin = Array.isArray(winningLine) && winningLine.includes(i)
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => handleCellClick(i)}
+                            disabled={disabled}
+                            aria-label={cell ? `${cell} at ${i}` : `empty cell ${i}`}
+                            className={clsx('rounded-lg glass-card flex items-center justify-center text-2xl transition-colors',
+                              'w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28',
+                              disabled ? 'opacity-80 cursor-not-allowed' : 'active:scale-95',
+                              isWin ? 'ring-2 ring-emerald-300 bg-emerald-50' : 'bg-white'
+                            )}
+                          >
+                            <span className="select-none text-xl sm:text-2xl">{cell}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
 
-            <div className="text-sm text-gray-600">
-              {winner ? (winner === 'draw' ? 'Draw! Nice one.' : `Winner: ${winner}`) : 'No winner yet'}
-            </div>
-            {turnMessage && <div className="text-sm text-red-500">{turnMessage}</div>}
+                    <div className="text-sm text-gray-600 mt-2">
+                      {winner ? (winner === 'draw' ? 'Draw! Nice one.' : `Winner: ${winner}`) : 'No winner yet'}
+                    </div>
+                    {turnMessage && <div className="text-sm text-red-500">{turnMessage}</div>}
 
-            <div className="mt-2">
-              <div className="text-xs text-gray-500 mb-1">Move history</div>
-              <div className="max-h-40 overflow-y-auto space-y-1 text-sm">
-                {moveHistory.length === 0 && <div className="text-gray-400">No moves yet</div>}
-                {moveHistory.map((m, i) => (
-                  <div key={i} className="flex items-center justify-between glass-card p-2">
-                    <div className="text-xs text-gray-600">{m.author}</div>
-                    <div className="text-xs text-gray-700">{m.player} @ {m.idx}</div>
-                    <div className="text-xs text-gray-400">{m.date}</div>
+                    <div className="mt-2">
+                      <div className="text-xs text-gray-500 mb-1">Move history</div>
+                      <div className="max-h-40 overflow-y-auto space-y-1 text-sm">
+                        {moveHistory.length === 0 && <div className="text-gray-400">No moves yet</div>}
+                        {moveHistory.map((m, i) => (
+                          <div key={i} className="flex items-center justify-between glass-card p-2">
+                            <div className="text-xs text-gray-600">{m.author}</div>
+                            <div className="text-xs text-gray-700">{m.player} @ {m.idx}</div>
+                            <div className="text-xs text-gray-400">{m.date}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
+
+                  <div className="space-y-2">
+                    <div className="text-sm text-gray-600">Game Chat</div>
+                    <div className="max-h-64 overflow-y-auto space-y-2">
+                      {gameMessages.length === 0 && <div className="text-gray-400">No game messages yet</div>}
+                      {gameMessages.map((m, i) => (
+                        <div key={i} className="glass-card p-2">
+                          <div className="flex items-center justify-between">
+                            <div className="text-xs text-gray-500">{m.author}</div>
+                            <div className="text-xs text-gray-400">{m.date ? timeAgo(m.date) : ''}</div>
+                          </div>
+                          <div className="mt-1 text-sm text-gray-800">{m.content}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input value={gameInput} onChange={(e) => setGameInput(e.target.value)} placeholder="Say something about the move…" className="flex-1 px-3 py-2 rounded-xl border" onKeyDown={(e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendGameMessage(); } }} />
+                      <Button onClick={sendGameMessage}>Send</Button>
+                    </div>
+                  </div>
+                </div>
           </div>
         )}
       </div>
