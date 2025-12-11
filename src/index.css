@@ -240,3 +240,36 @@ h3 { font-size: 1rem; }
   .game-board { grid-template-columns: repeat(3, 52px); gap:8px }
   .game-cell { width:52px; height:52px; font-size:20px }
 }
+
+/* Responsive tic-tac-toe board used in the Play tab */
+.ttt-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+.ttt-cell {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  transition: transform var(--motion-short) ease, box-shadow var(--motion-short) ease;
+  background: linear-gradient(180deg,#fff,#fbfdff);
+  border: 1px solid #edf2f7;
+  cursor: pointer;
+}
+.ttt-cell:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(16,24,40,0.06) }
+.ttt-cell.disabled { opacity:0.85; cursor:not-allowed; transform:none; box-shadow:none }
+.ttt-cell.x { color: #b91c1c }
+.ttt-cell.o { color: #1e40af }
+.ttt-cell.winner { box-shadow: 0 14px 40px rgba(250,180,60,0.12); transform: scale(1.04) }
+
+@media (min-width: 768px) {
+  .ttt-board { max-width: 560px; gap:14px }
+  .ttt-cell { font-size: 2rem; border-radius:14px }
+}

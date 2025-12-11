@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
+import { Link } from 'react-router-dom'
 import Dialog from '../../components/ui/dialog.jsx'
 import Button from '../../components/ui/button.jsx'
 import { useAuth } from '../../contexts/AuthContext'
@@ -607,24 +608,25 @@ export default function EnhancedChat({ open, onClose }) {
           )}
         </div>
 
-        <div className="max-h-72 overflow-y-auto mt-2 chat-scroll">
-          {messages.map((m, i) => (
-            <div key={i} className="chat-row">
-              <div className="chat-avatar" aria-hidden style={{background: avatarGradientFor(m.author)}}>{(m.author||'U').slice(0,1).toUpperCase()}</div>
-              <div className="chat-bubble">
-                <div className="chat-message glass-card p-2">
-                  <div className="meta flex items-center justify-between">
-                    <div className="text-xs text-gray-600 font-medium">{m.author}</div>
-                    <div className="text-xs text-gray-400">{m.date ? timeAgo(m.date) : ''}</div>
-                  </div>
-                  <div className="content text-sm mt-1">{m.content}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
         {mode === 'chat' && (
           <>
+            <div className="max-h-72 overflow-y-auto mt-2 chat-scroll">
+              {messages.map((m, i) => (
+                <div key={i} className="chat-row">
+                  <div className="chat-avatar" aria-hidden style={{background: avatarGradientFor(m.author)}}>{(m.author||'U').slice(0,1).toUpperCase()}</div>
+                  <div className="chat-bubble">
+                    <div className="chat-message glass-card p-2">
+                      <div className="meta flex items-center justify-between">
+                        <div className="text-xs text-gray-600 font-medium">{m.author}</div>
+                        <div className="text-xs text-gray-400">{m.date ? timeAgo(m.date) : ''}</div>
+                      </div>
+                      <div className="content text-sm mt-1">{m.content}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="flex gap-2">
               <textarea value={input} onChange={onInputChange} placeholder="Send a love note…" className="flex-1 px-3 py-3 rounded-xl border resize-none" rows={2} onKeyDown={(e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); } }} />
               <Button onClick={send} className="expensive-btn">Send</Button>
@@ -682,129 +684,18 @@ export default function EnhancedChat({ open, onClose }) {
         )}
 
         {mode === 'play' && (
-          <div className="space-y-3">
+          <div className="space-y-3 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-gray-600">Tic‑Tac‑Toe — current: {currentPlayer}</div>
-                <div className="text-xs text-gray-500">
-                  {myPlayer ? `You are ${myPlayer}` : 'You are spectating — play to claim a side.'}
-                </div>
+                <div className="text-sm text-gray-600">Tic‑Tac‑Toe</div>
+                <div className="text-xs text-gray-500">Open the full game view to play in a dedicated page.</div>
               </div>
-              <div className="text-sm">
-                <span className={`px-2 py-1 rounded-md ${currentPlayer === myPlayer ? 'bg-slate-200' : 'bg-transparent'} text-sm`}>Active: {currentPlayer}</span>
-              </div>
-              <div className="flex gap-2 items-center">
-                <Button onClick={() => {
-                  if (!user) return
-                  const note = {
-                    user_id: user.id,
-                    author: user.user_metadata?.name || user.email,
-                    content: 'Game invite: Tic-Tac-Toe — want to play?',
-                    date: new Date().toISOString().slice(0,10)
-                  }
-                  setMessages(prev => [{ author: note.author, content: note.content, date: note.date }, ...prev])
-                  createNote(note).catch(() => {})
-                }}>Invite partner</Button>
-
-                {!pendingProposal && (
-                  <>
-                    <Button onClick={() => proposeStart('X')}>Propose X</Button>
-                    <Button onClick={() => proposeStart('O')}>Propose O</Button>
-                    <Button onClick={() => startGame('X')}>Start (X immediate)</Button>
-                    <Button onClick={() => startGame('O')}>Start (O immediate)</Button>
-                    <Button onClick={() => proposeRematch()}>Propose Rematch</Button>
-                  </>
-                )}
-
-                {pendingProposal && pendingProposal.author !== (user.user_metadata?.name || user.email) && (
-                  <>
-                    <div className="text-xs text-gray-500">{pendingProposal.author} proposed {pendingProposal.side}</div>
-                    <Button onClick={() => acceptProposal(pendingProposal)}>Accept</Button>
-                    <Button onClick={() => declineProposal(pendingProposal)}>Decline</Button>
-                  </>
-                )}
-
-                {pendingRematch && pendingRematch.author !== (user.user_metadata?.name || user.email) && (
-                  <>
-                    <div className="text-xs text-gray-500">{pendingRematch.author} proposed a rematch</div>
-                    <Button onClick={() => acceptRematch(pendingRematch)}>Accept Rematch</Button>
-                    <Button onClick={() => declineRematch(pendingRematch)}>Decline</Button>
-                  </>
-                )}
-
-                {pendingProposal && pendingProposal.author === (user.user_metadata?.name || user.email) && (
-                  <div className="text-xs text-gray-500">Proposal sent: {pendingProposal.side}</div>
-                )}
-
-                <Button onClick={resetGame}>Reset</Button>
+              <div>
+                <Link to="/play" className="no-underline">
+                  <Button>Open Play Page</Button>
+                </Link>
               </div>
             </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                  <div>
-                    <div className="grid grid-cols-3 gap-2 w-full max-w-xs mx-auto">
-                      {board.map((cell, i) => {
-                        const disabled = Boolean(cell || winner || mode !== 'play' || (myPlayer && myPlayer !== currentPlayer))
-                        const isWin = Array.isArray(winningLine) && winningLine.includes(i)
-                        return (
-                          <button
-                            key={i}
-                            onClick={() => handleCellClick(i)}
-                            disabled={disabled}
-                            aria-label={cell ? `${cell} at ${i}` : `empty cell ${i}`}
-                            className={clsx('rounded-lg glass-card flex items-center justify-center text-2xl transition-colors',
-                              'w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28',
-                              disabled ? 'opacity-80 cursor-not-allowed' : 'active:scale-95',
-                              isWin ? 'ring-2 ring-emerald-300 bg-emerald-50' : 'bg-white'
-                            )}
-                          >
-                            <span className="select-none text-xl sm:text-2xl">{cell}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-
-                    <div className="text-sm text-gray-600 mt-2">
-                      {winner ? (winner === 'draw' ? 'Draw! Nice one.' : `Winner: ${winner}`) : 'No winner yet'}
-                    </div>
-                    {turnMessage && <div className="text-sm text-red-500">{turnMessage}</div>}
-
-                    <div className="mt-2">
-                      <div className="text-xs text-gray-500 mb-1">Move history</div>
-                      <div className="max-h-40 overflow-y-auto space-y-1 text-sm">
-                        {moveHistory.length === 0 && <div className="text-gray-400">No moves yet</div>}
-                        {moveHistory.map((m, i) => (
-                          <div key={i} className="flex items-center justify-between glass-card p-2">
-                            <div className="text-xs text-gray-600">{m.author}</div>
-                            <div className="text-xs text-gray-700">{m.player} @ {m.idx}</div>
-                            <div className="text-xs text-gray-400">{m.date}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="text-sm text-gray-600">Game Chat</div>
-                    <div className="max-h-64 overflow-y-auto space-y-2">
-                      {gameMessages.length === 0 && <div className="text-gray-400">No game messages yet</div>}
-                      {gameMessages.map((m, i) => (
-                        <div key={i} className="glass-card p-2">
-                          <div className="flex items-center justify-between">
-                            <div className="text-xs text-gray-500">{m.author}</div>
-                            <div className="text-xs text-gray-400">{m.date ? timeAgo(m.date) : ''}</div>
-                          </div>
-                          <div className="mt-1 text-sm text-gray-800">{m.content}</div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-2">
-                      <input value={gameInput} onChange={(e) => setGameInput(e.target.value)} placeholder="Say something about the move…" className="flex-1 px-3 py-2 rounded-xl border" onKeyDown={(e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendGameMessage(); } }} />
-                      <Button onClick={sendGameMessage}>Send</Button>
-                    </div>
-                  </div>
-                </div>
           </div>
         )}
       </div>

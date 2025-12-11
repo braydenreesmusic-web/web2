@@ -8,6 +8,7 @@ const Media = lazy(() => import('./pages/media.jsx'))
 const MapPage = lazy(() => import('./pages/map.jsx'))
 const Profile = lazy(() => import('./pages/profile.jsx'))
 const Bookmarks = lazy(() => import('./pages/bookmarks.jsx'))
+const Play = lazy(() => import('./pages/play.jsx'))
 
 export const router = createBrowserRouter([
   { path: '/', element: <PageTransition><Dashboard /></PageTransition> },
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
   { path: '/map', element: <PageTransition><MapPage /></PageTransition> },
   { path: '/profile', element: <PageTransition><Profile /></PageTransition> },
   { path: '/bookmarks', element: <PageTransition><Bookmarks /></PageTransition> },
+  { path: '/play', element: <PageTransition><Play /></PageTransition> },
 ])
 
 export default function AppRoutes() {
