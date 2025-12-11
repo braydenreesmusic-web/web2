@@ -78,10 +78,10 @@ export default function TicTacToe() {
           const player = parts[2]
           if (Number.isFinite(idx) && idx >= 0 && idx < 9) {
             replayBoard[idx] = player
-            if (!replayPlayers[player]) replayPlayers[player] = note.author
+            if (!replayPlayers[player]) replayPlayers[player] = note.user_id
             replayWinner = checkWinner(replayBoard)
             replayCurrent = player === 'X' ? 'O' : 'X'
-            replayHistory.push({ idx, player, author: note.author, date: note.date })
+            replayHistory.push({ idx, player, author: note.author, user_id: note.user_id, date: note.date })
             return true
           }
           return false
@@ -93,8 +93,8 @@ export default function TicTacToe() {
             const parts = content.split('|')
             if (parts.length >= 3) {
               const side = parts[1]
-              const author = parts[2]
-              replayPlayers.__proposal = { side, author, date: n.date }
+              const authorName = parts[2]
+              replayPlayers.__proposal = { side, author: authorName, author_id: n.user_id, date: n.date }
               continue
             }
           }
@@ -103,8 +103,8 @@ export default function TicTacToe() {
             if (parts.length >= 3) {
               const action = parts[1]
               if (action === 'PROPOSE') {
-                const author = parts[2]
-                replayPlayers.__rematch = { author, date: n.date }
+                const authorName = parts[2]
+                replayPlayers.__rematch = { author: authorName, author_id: n.user_id, date: n.date }
                 continue
               }
               if (action === 'ACCEPT') {
@@ -121,8 +121,8 @@ export default function TicTacToe() {
               const proposer = parts[2]
               const accepter = parts[3]
               const other = side === 'X' ? 'O' : 'X'
-              replayPlayers[side] = proposer
-              replayPlayers[other] = accepter
+              replayPlayers[side] = n.user_id
+              replayPlayers[other] = replayPlayers[other] || null
               continue
             }
           }
@@ -130,8 +130,8 @@ export default function TicTacToe() {
             const parts = content.split('|')
             if (parts.length >= 3) {
               const side = parts[1]
-              const author = parts[2]
-              replayPlayers[side] = replayPlayers[side] || author
+              // record start author by user id when available
+              replayPlayers[side] = replayPlayers[side] || n.user_id
               continue
             }
           }
@@ -183,10 +183,9 @@ export default function TicTacToe() {
             const side = parts[1]
             const author = parts[2]
             const other = side === 'X' ? 'O' : 'X'
-            setPlayersMap(prev => ({ ...prev, [side]: author, [other]: prev[other] || null }))
+            setPlayersMap(prev => ({ ...prev, [side]: n.user_id, [other]: prev[other] || null }))
             resetGame()
-            const me = user.user_metadata?.name || user.email
-            if (author === me) setMyPlayer(side)
+            if (n.user_id === user.id) setMyPlayer(side)
           }
           return
         }
@@ -195,7 +194,7 @@ export default function TicTacToe() {
           if (parts.length >= 3) {
             const side = parts[1]
             const author = parts[2]
-            setPendingProposal({ side, author, date: n.date })
+            setPendingProposal({ side, author, author_id: n.user_id, date: n.date })
           }
           return
         }
@@ -205,7 +204,7 @@ export default function TicTacToe() {
             const action = parts[1]
             if (action === 'PROPOSE') {
               const author = parts[2]
-              setPendingRematch({ author, date: n.date })
+              setPendingRematch({ author, author_id: n.user_id, date: n.date })
             }
             if (action === 'ACCEPT') {
               const proposer = parts[2]
@@ -219,8 +218,7 @@ export default function TicTacToe() {
                 try {
                   if (prev && prev.X && prev.O) {
                     const next = { X: prev.O, O: prev.X }
-                    const me = user.user_metadata?.name || user.email
-                    const found = Object.keys(next).find(p => next[p] === me)
+                    const found = Object.keys(next).find(p => next[p] === user.id)
                     if (found) setMyPlayer(found)
                     return next
                   }
@@ -238,11 +236,10 @@ export default function TicTacToe() {
             const proposer = parts[2]
             const accepter = parts[3]
             const other = side === 'X' ? 'O' : 'X'
-            setPlayersMap(prev => ({ ...prev, [side]: proposer, [other]: accepter }))
+            setPlayersMap(prev => ({ ...prev, [side]: prev[side] || null, [other]: n.user_id }))
             setPendingProposal(null)
-            const me = user.user_metadata?.name || user.email
-            if (proposer === me) setMyPlayer(side)
-            if (accepter === me) setMyPlayer(other)
+            if (n.user_id === user.id) setMyPlayer(other)
+            if (proposer === (user.user_metadata?.name || user.email)) setMyPlayer(side)
           }
           return
         }
@@ -262,9 +259,8 @@ export default function TicTacToe() {
             })
             setPlayersMap(prev => {
               const next = { ...prev }
-              if (!next[player]) next[player] = n.author
-              const me = user.user_metadata?.name || user.email
-              if (n.author === me) { try { setMyPlayer(player) } catch (e) {} }
+              if (!next[player]) next[player] = n.user_id
+              if (n.user_id === user.id) { try { setMyPlayer(player) } catch (e) {} }
               return next
             })
             setMoveHistory(prev => [{ idx, player, author: n.author, date: n.date }, ...prev])
@@ -311,36 +307,36 @@ export default function TicTacToe() {
     setCurrentPlayer(nextPlayer)
 
     const moveContent = `TICTACTOE_MOVE|${idx}|${board[idx] || currentPlayer}`
-    const note = { user_id: user.id, author: user.user_metadata?.name || user.email, content: moveContent, date: new Date().toISOString().slice(0,10) }
+    const note = { user_id: user.id, author: user.user_metadata?.name || user.email, content: moveContent, date: new Date().toISOString() }
     createNote(note).catch(() => {})
   }
 
   const proposeStart = (side) => {
     if (!user) return
     const me = user.user_metadata?.name || user.email
-    const note = { user_id: user.id, author: me, content: `TICTACTOE_PROPOSE|${side}|${me}`, date: new Date().toISOString().slice(0,10) }
-    setPendingProposal({ side, author: me, date: note.date })
+    const note = { user_id: user.id, author: me, content: `TICTACTOE_PROPOSE|${side}|${me}`, date: new Date().toISOString() }
+    setPendingProposal({ side, author: me, author_id: user.id, date: note.date })
     createNote(note).catch(() => {})
   }
 
   const startGame = (side) => {
     if (!user) return
     const me = user.user_metadata?.name || user.email
-    setPlayersMap(prev => ({ ...prev, [side]: me }))
+    setPlayersMap(prev => ({ ...prev, [side]: user.id }))
     setMyPlayer(side)
     setBoard(emptyBoard)
     setCurrentPlayer('X')
     setWinner(null)
     setMoveHistory([])
-    const note = { user_id: user.id, author: me, content: `TICTACTOE_START|${side}|${me}`, date: new Date().toISOString().slice(0,10) }
+    const note = { user_id: user.id, author: me, content: `TICTACTOE_START|${side}|${me}`, date: new Date().toISOString() }
     createNote(note).catch(() => {})
   }
 
   const proposeRematch = () => {
     if (!user) return
     const me = user.user_metadata?.name || user.email
-    const note = { user_id: user.id, author: me, content: `TICTACTOE_REMATCH|PROPOSE|${me}`, date: new Date().toISOString().slice(0,10) }
-    setPendingRematch({ author: me, date: note.date })
+    const note = { user_id: user.id, author: me, content: `TICTACTOE_REMATCH|PROPOSE|${me}`, date: new Date().toISOString() }
+    setPendingRematch({ author: me, author_id: user.id, date: note.date })
     if (rematchTimer.current) clearTimeout(rematchTimer.current)
     rematchTimer.current = setTimeout(() => { setPendingRematch(null) }, REMATCH_TIMEOUT_MS)
     createNote(note).catch(() => {})
@@ -349,7 +345,7 @@ export default function TicTacToe() {
   const acceptRematch = (proposal) => {
     if (!user || !proposal) return
     const me = user.user_metadata?.name || user.email
-    const note = { user_id: user.id, author: me, content: `TICTACTOE_REMATCH|ACCEPT|${proposal.author}|${me}`, date: new Date().toISOString().slice(0,10) }
+    const note = { user_id: user.id, author: me, content: `TICTACTOE_REMATCH|ACCEPT|${proposal.author}|${me}`, date: new Date().toISOString() }
     setPendingRematch(null)
     if (rematchTimer.current) { clearTimeout(rematchTimer.current); rematchTimer.current = null }
     createNote(note).catch(() => {})
@@ -359,9 +355,9 @@ export default function TicTacToe() {
     if (!user || !proposal) return
     const me = user.user_metadata?.name || user.email
     const side = proposal.side
-    const note = { user_id: user.id, author: me, content: `TICTACTOE_ACCEPT|${side}|${proposal.author}|${me}`, date: new Date().toISOString().slice(0,10) }
+    const note = { user_id: user.id, author: me, content: `TICTACTOE_ACCEPT|${side}|${proposal.author}|${me}`, date: new Date().toISOString() }
     const other = side === 'X' ? 'O' : 'X'
-    setPlayersMap(prev => ({ ...prev, [side]: proposal.author, [other]: me }))
+    setPlayersMap(prev => ({ ...prev, [side]: proposal.author_id || proposal.author || null, [other]: user.id }))
     setMyPlayer(other)
     setPendingProposal(null)
     createNote(note).catch(() => {})
@@ -371,7 +367,7 @@ export default function TicTacToe() {
     if (!gameInput.trim() || !user) return
     const me = user.user_metadata?.name || user.email
     const content = `TICTACTOE_MSG|${gameInput.trim()}`
-    const note = { user_id: user.id, author: me, content, date: new Date().toISOString().slice(0,10) }
+    const note = { user_id: user.id, author: me, content, date: new Date().toISOString() }
     setGameMessages(prev => [{ author: note.author, content: gameInput.trim(), date: note.date }, ...prev])
     setGameInput('')
     try { await createNote(note) } catch (e) { console.error('sendGameMessage failed', e) }
