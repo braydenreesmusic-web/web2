@@ -310,6 +310,49 @@ export const getGameNotes = async (userId) => {
   return data
 }
 
+// ============== Game Events (separate from notes) ==============
+
+// Use a dedicated `game_events` table to keep game messages/invites out of the
+// main `notes` feed. This keeps Love Notes purely conversational while the
+// real-time game flow uses a compact, separate table.
+export const getGameEvents = async (userId) => {
+  const { data, error } = await supabase
+    .from('game_events')
+    .select('*')
+    .order('date', { ascending: true })
+
+  if (error) throw error
+  return data
+}
+
+export const createGameEvent = async (eventData) => {
+  const { data, error } = await supabase
+    .from('game_events')
+    .insert([eventData])
+    .select()
+    .single()
+
+  if (error) throw error
+  // lightweight notify; separate title so users can tune notifications later
+  triggerNotification({ title: 'Game update', body: `${eventData.author || 'Someone'} sent a game event`, user_id: eventData.user_id })
+  return data
+}
+
+export const subscribeToGameEvents = (userId, callback) => {
+  const ch = supabase.channel('game_events')
+  ch.on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'game_events'
+    },
+    callback
+  )
+
+  return ch.subscribe()
+}
+
 export const createNote = async (noteData) => {
   const { data, error } = await supabase
     .from('notes')

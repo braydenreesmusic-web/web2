@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import Dialog from '../../components/ui/dialog.jsx'
 import Button from '../../components/ui/button.jsx'
 import { useAuth } from '../../contexts/AuthContext'
-import { getNotes, createNote, subscribeToNotes, getCheckIns } from '../../services/api'
+import { getNotes, createNote, subscribeToNotes, getCheckIns, createGameEvent } from '../../services/api'
 import { usePresence } from '../../hooks/usePresence'
 import { timeAgo } from '../../lib/time'
 
@@ -107,64 +107,13 @@ export default function EnhancedChat({ open, onClose }) {
 
         for (const n of notes) {
           const content = n.content || ''
-          if (content.startsWith('TICTACTOE_PROPOSE|')) {
-            const parts = content.split('|')
-            if (parts.length >= 3) {
-              const side = parts[1]
-              const authorName = parts[2]
-              // keep the most recent proposal; store author id + name
-              replayPlayers.__proposal = { side, author: authorName, author_id: n.user_id, date: n.date }
-              continue
-            }
-          }
-          if (content.startsWith('TICTACTOE_REMATCH|')) {
-            const parts = content.split('|')
-            if (parts.length >= 3) {
-              const action = parts[1]
-              if (action === 'PROPOSE') {
-                const authorName = parts[2]
-                replayPlayers.__rematch = { author: authorName, author_id: n.user_id, date: n.date }
-                continue
-              }
-              if (action === 'ACCEPT') {
-                const proposer = parts[2]
-                const accepter = parts[3]
-                // rematch accepted in history; we'll show a message
-                msgs.push({ author: n.author, content: `${accepter} accepted rematch from ${proposer}`, date: n.date })
-                continue
-              }
-            }
-          }
-          if (content.startsWith('TICTACTOE_ACCEPT|')) {
-            const parts = content.split('|')
-            if (parts.length >= 4) {
-                const side = parts[1]
-                const proposer = parts[2]
-                const accepter = parts[3]
-                const other = side === 'X' ? 'O' : 'X'
-                // prefer storing user IDs for determinism — the note's user_id is the author id
-                replayPlayers[side] = n.user_id
-                replayPlayers[other] = replayPlayers[other] || null
-                continue
-              }
-          }
-          if (content.startsWith('TICTACTOE_START|')) {
-            const parts = content.split('|')
-            if (parts.length >= 3) {
-              const side = parts[1]
-              // store start author as user id
-              replayPlayers[side] = replayPlayers[side] || n.user_id
-              continue
-            }
-          }
-          if (!applyMoveNote(n)) {
-            const content = n.content || ''
-            if (content.startsWith('TICTACTOE_MSG|')) {
-              gmsgs.push({ author: n.author, content: content.replace(/^TICTACTOE_MSG\|/, ''), date: n.date })
-              continue
-            }
-            msgs.push({ author: n.author, content: n.content, date: n.date })
-          }
+          // Ignore any game-related events stored in `notes` — game events are now
+          // stored in the dedicated `game_events` table so the chat remains purely
+          // conversational.
+          if (content.startsWith('TICTACTOE_')) continue
+
+          // Non-game note: add to chat history
+          msgs.push({ author: n.author, content: n.content, date: n.date })
         }
 
         setMessages(msgs)
@@ -194,145 +143,24 @@ export default function EnhancedChat({ open, onClose }) {
       if (payload.eventType === 'INSERT') {
         const n = payload.new
         if (!n) return
-        // Only process notes that are relevant: authored by me, by partner, or game events (TICTACTOE_*)
+        const content = n.content || ''
+        // Ignore all game events in the main notes subscription — those belong to
+        // the `game_events` table now. Only surface regular notes here.
+        if (content.startsWith('TICTACTOE_')) return
+
+        // Only show messages authored by me or the partner
         const mine = n.user_id === user.id
         const partnerRow = partnerUserId && n.user_id === partnerUserId
-        const isGameEvent = (n.content || '').startsWith('TICTACTOE_')
-        if (!mine && !partnerRow && !isGameEvent) return
-        // parse tic-tac-toe messages specially
-        const content = n.content || ''
-        // game chat messages
-        if (content.startsWith('TICTACTOE_MSG|')) {
-          const body = content.replace(/^TICTACTOE_MSG\|/, '')
-          setGameMessages(prev => [{ author: n.author, content: body, date: n.date }, ...prev])
-          // also show a small system message in the main chat stream if desired
-          return
-        }
-        // START
-        if (content.startsWith('TICTACTOE_START|')) {
-          const parts = content.split('|')
-          if (parts.length >= 3) {
-            const side = parts[1]
-            const author = parts[2]
-            const other = side === 'X' ? 'O' : 'X'
-            // store player mapping by user id for determinism
-            setPlayersMap(prev => ({ ...prev, [side]: n.user_id, [other]: prev[other] || null }))
-            resetGame()
-            // if I started, claim the side locally
-            if (n.user_id === user.id) setMyPlayer(side)
-            setMessages(prev => [{ author: n.author, content: `${author} started as ${side}`, date: n.date }, ...prev])
-          }
-          return
-        }
+        if (!mine && !partnerRow) return
 
-        // PROPOSE
-        if (content.startsWith('TICTACTOE_PROPOSE|')) {
-          const parts = content.split('|')
-          if (parts.length >= 3) {
-            const side = parts[1]
-            const authorName = parts[2]
-            setPendingProposal({ side, author: authorName, author_id: n.user_id, date: n.date })
-            setMessages(prev => [{ author: n.author, content: `Proposed: ${authorName} as ${side}`, date: n.date }, ...prev])
-          }
-          return
-        }
-        // REMATCH
-        if (content.startsWith('TICTACTOE_REMATCH|')) {
-          const parts = content.split('|')
-          if (parts.length >= 3) {
-            const action = parts[1]
-            if (action === 'PROPOSE') {
-              const authorName = parts[2]
-              setPendingRematch({ author: authorName, author_id: n.user_id, date: n.date })
-              setMessages(prev => [{ author: n.author, content: `${authorName} proposed a rematch`, date: n.date }, ...prev])
-            }
-            if (action === 'ACCEPT') {
-              const proposer = parts[2]
-              const accepter = parts[3]
-              // perform rematch locally: reset board and swap players if assigned
-              setPendingRematch(null)
-              setBoard(emptyBoard)
-              setMoveHistory([])
-              setWinner(null)
-              setWinningLine(null)
-              // swap players if both are known and update myPlayer accordingly
-              setPlayersMap(prev => {
-                try {
-                  if (prev && prev.X && prev.O) {
-                    const next = { X: prev.O, O: prev.X }
-                    const found = Object.keys(next).find(p => next[p] === user.id)
-                    if (found) setMyPlayer(found)
-                    return next
-                  }
-                } catch (e) {}
-                return prev
-              })
-              setMessages(prev => [{ author: n.author, content: `${accepter} accepted rematch from ${proposer}`, date: n.date }, ...prev])
-            }
-          }
-          return
-        }
-        // ACCEPT
-        if (content.startsWith('TICTACTOE_ACCEPT|')) {
-          const parts = content.split('|')
-          if (parts.length >= 4) {
-            const side = parts[1]
-            const proposer = parts[2]
-            const accepter = parts[3]
-            const other = side === 'X' ? 'O' : 'X'
-            // set accepter as the user who posted this note (accepter)
-            setPlayersMap(prev => ({ ...prev, [side]: prev[side] || null, [other]: n.user_id }))
-            setPendingProposal(null)
-            setMessages(prev => [{ author: n.author, content: `${accepter} accepted ${proposer}'s proposal for ${side}`, date: n.date }, ...prev])
-            // assign myPlayer if I'm one of the participants
-            if (n.user_id === user.id) setMyPlayer(other)
-            if (proposer === (user.user_metadata?.name || user.email)) setMyPlayer(side)
-          }
-          return
-        }
-        if (content.startsWith('TICTACTOE_MOVE|')) {
-          const parts = content.split('|')
-          const idx = parseInt(parts[1], 10)
-          const player = parts[2]
-          if (Number.isFinite(idx) && idx >= 0 && idx < 9) {
-            setBoard(prev => {
-              const nb = prev.slice()
-              // ignore if already occupied
-              if (nb[idx]) return prev
-              nb[idx] = player
-              const w = checkWinner(nb)
-              if (w) setWinner(w)
-              setCurrentPlayer(player === 'X' ? 'O' : 'X')
-              return nb
-            })
-            // map player to user_id and set myPlayer if this move was by me
-            setPlayersMap(prev => {
-              const next = { ...prev }
-              if (!next[player]) next[player] = n.user_id
-              // If the author of the move is me (by id), ensure myPlayer is set to that side
-              if (n.user_id === user.id) {
-                try { setMyPlayer(player) } catch (e) {}
-              }
-              return next
-            })
-            setMoveHistory(prev => [{ idx, player, author: n.author, date: n.date }, ...prev])
-            setMessages(prev => [{ author: n.author, content: `Played ${player} at ${idx}`, date: n.date }, ...prev])
-          }
-        } else if (content.startsWith('TICTACTOE_RESET')) {
-          resetGame()
-          setMessages(prev => [{ author: n.author, content: 'Reset the game', date: n.date }, ...prev])
-        } else {
-          setMessages(prev => [{ author: n.author, content: n.content, date: n.date }, ...prev])
-        }
+        setMessages(prev => [{ author: n.author, content: n.content, date: n.date }, ...prev])
         // show a browser notification for partner messages / game events (best-effort)
         try {
           const me = user.user_metadata?.name || user.email
           if (Notification && Notification.permission === 'granted') {
             const from = n.author || 'Partner'
             if (from !== me) {
-              const title = content && content.startsWith('TICTACTOE_') ? 'Game update' : `${from}`
-              const body = content.startsWith('TICTACTOE_MSG|') ? content.replace(/^TICTACTOE_MSG\|/, '') : (content.replace(/^TICTACTOE_.*\|?/, '') || 'New note')
-              new Notification(title, { body })
+              new Notification(from, { body: n.content || 'New note' })
             }
           }
         } catch (e) {
@@ -439,8 +267,8 @@ export default function EnhancedChat({ open, onClose }) {
       content: moveContent,
       date: new Date().toISOString()
     }
-    // post move (fire-and-forget)
-    createNote(note).catch(() => {})
+    // post move (fire-and-forget) into the dedicated game_events table
+    createGameEvent(note).catch(() => {})
   }
 
   const startGame = (side) => {
@@ -460,7 +288,7 @@ export default function EnhancedChat({ open, onClose }) {
       date: new Date().toISOString()
     }
     setMessages(prev => [{ author: note.author, content: `Started game as ${side}`, date: note.date }, ...prev])
-    createNote(note).catch(() => {})
+    createGameEvent(note).catch(() => {})
   }
 
   const proposeStart = (side) => {
@@ -474,7 +302,7 @@ export default function EnhancedChat({ open, onClose }) {
     }
     setPendingProposal({ side, author: me, date: note.date })
     setMessages(prev => [{ author: note.author, content: `Proposed: ${me} as ${side}`, date: note.date }, ...prev])
-    createNote(note).catch(() => {})
+    createGameEvent(note).catch(() => {})
   }
 
   const proposeRematch = () => {
@@ -494,7 +322,7 @@ export default function EnhancedChat({ open, onClose }) {
       setMessages(prev => [{ author: 'System', content: `Rematch proposal from ${me} expired`, date: new Date().toISOString() }, ...prev])
     }, REMATCH_TIMEOUT_MS)
     setMessages(prev => [{ author: me, content: 'Proposed a rematch', date: note.date }, ...prev])
-    createNote(note).catch(() => {})
+    createGameEvent(note).catch(() => {})
   }
 
   const acceptRematch = (proposal) => {
@@ -510,7 +338,7 @@ export default function EnhancedChat({ open, onClose }) {
     setPendingRematch(null)
     if (rematchTimer.current) { clearTimeout(rematchTimer.current); rematchTimer.current = null }
     setMessages(prev => [{ author: me, content: `Accepted rematch from ${proposal.author}`, date: note.date }, ...prev])
-    createNote(note).catch(() => {})
+    createGameEvent(note).catch(() => {})
   }
 
   const declineRematch = (proposal) => {
@@ -534,7 +362,7 @@ export default function EnhancedChat({ open, onClose }) {
     setMyPlayer(other)
     setPendingProposal(null)
     setMessages(prev => [{ author: note.author, content: `${me} accepted ${proposal.author}'s proposal for ${side}`, date: note.date }, ...prev])
-    createNote(note).catch(() => {})
+    createGameEvent(note).catch(() => {})
   }
 
   const declineProposal = (proposal) => {
@@ -555,7 +383,7 @@ export default function EnhancedChat({ open, onClose }) {
     setGameMessages(prev => [{ author: note.author, content: gameInput.trim(), date: note.date }, ...prev])
     setGameInput('')
     try {
-      await createNote(note)
+      await createGameEvent(note)
     } catch (e) {
       console.error('sendGameMessage failed', e)
     }

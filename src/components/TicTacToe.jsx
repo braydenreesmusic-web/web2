@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import Button from './ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
-import { getNotes, createNote, subscribeToNotes, getCheckIns } from '../services/api'
+import { getGameEvents, createGameEvent, subscribeToGameEvents } from '../services/api'
 import { usePresence } from '../hooks/usePresence'
 import { timeAgo } from '../lib/time'
+import { replayGameEvents, checkWinner, findWinningLine } from '../services/game'
 
 export default function TicTacToe() {
   const { user } = useAuth()
@@ -27,143 +28,36 @@ export default function TicTacToe() {
   const rematchTimer = useRef(null)
   const REMATCH_TIMEOUT_MS = 2 * 60 * 1000
 
-  const checkWinner = (b) => {
-    const lines = [
-      [0,1,2],[3,4,5],[6,7,8],
-      [0,3,6],[1,4,7],[2,5,8],
-      [0,4,8],[2,4,6]
-    ]
-    for (const [a,b1,c] of lines) {
-      if (b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a]
-    }
-    if (b.every(Boolean)) return 'draw'
-    return null
-  }
-
-  const findWinningLine = (b) => {
-    const lines = [
-      [0,1,2],[3,4,5],[6,7,8],
-      [0,3,6],[1,4,7],[2,5,8],
-      [0,4,8],[2,4,6]
-    ]
-    for (const line of lines) {
-      if (b[line[0]] && b[line[0]] === b[line[1]] && b[line[0]] === b[line[2]]) return line
-    }
-    return null
-  }
-
   useEffect(() => {
     if (!user) return
     let cancelled = false
-    ;(async () => {
+
+    const load = async () => {
       try {
-        const [nt] = await Promise.all([ getNotes(user.id) ])
+        const ev = await getGameEvents(user.id)
         if (cancelled) return
-        const notes = nt || []
-        notes.sort((a,b)=> new Date(a.date) - new Date(b.date))
-
-        let replayBoard = Array(9).fill(null)
-        let replayCurrent = 'X'
-        let replayWinner = null
-        const replayPlayers = {}
-        const replayHistory = []
-        const gmsgs = []
-
-        const applyMoveNote = (note) => {
-          const content = note.content || ''
-          if (!content || !content.startsWith('TICTACTOE_MOVE|')) return false
-          const parts = content.split('|')
-          if (parts.length < 3) return false
-          const idx = parseInt(parts[1], 10)
-          const player = parts[2]
-          if (Number.isFinite(idx) && idx >= 0 && idx < 9) {
-            replayBoard[idx] = player
-            if (!replayPlayers[player]) replayPlayers[player] = note.user_id
-            replayWinner = checkWinner(replayBoard)
-            replayCurrent = player === 'X' ? 'O' : 'X'
-            replayHistory.push({ idx, player, author: note.author, user_id: note.user_id, date: note.date })
-            return true
-          }
-          return false
-        }
-
-        for (const n of notes) {
-          const content = n.content || ''
-          if (content.startsWith('TICTACTOE_PROPOSE|')) {
-            const parts = content.split('|')
-            if (parts.length >= 3) {
-              const side = parts[1]
-              const authorName = parts[2]
-              replayPlayers.__proposal = { side, author: authorName, author_id: n.user_id, date: n.date }
-              continue
-            }
-          }
-          if (content.startsWith('TICTACTOE_REMATCH|')) {
-            const parts = content.split('|')
-            if (parts.length >= 3) {
-              const action = parts[1]
-              if (action === 'PROPOSE') {
-                const authorName = parts[2]
-                replayPlayers.__rematch = { author: authorName, author_id: n.user_id, date: n.date }
-                continue
-              }
-              if (action === 'ACCEPT') {
-                const proposer = parts[2]
-                const accepter = parts[3]
-                continue
-              }
-            }
-          }
-          if (content.startsWith('TICTACTOE_ACCEPT|')) {
-            const parts = content.split('|')
-            if (parts.length >= 4) {
-              const side = parts[1]
-              const proposer = parts[2]
-              const accepter = parts[3]
-              const other = side === 'X' ? 'O' : 'X'
-              replayPlayers[side] = n.user_id
-              replayPlayers[other] = replayPlayers[other] || null
-              continue
-            }
-          }
-          if (content.startsWith('TICTACTOE_START|')) {
-            const parts = content.split('|')
-            if (parts.length >= 3) {
-              const side = parts[1]
-              // record start author by user id when available
-              replayPlayers[side] = replayPlayers[side] || n.user_id
-              continue
-            }
-          }
-          if (!applyMoveNote(n)) {
-            if (content.startsWith('TICTACTOE_MSG|')) {
-              gmsgs.push({ author: n.author, content: content.replace(/^TICTACTOE_MSG\|/, ''), date: n.date })
-              continue
-            }
-          }
-        }
-
-        setGameMessages(gmsgs)
-        setBoard(replayBoard)
-        setCurrentPlayer(replayCurrent)
-        setWinner(replayWinner)
-        const proposal = replayPlayers.__proposal || null
-        if (proposal) delete replayPlayers.__proposal
-        setPlayersMap(replayPlayers)
-        setPendingProposal(proposal)
-        const rem = replayPlayers.__rematch || null
-        if (rem) delete replayPlayers.__rematch
-        setPendingRematch(rem)
-        setMoveHistory(replayHistory)
+        const events = (ev || []).sort((a,b)=> new Date(a.date) - new Date(b.date))
+        const parsed = replayGameEvents(events)
+        setGameMessages(parsed.gameMessages)
+        setBoard(parsed.board)
+        setCurrentPlayer(parsed.currentPlayer)
+        setWinner(parsed.winner)
+        setWinningLine(parsed.winningLine)
+        setPlayersMap(parsed.playersMap)
+        setPendingProposal(parsed.pendingProposal)
+        setPendingRematch(parsed.pendingRematch)
+        setMoveHistory(parsed.moveHistory)
         const me = user.user_metadata?.name || user.email
-        const myAssigned = Object.keys(replayPlayers).find(p => replayPlayers[p] === me)
+        const myAssigned = Object.keys(parsed.playersMap).find(p => parsed.playersMap[p] === me)
         setMyPlayer(myAssigned || null)
       } catch (e) {
         console.error('TicTacToe load failed', e)
       }
-    })()
+    }
 
-    const sub = subscribeToNotes(user.id, (payload) => {
+    load()
+
+    const sub = subscribeToGameEvents(user.id, (payload) => {
       if (payload.eventType === 'INSERT') {
         const n = payload.new
         if (!n) return
@@ -181,7 +75,6 @@ export default function TicTacToe() {
           const parts = content.split('|')
           if (parts.length >= 3) {
             const side = parts[1]
-            const author = parts[2]
             const other = side === 'X' ? 'O' : 'X'
             setPlayersMap(prev => ({ ...prev, [side]: n.user_id, [other]: prev[other] || null }))
             resetGame()
@@ -307,8 +200,17 @@ export default function TicTacToe() {
     setCurrentPlayer(nextPlayer)
 
     const moveContent = `TICTACTOE_MOVE|${idx}|${board[idx] || currentPlayer}`
-    const note = { user_id: user.id, author: user.user_metadata?.name || user.email, content: moveContent, date: new Date().toISOString() }
-    createNote(note).catch(() => {})
+    const payload = { user_id: user.id, author: user.user_metadata?.name || user.email, content: moveContent }
+
+    // Server-validated move: POST to /api/validate-move which will check turn
+    // order and cell occupancy before inserting into `game_events`.
+    fetch('/api/validate-move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idx, player: board[idx] || currentPlayer, user_id: user.id })
+    }).catch(() => {
+      // best-effort: failure doesn't break local UI (subscription will correct state)
+    })
   }
 
   const proposeStart = (side) => {
@@ -316,7 +218,7 @@ export default function TicTacToe() {
     const me = user.user_metadata?.name || user.email
     const note = { user_id: user.id, author: me, content: `TICTACTOE_PROPOSE|${side}|${me}`, date: new Date().toISOString() }
     setPendingProposal({ side, author: me, author_id: user.id, date: note.date })
-    createNote(note).catch(() => {})
+    createGameEvent(note).catch(() => {})
   }
 
   const startGame = (side) => {
@@ -329,7 +231,7 @@ export default function TicTacToe() {
     setWinner(null)
     setMoveHistory([])
     const note = { user_id: user.id, author: me, content: `TICTACTOE_START|${side}|${me}`, date: new Date().toISOString() }
-    createNote(note).catch(() => {})
+    createGameEvent(note).catch(() => {})
   }
 
   const proposeRematch = () => {
@@ -339,7 +241,7 @@ export default function TicTacToe() {
     setPendingRematch({ author: me, author_id: user.id, date: note.date })
     if (rematchTimer.current) clearTimeout(rematchTimer.current)
     rematchTimer.current = setTimeout(() => { setPendingRematch(null) }, REMATCH_TIMEOUT_MS)
-    createNote(note).catch(() => {})
+    createGameEvent(note).catch(() => {})
   }
 
   const acceptRematch = (proposal) => {
@@ -348,7 +250,7 @@ export default function TicTacToe() {
     const note = { user_id: user.id, author: me, content: `TICTACTOE_REMATCH|ACCEPT|${proposal.author}|${me}`, date: new Date().toISOString() }
     setPendingRematch(null)
     if (rematchTimer.current) { clearTimeout(rematchTimer.current); rematchTimer.current = null }
-    createNote(note).catch(() => {})
+    createGameEvent(note).catch(() => {})
   }
 
   const acceptProposal = (proposal) => {
@@ -360,7 +262,7 @@ export default function TicTacToe() {
     setPlayersMap(prev => ({ ...prev, [side]: proposal.author_id || proposal.author || null, [other]: user.id }))
     setMyPlayer(other)
     setPendingProposal(null)
-    createNote(note).catch(() => {})
+    createGameEvent(note).catch(() => {})
   }
 
   const sendGameMessage = async () => {
@@ -370,7 +272,7 @@ export default function TicTacToe() {
     const note = { user_id: user.id, author: me, content, date: new Date().toISOString() }
     setGameMessages(prev => [{ author: note.author, content: gameInput.trim(), date: note.date }, ...prev])
     setGameInput('')
-    try { await createNote(note) } catch (e) { console.error('sendGameMessage failed', e) }
+    try { await createGameEvent(note) } catch (e) { console.error('sendGameMessage failed', e) }
   }
 
   return (
