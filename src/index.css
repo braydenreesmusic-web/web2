@@ -185,6 +185,17 @@ h3 { font-size: 1rem; }
 .chat-message { padding:12px; border-radius:12px; background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(250,250,250,0.95)); border:1px solid var(--border); }
 .chat-message .meta { font-size:0.75rem; color:var(--muted); margin-bottom:6px }
 
+.chat-row { display:flex; gap:10px; align-items:flex-start }
+.chat-avatar { width:40px; height:40px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; color:white; background:linear-gradient(180deg,#111827,#374151); flex-shrink:0 }
+.chat-bubble { flex:1; }
+.chat-bubble .meta { display:flex; justify-content:space-between; gap:8px }
+.chat-bubble .content { margin-top:6px; color:var(--text) }
+
+.game-panel { display:flex; flex-direction:column; gap:12px; padding:8px }
+.game-header { display:flex; align-items:center; justify-content:space-between; gap:12px }
+.game-actions { display:flex; gap:8px; align-items:center }
+.small-muted { font-size:0.85rem; color:var(--muted) }
+
 .game-notes { display:flex; flex-direction:column; gap:8px }
 .game-note-card { padding:10px; border-radius:10px; background: linear-gradient(180deg, #ffffff, #fbfdff); border:1px solid #eef2f6 }
 .unread-badge { background: linear-gradient(90deg,#ef4444,#f97316); color:white; padding:4px 8px; border-radius:999px; font-weight:700; font-size:0.75rem }
@@ -202,6 +213,26 @@ h3 { font-size: 1rem; }
 .game-cell.x { color: #b91c1c } /* red */
 .game-cell.o { color: #1e40af } /* blue */
 .game-cell.winner { box-shadow: 0 14px 40px rgba(250,180,60,0.12); transform: scale(1.04) }
+
+/* Larger, more tactile board for desktop and tablet */
+@media (min-width: 768px) {
+  .game-board { grid-template-columns: repeat(3, 92px); gap:14px }
+  .game-cell { width:92px; height:92px; font-size:34px; border-radius:14px }
+}
+
+/* Message entrance animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.chat-message { animation: fadeInUp 260ms cubic-bezier(.2,.9,.3,1); }
+
+.tab-pill { display:inline-flex; gap:6px; background: rgba(17,24,39,0.03); padding:6px; border-radius:999px }
+.mode-btn { padding:6px 12px; border-radius:999px; font-weight:700; font-size:0.95rem; color:var(--muted); background:transparent; border:1px solid transparent; cursor:pointer }
+.mode-btn.active { color:var(--accent-700); background: linear-gradient(180deg, rgba(51,65,85,0.06), rgba(71,85,105,0.03)); border-color: rgba(17,24,39,0.04); }
+
+.expensive-btn { @apply px-6 py-3 font-semibold text-white; border-radius: 10px; background: linear-gradient(180deg, var(--accent-700), var(--accent-600)); box-shadow: 0 10px 30px rgba(11, 82, 76, 0.08); transition: transform var(--motion-short) ease, box-shadow var(--motion-short) ease; }
+.expensive-btn:hover { transform: translateY(-2px) scale(1.01); }
 
 .tic-confetti { display:flex; gap:6px }
 

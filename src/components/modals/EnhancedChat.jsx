@@ -47,6 +47,18 @@ export default function EnhancedChat({ open, onClose }) {
   const turnMessageTimeout = useRef(null)
   const [pendingProposal, setPendingProposal] = useState(null)
   const [pendingRematch, setPendingRematch] = useState(null)
+
+  // Utility: deterministic avatar gradient from a name
+  const avatarGradientFor = (name) => {
+    const s = String(name || '')
+    let h = 0
+    for (let i = 0; i < s.length; i++) {
+      h = (h * 31 + s.charCodeAt(i)) % 360
+    }
+    const h1 = h
+    const h2 = (h + 45) % 360
+    return `linear-gradient(135deg, hsl(${h1} 60% 36%), hsl(${h2} 55% 44%))`
+  }
   const rematchTimer = useRef(null)
   const REMATCH_TIMEOUT_MS = 2 * 60 * 1000 // 2 minutes
 
@@ -586,29 +598,36 @@ export default function EnhancedChat({ open, onClose }) {
           <div className="text-gray-500">{isTyping ? 'typing…' : ''}</div>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <button onClick={() => setMode('chat')} className={`px-3 py-1 rounded-xl ${mode==='chat' ? 'bg-slate-100' : 'bg-transparent'}`}>Chat</button>
-          <button onClick={() => setMode('play')} className={`px-3 py-1 rounded-xl ${mode==='play' ? 'bg-slate-100' : 'bg-transparent'}`}>Play</button>
+          <div className="tab-pill">
+            <button onClick={() => setMode('chat')} className={`mode-btn ${mode==='chat' ? 'active' : ''}`}>Chat</button>
+            <button onClick={() => setMode('play')} className={`mode-btn ${mode==='play' ? 'active' : ''}`}>Play</button>
+          </div>
           {import.meta.env.DEV && (
             <button onClick={() => setShowPresenceDebug(s => !s)} className="ml-3 px-2 py-1 text-xs rounded-md bg-gray-100">{showPresenceDebug ? 'Hide' : 'Show'} Presence Debug</button>
           )}
         </div>
 
-        <div className="max-h-72 overflow-y-auto space-y-2 mt-2">
+        <div className="max-h-72 overflow-y-auto mt-2 chat-scroll">
           {messages.map((m, i) => (
-            <div key={i} className="glass-card p-2 hover:shadow-sm transition">
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-gray-500">{m.author}</div>
-                <div className="text-xs text-gray-400">{m.date ? timeAgo(m.date) : ''}</div>
+            <div key={i} className="chat-row">
+              <div className="chat-avatar" aria-hidden style={{background: avatarGradientFor(m.author)}}>{(m.author||'U').slice(0,1).toUpperCase()}</div>
+              <div className="chat-bubble">
+                <div className="chat-message glass-card p-2">
+                  <div className="meta flex items-center justify-between">
+                    <div className="text-xs text-gray-600 font-medium">{m.author}</div>
+                    <div className="text-xs text-gray-400">{m.date ? timeAgo(m.date) : ''}</div>
+                  </div>
+                  <div className="content text-sm mt-1">{m.content}</div>
+                </div>
               </div>
-              <div className="mt-1 text-sm text-gray-800">{m.content}</div>
             </div>
           ))}
         </div>
         {mode === 'chat' && (
           <>
             <div className="flex gap-2">
-              <textarea value={input} onChange={onInputChange} placeholder="Send a love note…" className="flex-1 px-3 py-2 rounded-xl border resize-none" rows={2} onKeyDown={(e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); } }} />
-              <Button onClick={send}>Send</Button>
+              <textarea value={input} onChange={onInputChange} placeholder="Send a love note…" className="flex-1 px-3 py-3 rounded-xl border resize-none" rows={2} onKeyDown={(e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); } }} />
+              <Button onClick={send} className="expensive-btn">Send</Button>
             </div>
           </>
         )}
