@@ -5,11 +5,13 @@ import Dialog from '../../components/ui/dialog.jsx'
 import Button from '../../components/ui/button.jsx'
 import { useAuth } from '../../contexts/AuthContext'
 import { getNotes, createNote, subscribeToNotes, getCheckIns, createGameEvent, getGameEvents, subscribeToGameEvents } from '../../services/api'
+import { sendSignal } from '../../services/signals'
 import { supabase } from '../../lib/supabase'
 import { usePresence } from '../../hooks/usePresence'
 import { timeAgo } from '../../lib/time'
 import { useToast } from '../../contexts/ToastContext'
 import { replayGameEvents } from '../../services/game'
+import Avatar from '../../components/Avatar.jsx'
 
 function suggestionFromEmotion(emotion) {
   if (!emotion) return 'Thinking of you ❤️'
@@ -322,10 +324,14 @@ export default function EnhancedChat({ open, onClose }) {
     setInput('')
     try {
       await createNote(note)
+      // notify partner that typing stopped
+      try { if (partnerUserId) await sendSignal({ user_id: user.id, type: 'typing_stop', target_user_id: partnerUserId }) } catch (e) {}
     } catch (e) {
       console.error('Send failed', e)
     }
   }
+
+  
 
   // Tic-tac-toe helpers
   const checkWinner = (b) => {
@@ -571,10 +577,16 @@ export default function EnhancedChat({ open, onClose }) {
   const onInputChange = (e) => {
     const val = e.target.value
     setInput(val)
-    // local typing indicator; in a fuller implementation we'd emit presence typing events
+    // local typing indicator and emit typing signals to partner
     setIsTyping(true)
+    try {
+      if (partnerUserId && user) sendSignal({ user_id: user.id, type: 'typing_start', target_user_id: partnerUserId }).catch(()=>{})
+    } catch (e) {}
     if (typingTimeout.current) clearTimeout(typingTimeout.current)
-    typingTimeout.current = setTimeout(() => setIsTyping(false), 1200)
+    typingTimeout.current = setTimeout(() => {
+      setIsTyping(false)
+      try { if (partnerUserId && user) sendSignal({ user_id: user.id, type: 'typing_stop', target_user_id: partnerUserId }).catch(()=>{}) } catch(e){}
+    }, 1200)
   }
 
   return (
@@ -615,13 +627,12 @@ export default function EnhancedChat({ open, onClose }) {
               {messages.map((m, i) => (
                   <div key={i} className="chat-row">
                     {/* Prefer showing a real avatar image when available for the current user */}
-                    {m.author === (user?.user_metadata?.name || user?.email?.split('@')[0]) && user?.user_metadata?.avatar ? (
-                      <div className="chat-avatar" aria-hidden>
-                        <img src={user.user_metadata.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="chat-avatar" aria-hidden style={{background: avatarGradientFor(m.author)}}>{(m.author||'U').slice(0,1).toUpperCase()}</div>
-                    )}
+                    <Avatar
+                      src={m.author === (user?.user_metadata?.name || user?.email?.split('@')[0]) ? user?.user_metadata?.avatar : null}
+                      name={m.author}
+                      size="md"
+                      className="flex-shrink-0"
+                    />
                     <div className="chat-bubble">
                     <div className="chat-message glass-card p-2">
                       <div className="meta flex items-center justify-between">

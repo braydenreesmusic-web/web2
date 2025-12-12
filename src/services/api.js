@@ -15,6 +15,28 @@ export async function triggerNotification({ title, body, user_id = null } = {}) 
   }
 }
 
+// Helper: notify the partner of a given user (if linked). Falls back to broadcast when
+// no partner is found so notifications still work in single-user setups.
+async function notifyPartnerOf(userId, title, body) {
+  try {
+    if (!userId) {
+      triggerNotification({ title, body })
+      return
+    }
+    const rel = await getRelationshipData(userId).catch(() => null)
+    const partner = rel?.partner_user_id || rel?.partner_user_id
+    if (partner) {
+      triggerNotification({ title, body, user_id: partner })
+    } else {
+      // no partner configured — broadcast to all (legacy behavior)
+      triggerNotification({ title, body })
+    }
+  } catch (e) {
+    console.warn('notifyPartnerOf failed', e)
+    triggerNotification({ title, body })
+  }
+}
+
 // ============== User & Relationship ==============
 
 export const getRelationshipData = async (userId) => {
@@ -102,8 +124,8 @@ export const createCheckIn = async (checkInData) => {
     .single()
   
   if (error) throw error
-  // Notify about new check-in
-  triggerNotification({ title: 'New check-in', body: `${checkInData.user_name || 'Someone'} added a check-in` })
+  // Notify partner about new check-in
+  ;(async () => { try { await notifyPartnerOf(checkInData.user_id, 'New check-in', `${checkInData.user_name || 'Someone'} added a check-in`) } catch(e){}})()
   return data
 }
 
@@ -145,7 +167,7 @@ export const createEvent = async (eventData) => {
     .single()
   
   if (error) throw error
-  triggerNotification({ title: 'New event', body: `${eventData.title || 'Event'} created` })
+  ;(async () => { try { await notifyPartnerOf(eventData.user_id, 'New event', `${eventData.title || 'Event'} created`) } catch(e){}})()
   // Attempt email fallback for partner if configured
   (async () => {
     try {
@@ -173,7 +195,7 @@ export const updateEvent = async (eventId, updates) => {
     .single()
   
   if (error) throw error
-  triggerNotification({ title: 'Event updated', body: `Event updated: ${updates.title || ''}` })
+  ;(async () => { try { await notifyPartnerOf(data.user_id, 'Event updated', `Event updated: ${updates.title || ''}`) } catch(e){}})()
   return data
 }
 
@@ -184,7 +206,17 @@ export const deleteEvent = async (eventId) => {
     .eq('id', eventId)
   
   if (error) throw error
-  triggerNotification({ title: 'Event deleted', body: 'An event was removed' })
+  ;(async () => {
+    try {
+      // attempt to notify the owner/partner — fetch owner from DB first
+      const { data: existing } = await supabase.from('events').select('user_id').eq('id', eventId).maybeSingle()
+      const ownerId = existing?.user_id || null
+      await notifyPartnerOf(ownerId, 'Event deleted', 'An event was removed')
+    } catch (e) {
+      // fallback broadcast
+      triggerNotification({ title: 'Event deleted', body: 'An event was removed' })
+    }
+  })()
 }
 
 // ============== Tasks ==============
@@ -208,7 +240,7 @@ export const createTask = async (taskData) => {
     .single()
   
   if (error) throw error
-  triggerNotification({ title: 'New task', body: `${taskData.title || 'Task'} added` })
+  ;(async () => { try { await notifyPartnerOf(taskData.user_id, 'New task', `${taskData.title || 'Task'} added`) } catch(e){}})()
   return data
 }
 
@@ -268,7 +300,7 @@ export const uploadMedia = async (file, metadata) => {
     .single()
 
   if (error) throw error
-  triggerNotification({ title: 'New photo', body: `${metadata.user_name || 'Someone'} added a photo` })
+  ;(async () => { try { await notifyPartnerOf(metadata.user_id, 'New photo', `${metadata.user_name || 'Someone'} added a photo`) } catch(e){}})()
   return data
 }
 
@@ -290,7 +322,11 @@ export const getNotes = async (userId) => {
   // RLS policies automatically filter to show user + partner data
   const { data, error } = await supabase
     .from('notes')
+    // Exclude legacy Tic-Tac-Toe payloads that were stored in `notes`.
+    // Those are now stored in `game_events` and should not appear in the main
+    // notes feed.
     .select('*')
+    .not('content', 'ilike', 'TICTACTOE_%')
     .order('date', { ascending: false })
   
   if (error) throw error
@@ -299,11 +335,11 @@ export const getNotes = async (userId) => {
 
 // Get game-related notes (TICTACTOE_*) so UI can surface persistent game notifications
 export const getGameNotes = async (userId) => {
-  // notes table stores game events; filter by content prefix
+  // Game events are stored in the dedicated `game_events` table.
+  // Return those here so the UI can surface persistent game notifications.
   const { data, error } = await supabase
-    .from('notes')
+    .from('game_events')
     .select('*')
-    .ilike('content', 'TICTACTOE_%')
     .order('date', { ascending: false })
 
   if (error) throw error
@@ -359,15 +395,34 @@ export const subscribeToGameEvents = (userId, callback) => {
 }
 
 export const createNote = async (noteData) => {
-  const { data, error } = await supabase
-    .from('notes')
-    .insert([noteData])
-    .select()
-    .single()
-  
-  if (error) throw error
-  triggerNotification({ title: 'New note', body: `${noteData.title || 'A note'} was created` })
-  return data
+  // If the note content represents a Tic-Tac-Toe game payload, route it to
+  // the `game_events` table instead of storing it in `notes` so the main
+  // chat feed stays clean.
+  try {
+    if (noteData?.content && typeof noteData.content === 'string' && noteData.content.startsWith('TICTACTOE_')) {
+      // Reuse the game event creation logic to ensure events are handled
+      // consistently and notifications are sent appropriately.
+      const ev = await createGameEvent({
+        user_id: noteData.user_id,
+        author: noteData.author || noteData.user_name || null,
+        content: noteData.content,
+        date: noteData.date || new Date().toISOString()
+      })
+      return ev
+    }
+
+    const { data, error } = await supabase
+      .from('notes')
+      .insert([noteData])
+      .select()
+      .single()
+
+    if (error) throw error
+    ;(async () => { try { await notifyPartnerOf(noteData.user_id, 'New note', `${noteData.title || 'A note'} was created`) } catch(e){}})()
+    return data
+  } catch (e) {
+    throw e
+  }
 }
 
 // Real-time subscription for notes
@@ -410,7 +465,7 @@ export const createPin = async (pinData) => {
     .single()
   
   if (error) throw error
-  triggerNotification({ title: 'New pin', body: 'A new location pin was added' })
+  ;(async () => { try { await notifyPartnerOf(pinData.user_id, 'New pin', 'A new location pin was added') } catch(e){}})()
   return data
 }
 
@@ -462,7 +517,7 @@ export const createBookmark = async (bookmarkData) => {
     .single()
   
   if (error) throw error
-  triggerNotification({ title: 'New bookmark', body: `${bookmarkData.title || 'A bookmark'} added` })
+  ;(async () => { try { await notifyPartnerOf(bookmarkData.user_id, 'New bookmark', `${bookmarkData.title || 'A bookmark'} added`) } catch(e){}})()
   return data
 }
 
@@ -562,7 +617,7 @@ export const createSavingsGoal = async (goalData) => {
     .single()
   
   if (error) throw error
-  triggerNotification({ title: 'New savings goal', body: `${goalData.title || 'Savings goal'} created` })
+  ;(async () => { try { await notifyPartnerOf(goalData.user_id, 'New savings goal', `${goalData.title || 'Savings goal'} created`) } catch(e){}})()
   return data
 }
 

@@ -22,6 +22,13 @@ export default async function handler(req, res) {
       if (!endpoint) return res.status(400).json({ error: 'subscription.endpoint required' })
       const user_agent = incoming.user_agent || req.headers['user-agent'] || null
 
+      // By default require a user_id to be present to avoid DB NOT NULL constraint
+      // If you want to allow anonymous subscriptions, set env `PUSH_ALLOW_ANONYMOUS=1`.
+      const allowAnonymous = String(process.env.PUSH_ALLOW_ANONYMOUS || '').toLowerCase() === '1'
+      if (!user_id && !allowAnonymous) {
+        return res.status(400).json({ error: 'user_id required to save subscriptions on this deployment' })
+      }
+
         // Only include user_id when it's present to avoid NOT NULL constraint errors
         const payloadObj = { subscription, endpoint }
         if (user_id) payloadObj.user_id = user_id

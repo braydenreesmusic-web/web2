@@ -12,7 +12,7 @@ export async function registerServiceWorker() {
   }
 }
 
-export async function subscribeToPush(vapidPublicKey, userId = null) {
+export async function subscribeToPush(vapidPublicKey, userId = null, saveToServer = true) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) throw new Error('Push not supported');
 
   // Note: permission must be requested from a user gesture in the UI.
@@ -28,26 +28,33 @@ export async function subscribeToPush(vapidPublicKey, userId = null) {
   });
   const json = sub.toJSON()
 
-  // Try to persist the subscription server-side so we can send pushes later.
-  try {
-    const body = { subscription: json, user_agent: navigator.userAgent }
-    if (userId) body.user_id = userId
-    const res = await fetch('/api/push-subscriptions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
-    if (!res.ok) {
-      const text = await res.text()
-      console.error('push subscription save failed', res.status, text)
-    } else {
-      // optionally log the returned representation
-      const data = await res.json().catch(() => null)
-      if (data) console.debug('push subscription saved', data)
+  // Optionally persist the subscription server-side so we can send pushes later.
+  // If `saveToServer` is false or `userId` is not provided, skip the server save
+  // to avoid violating DB constraints (some deployments require a non-null user_id).
+  if (saveToServer && userId) {
+    try {
+      const body = { subscription: json, user_agent: navigator.userAgent }
+      if (userId) body.user_id = userId
+      const res = await fetch('/api/push-subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      if (!res.ok) {
+        const text = await res.text()
+        console.error('push subscription save failed', res.status, text)
+      } else {
+        // optionally log the returned representation
+        const data = await res.json().catch(() => null)
+        if (data) console.debug('push subscription saved', data)
+      }
+    } catch (err) {
+      // non-fatal: still return the subscription for client-only use
+      console.warn('failed to save subscription to server', err)
     }
-  } catch (err) {
-    // non-fatal: still return the subscription for client-only use
-    console.warn('failed to save subscription to server', err)
+  } else {
+    // Skip server save when userId is missing or saveToServer is false.
+    console.debug('Skipping server save for push subscription (no userId or saveToServer=false)')
   }
 
   return json;

@@ -11,6 +11,7 @@ const AdminGameEvents = lazy(() => import('./pages/admin-game-events.jsx'))
 const AdminPushSubscriptions = lazy(() => import('./pages/admin-push-subscriptions.jsx'))
 const Bookmarks = lazy(() => import('./pages/bookmarks.jsx'))
 const Play = lazy(() => import('./pages/play.jsx'))
+const ProDashboard = lazy(() => import('./pages/pro-dashboard.jsx'))
 
 export const router = createBrowserRouter([
   { path: '/', element: <PageTransition><Dashboard /></PageTransition> },
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
   { path: '/admin/push-subscriptions', element: <PageTransition><AdminPushSubscriptions /></PageTransition> },
   { path: '/bookmarks', element: <PageTransition><Bookmarks /></PageTransition> },
   { path: '/play', element: <PageTransition><Play /></PageTransition> },
+  { path: '/pro', element: <PageTransition><ProDashboard /></PageTransition> },
 ])
 
 export default function AppRoutes() {
