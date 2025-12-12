@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Sparkles } from 'lucide-react'
+import { ArrowLeft, Sparkles, User } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function Header({ title }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const showBack = pathname !== '/'
 
   return (
@@ -49,6 +51,15 @@ export default function Header({ title }) {
           <Sparkles className="w-4 h-4" />
           <span className="hidden sm:inline ml-1 text-sm muted">Dashboard</span>
         </button>
+        {user ? (
+          <button onClick={() => navigate('/profile')} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-50">
+            {user.user_metadata?.avatar ? (
+              <img src={user.user_metadata.avatar} alt="me" className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center"><User className="w-4 h-4 text-slate-600" /></div>
+            )}
+          </button>
+        ) : null}
       </div>
     </motion.header>
   )

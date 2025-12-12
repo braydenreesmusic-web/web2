@@ -1,16 +1,44 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Play, Pause, Radio, UserPlus, UserMinus } from 'lucide-react'
 import Button from './ui/button'
+import { supabase } from '../lib/supabase'
 
 export default function PartnerPlaybackControls({ partnerSession, partnerId, joined, onJoin, onLeave, onFollowPlay }) {
   const partnerTrack = partnerSession?.track
+  const [partnerProfile, setPartnerProfile] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    if (!partnerId) return
+    ;(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, avatar, full_name, display_name')
+          .eq('id', partnerId)
+          .maybeSingle()
+        if (error) throw error
+        if (!cancelled) setPartnerProfile(data || null)
+      } catch (e) {
+        console.debug('fetch partner profile failed', e)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [partnerId])
 
   return (
     <div className="mt-4 bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-white/30">
       <div className="flex items-center justify-between">
-        <div>
-          <div className="text-sm font-medium">Partner</div>
-          <div className="text-xs text-gray-600">{partnerId ? partnerId : 'No partner linked'}</div>
+        <div className="flex items-center gap-3">
+          {partnerProfile?.avatar ? (
+            <img src={partnerProfile.avatar} alt="partner" className="w-10 h-10 rounded-full object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center"><UserPlus className="w-5 h-5 text-gray-500" /></div>
+          )}
+          <div>
+            <div className="text-sm font-medium">Partner</div>
+            <div className="text-xs text-gray-600">{partnerId ? partnerId : 'No partner linked'}</div>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {!joined ? (

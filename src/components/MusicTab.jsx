@@ -398,7 +398,7 @@ export default function MusicTab({ user }) {
 
                 <div className="flex items-center justify-between gap-4">
                   <VolumeControl volume={volume} onChange={handleVolumeChange} />
-                  <PartnerSessionBadge partnerListeningSession={partnerListeningSession} joined={joinedSession} />
+                      <PartnerSessionBadge partnerListeningSession={partnerListeningSession} partnerUserId={partnerUserId} joined={joinedSession} />
                 </div>
               </div>
             </div>

@@ -303,6 +303,11 @@ export default function TicTacToe() {
     createGameEvent(note).then(() => { showToast && showToast(`Accepted invite — you are ${other}`, { type: 'success' }) }).catch(() => { showToast && showToast('Failed to accept invite', { type: 'error' }) })
   }
 
+  const declineProposal = (proposal) => {
+    // simple local decline (no server-side row necessary)
+    setPendingProposal(null)
+  }
+
   const sendGameMessage = async () => {
     if (!gameInput.trim() || !user) return
     const me = user.user_metadata?.name || user.email
@@ -329,12 +334,29 @@ export default function TicTacToe() {
             <>
               <Button onClick={() => startGame('X')}>Start X</Button>
               <Button onClick={() => startGame('O')}>Start O</Button>
+              <Button onClick={() => proposeStart('X')} className="px-3 py-1">Invite X</Button>
+              <Button onClick={() => proposeStart('O')} className="px-3 py-1">Invite O</Button>
             </>
           ) : (
             <div className="text-xs text-gray-400">No partner linked — open profile to invite</div>
           )}
         </div>
       </div>
+
+      {pendingProposal && pendingProposal.author_id !== user?.id && (
+        <div className="mb-3 p-3 rounded-md bg-amber-50 border border-amber-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium">Game invite</div>
+              <div className="text-xs text-gray-600">{pendingProposal.author} invited you to play as {pendingProposal.side}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => acceptProposal(pendingProposal)}>Accept</Button>
+              <Button onClick={() => declineProposal(pendingProposal)} className="bg-white">Decline</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="ttt-board">
         {board.map((cell, i) => {
@@ -355,7 +377,14 @@ export default function TicTacToe() {
             {moveHistory.length === 0 && <div className="text-gray-400">No moves yet</div>}
             {moveHistory.map((m, i) => (
               <div key={i} className="glass-card p-2 flex items-center justify-between">
-                <div className="text-xs text-gray-600">{m.author}</div>
+                <div className="flex items-center gap-3">
+                  {m.user_id === user?.id && user?.user_metadata?.avatar ? (
+                    <img src={user.user_metadata.avatar} alt="avatar" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="player-avatar" style={{background: `linear-gradient(135deg, hsl(${(m.author||'A').charCodeAt(0)%360} 60% 36%), hsl(${((m.author||'A').charCodeAt(0)+45)%360} 55% 44% )`}}>{(m.author||'U').slice(0,1).toUpperCase()}</div>
+                  )}
+                  <div className="text-xs text-gray-600">{m.author}</div>
+                </div>
                 <div className="text-xs text-gray-700">{m.player} @ {m.idx}</div>
                 <div className="text-xs text-gray-400">{m.date}</div>
               </div>

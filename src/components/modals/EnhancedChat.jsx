@@ -80,6 +80,29 @@ export default function EnhancedChat({ open, onClose }) {
     const h2 = (h + 45) % 360
     return `linear-gradient(135deg, hsl(${h1} 60% 36%), hsl(${h2} 55% 44%))`
   }
+  // Create a small SVG data URL avatar for use as notification icon
+  const avatarDataUrlFor = (name) => {
+    try {
+      const s = String(name || 'U')
+      const initial = s.slice(0,1).toUpperCase()
+      let h = 0
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360
+      const h1 = h
+      const h2 = (h + 45) % 360
+      const bg1 = `hsl(${h1} 60% 36%)`
+      const bg2 = `hsl(${h2} 55% 44%)`
+      const size = 128
+      const fontSize = Math.floor(size * 0.48)
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>
+        <defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0%' stop-color='${bg1}'/><stop offset='100%' stop-color='${bg2}'/></linearGradient></defs>
+        <rect width='100%' height='100%' fill='url(#g)' rx='24'/>
+        <text x='50%' y='50%' text-anchor='middle' dy='0.35em' font-family='Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial' font-weight='700' font-size='${fontSize}' fill='#fff'>${initial}</text>
+      </svg>`
+      return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+    } catch (e) {
+      return ''
+    }
+  }
   const rematchTimer = useRef(null)
   const REMATCH_TIMEOUT_MS = 2 * 60 * 1000 // 2 minutes
 
@@ -180,7 +203,7 @@ export default function EnhancedChat({ open, onClose }) {
           if (Notification && Notification.permission === 'granted') {
             const from = n.author || 'Partner'
             if (from !== me) {
-              new Notification(from, { body: n.content || 'New note' })
+              new Notification(from, { body: n.content || 'New note', icon: avatarDataUrlFor(from) })
             }
           }
         } catch (e) {
@@ -590,9 +613,16 @@ export default function EnhancedChat({ open, onClose }) {
           <>
             <div className="max-h-72 overflow-y-auto mt-2 chat-scroll">
               {messages.map((m, i) => (
-                <div key={i} className="chat-row">
-                  <div className="chat-avatar" aria-hidden style={{background: avatarGradientFor(m.author)}}>{(m.author||'U').slice(0,1).toUpperCase()}</div>
-                  <div className="chat-bubble">
+                  <div key={i} className="chat-row">
+                    {/* Prefer showing a real avatar image when available for the current user */}
+                    {m.author === (user?.user_metadata?.name || user?.email?.split('@')[0]) && user?.user_metadata?.avatar ? (
+                      <div className="chat-avatar" aria-hidden>
+                        <img src={user.user_metadata.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="chat-avatar" aria-hidden style={{background: avatarGradientFor(m.author)}}>{(m.author||'U').slice(0,1).toUpperCase()}</div>
+                    )}
+                    <div className="chat-bubble">
                     <div className="chat-message glass-card p-2">
                       <div className="meta flex items-center justify-between">
                         <div className="text-xs text-gray-600 font-medium">{m.author}</div>
@@ -712,40 +742,16 @@ export default function EnhancedChat({ open, onClose }) {
 
         {mode === 'play' && (
           <div className="space-y-3 p-4">
-            {pendingProposal && pendingProposal.author_id !== user?.id && (
-              <div className="mb-3 p-3 rounded-md bg-amber-50 border border-amber-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-medium">Game invite</div>
-                    <div className="text-xs text-gray-600">{pendingProposal.author} invited you to play as {pendingProposal.side}</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button onClick={() => acceptProposal(pendingProposal)}>Accept</Button>
-                    <Button onClick={() => declineProposal(pendingProposal)} className="bg-white">Decline</Button>
-                  </div>
-                </div>
-              </div>
-            )}
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-gray-600">Tic‑Tac‑Toe</div>
                 <div className="text-xs text-gray-500">Open the full game view to play in a dedicated page.</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link to="/play" className="no-underline">
-                      <Button>Open Play Page</Button>
-                    </Link>
-                    {partnerUserId ? (
-                      <>
-                        <Button onClick={() => startGame('X')} className="px-3 py-1">Start X</Button>
-                        <Button onClick={() => startGame('O')} className="px-3 py-1">Start O</Button>
-                        <Button onClick={() => proposeStart('X')} className="px-3 py-1">Invite X</Button>
-                        <Button onClick={() => proposeStart('O')} className="px-3 py-1">Invite O</Button>
-                      </>
-                    ) : (
-                      <div className="text-xs text-gray-400">No partner linked — invite via profile to play</div>
-                    )}
-                  </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link to="/play" className="no-underline">
+                  <Button>Open Play Page</Button>
+                </Link>
+              </div>
             </div>
           </div>
         )}

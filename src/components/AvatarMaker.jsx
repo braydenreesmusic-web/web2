@@ -47,11 +47,69 @@ export default function AvatarMaker({ initialAvatar, onSaved }) {
   }
 
   const saveAvatar = async () => {
+    // Create a rich SVG data-url for initials / emoji / color so avatars render
+    // consistently across the app (and show up as `data:` everywhere).
     let payload = ''
-    if (avatarType === 'upload' && uploadPreview) payload = uploadPreview
-    else if (avatarType === 'emoji') payload = emoji
-    else if (avatarType === 'initials') payload = (initials || '').slice(0,3).toUpperCase()
-    else if (avatarType === 'color') payload = `color:${color}`
+    if (avatarType === 'upload' && uploadPreview) {
+      payload = uploadPreview
+    } else {
+      // Generate an SVG with a subtle gradient background and centered content
+      const size = 256
+      const getGradient = (c) => {
+        // derive a second hue from base color for nicer gradients
+        try {
+          // simple hue shift: convert hex -> numeric and mix
+          const hex = c.replace('#','')
+          const r = parseInt(hex.slice(0,2),16)
+          const g = parseInt(hex.slice(2,4),16)
+          const b = parseInt(hex.slice(4,6),16)
+          const r2 = Math.min(255, Math.floor(r * 0.85 + 30))
+          const g2 = Math.min(255, Math.floor(g * 0.85 + 20))
+          const b2 = Math.min(255, Math.floor(b * 0.85 + 10))
+          const toHex = (n) => n.toString(16).padStart(2,'0')
+          return [ `#${hex}`, `#${toHex(r2)}${toHex(g2)}${toHex(b2)}` ]
+        } catch (e) {
+          return [c, c]
+        }
+      }
+
+      let fg = '#ffffff'
+      let bg1 = '#6b21a8'
+      let bg2 = '#7c3aed'
+      let content = ''
+      if (avatarType === 'emoji') {
+        content = emoji || '🙂'
+        bg1 = color
+        const gpair = getGradient(bg1)
+        bg1 = gpair[0]; bg2 = gpair[1]
+      } else if (avatarType === 'initials') {
+        content = (initials || '').slice(0,3).toUpperCase() || ''
+        // choose a color based on initials
+        const seed = (content || 'A').charCodeAt(0)
+        const palette = ['#6b21a8','#0ea5a4','#ef4444','#f59e0b','#10b981','#3b82f6','#7c3aed']
+        bg1 = palette[seed % palette.length]
+        const gpair = getGradient(bg1)
+        bg1 = gpair[0]; bg2 = gpair[1]
+      } else if (avatarType === 'color') {
+        content = (initials || '').slice(0,3).toUpperCase() || ''
+        bg1 = color
+        const gpair = getGradient(bg1)
+        bg1 = gpair[0]; bg2 = gpair[1]
+      }
+
+      const fontSize = avatarType === 'emoji' ? Math.floor(size * 0.5) : Math.floor(size * 0.36)
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>
+  <defs>
+    <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+      <stop offset='0%' stop-color='${bg1}' />
+      <stop offset='100%' stop-color='${bg2}' />
+    </linearGradient>
+  </defs>
+  <rect width='100%' height='100%' fill='url(#g)' rx='40' />
+  <text x='50%' y='50%' text-anchor='middle' dy='0.35em' font-family='Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial' font-weight='700' font-size='${fontSize}' fill='${fg}'>${content}</text>
+</svg>`
+      payload = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+    }
 
     try {
       const { data, error } = await supabase.auth.updateUser({ data: { avatar: payload } })
