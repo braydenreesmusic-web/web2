@@ -24,12 +24,7 @@ export default function Header({ title }) {
           onClick={() => navigate('/')}
           className="flex items-center gap-3 p-0 bg-transparent border-0"
         >
-          <img
-            src="/logo.png"
-            alt="YouRees"
-            className="w-8 h-8 rounded-md"
-            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/logo.svg' }}
-          />
+          <img src="/logo.svg" alt="YouRees" className="w-8 h-8 rounded-md" />
           <span className="text-lg font-semibold hidden sm:inline">YouRees</span>
         </button>
         {/* Presence indicator: shows partner online/last-seen when available */}
