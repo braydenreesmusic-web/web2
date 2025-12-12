@@ -55,6 +55,15 @@ export default function TicTacToe() {
           let pp = null
           if (parsed.pendingProposalMap && meId) pp = parsed.pendingProposalMap[meId] || null
           if (!pp && parsed.pendingProposal) pp = { ...parsed.pendingProposal }
+          if (!pp && parsed.pendingProposalMap) {
+            for (const k of Object.keys(parsed.pendingProposalMap)) {
+              const candidate = parsed.pendingProposalMap[k]
+              if (candidate && candidate.author_id && candidate.author_id !== meId) {
+                pp = candidate
+                break
+              }
+            }
+          }
           if (pp && !pp.author_id && pp.row_user_id) pp.author_id = pp.row_user_id
           setPendingProposal(pp)
         } catch (e) {
@@ -97,7 +106,17 @@ export default function TicTacToe() {
             setWinningLine(parsed.winningLine)
             setPlayersMap(parsed.playersMap)
             try {
-              const pp = parsed.pendingProposal ? { ...parsed.pendingProposal } : null
+              const meId = user?.id
+              let pp = parsed.pendingProposal ? { ...parsed.pendingProposal } : null
+              if (!pp && parsed.pendingProposalMap) {
+                for (const k of Object.keys(parsed.pendingProposalMap)) {
+                  const candidate = parsed.pendingProposalMap[k]
+                  if (candidate && candidate.author_id && candidate.author_id !== meId) {
+                    pp = candidate
+                    break
+                  }
+                }
+              }
               if (pp && !pp.author_id && pp.row_user_id) pp.author_id = pp.row_user_id
               setPendingProposal(pp)
             } catch (e) {
