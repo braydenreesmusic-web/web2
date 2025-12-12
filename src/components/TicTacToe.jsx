@@ -47,8 +47,7 @@ export default function TicTacToe() {
         setPendingProposal(parsed.pendingProposal)
         setPendingRematch(parsed.pendingRematch)
         setMoveHistory(parsed.moveHistory)
-        const me = user.user_metadata?.name || user.email
-        const myAssigned = Object.keys(parsed.playersMap).find(p => parsed.playersMap[p] === me)
+        const myAssigned = Object.keys(parsed.playersMap).find(p => parsed.playersMap[p] === user.id)
         setMyPlayer(myAssigned || null)
       } catch (e) {
         console.error('TicTacToe load failed', e)
@@ -61,106 +60,35 @@ export default function TicTacToe() {
       if (payload.eventType === 'INSERT') {
         const n = payload.new
         if (!n) return
-        const mine = n.user_id === user.id
-        const partnerRow = partnerUserId && n.user_id === partnerUserId
-        const isGameEvent = (n.content || '').startsWith('TICTACTOE_')
-        if (!mine && !partnerRow && !isGameEvent) return
         const content = n.content || ''
-        if (content.startsWith('TICTACTOE_MSG|')) {
-          const body = content.replace(/^TICTACTOE_MSG\|/, '')
-          setGameMessages(prev => [{ author: n.author, content: body, date: n.date }, ...prev])
-          return
+        if (process.env.NODE_ENV === 'development') {
+          try {
+            console.debug('TicTacToe realtime INSERT', { new: n, payload })
+          } catch (e) {}
         }
-        if (content.startsWith('TICTACTOE_START|')) {
-          const parts = content.split('|')
-          if (parts.length >= 3) {
-            const side = parts[1]
-            const other = side === 'X' ? 'O' : 'X'
-            setPlayersMap(prev => ({ ...prev, [side]: n.user_id, [other]: prev[other] || null }))
-            resetGame()
-            if (n.user_id === user.id) setMyPlayer(side)
-          }
-          return
+        // For deterministic state and to avoid issues with out-of-order realtime
+        // payloads, re-fetch the full game events and replay the canonical state.
+        // This keeps both players' UI consistent regardless of local optimistic updates.
+        if ((content || '').startsWith('TICTACTOE_')) {
+          getGameEvents(user.id).then(ev => {
+            if (process.env.NODE_ENV === 'development') console.debug('TicTacToe: refetching game_events due to insert', n.id)
+            const events = (ev || []).sort((a,b)=> new Date(a.date) - new Date(b.date))
+            const parsed = replayGameEvents(events)
+            setGameMessages(parsed.gameMessages)
+            setBoard(parsed.board)
+            setCurrentPlayer(parsed.currentPlayer)
+            setWinner(parsed.winner)
+            setWinningLine(parsed.winningLine)
+            setPlayersMap(parsed.playersMap)
+            setPendingProposal(parsed.pendingProposal)
+            setPendingRematch(parsed.pendingRematch)
+            setMoveHistory(parsed.moveHistory)
+            const myAssigned = Object.keys(parsed.playersMap).find(p => parsed.playersMap[p] === user.id)
+            setMyPlayer(myAssigned || null)
+          }).catch(e => console.error('TicTacToe: replay on INSERT failed', e))
         }
-        if (content.startsWith('TICTACTOE_PROPOSE|')) {
-          const parts = content.split('|')
-          if (parts.length >= 3) {
-            const side = parts[1]
-            const author = parts[2]
-            setPendingProposal({ side, author, author_id: n.user_id, date: n.date })
-          }
-          return
-        }
-        if (content.startsWith('TICTACTOE_REMATCH|')) {
-          const parts = content.split('|')
-          if (parts.length >= 3) {
-            const action = parts[1]
-            if (action === 'PROPOSE') {
-              const author = parts[2]
-              setPendingRematch({ author, author_id: n.user_id, date: n.date })
-            }
-            if (action === 'ACCEPT') {
-              const proposer = parts[2]
-              const accepter = parts[3]
-              setPendingRematch(null)
-              setBoard(emptyBoard)
-              setMoveHistory([])
-              setWinner(null)
-              setWinningLine(null)
-              setPlayersMap(prev => {
-                try {
-                  if (prev && prev.X && prev.O) {
-                    const next = { X: prev.O, O: prev.X }
-                    const found = Object.keys(next).find(p => next[p] === user.id)
-                    if (found) setMyPlayer(found)
-                    return next
-                  }
-                } catch (e) {}
-                return prev
-              })
-            }
-          }
-          return
-        }
-        if (content.startsWith('TICTACTOE_ACCEPT|')) {
-          const parts = content.split('|')
-          if (parts.length >= 4) {
-            const side = parts[1]
-            const proposer = parts[2]
-            const accepter = parts[3]
-            const other = side === 'X' ? 'O' : 'X'
-            setPlayersMap(prev => ({ ...prev, [side]: prev[side] || null, [other]: n.user_id }))
-            setPendingProposal(null)
-            if (n.user_id === user.id) setMyPlayer(other)
-            if (proposer === (user.user_metadata?.name || user.email)) setMyPlayer(side)
-          }
-          return
-        }
-        if (content.startsWith('TICTACTOE_MOVE|')) {
-          const parts = content.split('|')
-          const idx = parseInt(parts[1], 10)
-          const player = parts[2]
-          if (Number.isFinite(idx) && idx >= 0 && idx < 9) {
-            setBoard(prev => {
-              const nb = prev.slice()
-              if (nb[idx]) return prev
-              nb[idx] = player
-              const w = checkWinner(nb)
-              if (w) setWinner(w)
-              setCurrentPlayer(player === 'X' ? 'O' : 'X')
-              return nb
-            })
-            setPlayersMap(prev => {
-              const next = { ...prev }
-              if (!next[player]) next[player] = n.user_id
-              if (n.user_id === user.id) { try { setMyPlayer(player) } catch (e) {} }
-              return next
-            })
-            setMoveHistory(prev => [{ idx, player, author: n.author, date: n.date }, ...prev])
-          }
-        } else if (content.startsWith('TICTACTOE_RESET')) {
-          resetGame()
-        }
+      }
+    })
       }
     })
 
@@ -199,17 +127,25 @@ export default function TicTacToe() {
     const nextPlayer = currentPlayer === 'X' ? 'O' : 'X'
     setCurrentPlayer(nextPlayer)
 
-    const moveContent = `TICTACTOE_MOVE|${idx}|${board[idx] || currentPlayer}`
-    const payload = { user_id: user.id, author: user.user_metadata?.name || user.email, content: moveContent }
+    const movePlayer = board[idx] || currentPlayer
+    const moveContent = `TICTACTOE_MOVE|${idx}|${movePlayer}`
+    const payload = { idx, player: movePlayer, user_id: user.id, author: user.user_metadata?.name || user.email }
+
+    if (process.env.NODE_ENV === 'development') console.debug('TicTacToe: submitting move', payload)
 
     // Server-validated move: POST to /api/validate-move which will check turn
     // order and cell occupancy before inserting into `game_events`.
     fetch('/api/validate-move', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idx, player: board[idx] || currentPlayer, user_id: user.id })
-    }).catch(() => {
-      // best-effort: failure doesn't break local UI (subscription will correct state)
+      body: JSON.stringify(payload)
+    }).then(async (res) => {
+      if (!res.ok) {
+        const txt = await res.text().catch(()=>null)
+        console.warn('validate-move rejected', res.status, txt)
+      }
+    }).catch((err) => {
+      console.error('validate-move request failed', err)
     })
   }
 

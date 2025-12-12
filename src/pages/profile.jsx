@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { LogOut, User, Heart, Calendar, Camera, FileText, Edit2, Check, Send, UserPlus, CheckCircle, XCircle, Mail } from 'lucide-react'
+import AvatarMaker from '../components/AvatarMaker'
+import Dialog from '../components/ui/dialog'
 import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../services/api'
 import NotificationsButton from '../components/NotificationsButton'
 import { useToast } from '../contexts/ToastContext'
@@ -12,7 +14,16 @@ import { supabase } from '../lib/supabase'
 
 export default function Profile() {
   const { user, signOut } = useAuth()
+  const [showAvatarEditor, setShowAvatarEditor] = useState(false)
   const navigate = useNavigate()
+  const avatarInitials = (() => {
+    try {
+      const name = user?.user_metadata?.name || (user?.email || '').split('@')[0] || ''
+      const parts = name.split(/\s+/).filter(Boolean)
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+      return name.slice(0, 2).toUpperCase()
+    } catch (e) { return '' }
+  })()
   const [counts, setCounts] = useState({ notes: 0, photos: 0, events: 0 })
   const [editing, setEditing] = useState(false)
   const [startDate, setStartDate] = useState('')
@@ -262,8 +273,26 @@ export default function Profile() {
         className="glass-card p-6"
       >
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--accent-600), var(--accent-700))'}}>
-            <User className="w-8 h-8 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--accent-600), var(--accent-700))'}}>
+              {/* Avatar preview: prefer uploaded/data URL, emoji, initials, or fallback icon */}
+              {user?.user_metadata?.avatar ? (
+                user.user_metadata.avatar.startsWith('data:') || user.user_metadata.avatar.startsWith('http') ? (
+                  <img src={user.user_metadata.avatar} alt="avatar" className="w-16 h-16 object-cover" />
+                ) : user.user_metadata.avatar.startsWith('color:') ? (
+                  <div style={{background: user.user_metadata.avatar.replace('color:','')}} className="w-16 h-16 flex items-center justify-center text-white text-lg font-semibold">{avatarInitials}</div>
+                ) : (
+                  <span className="text-white text-lg font-semibold">{avatarInitials}</span>
+                )
+              ) : (
+                <User className="w-8 h-8 text-white" />
+              )}
+            </div>
+            <div>
+              <button title="Edit avatar" onClick={()=>setShowAvatarEditor(v=>!v)} className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-sm flex items-center gap-2">
+                <Camera className="w-4 h-4" /> Edit Avatar
+              </button>
+            </div>
           </div>
           <div className="flex-1">
             <div className="font-semibold text-xl">{user?.user_metadata?.name || 'User'}</div>
@@ -284,6 +313,9 @@ export default function Profile() {
                 </div>
           </div>
         </div>
+        <Dialog open={showAvatarEditor} onClose={()=>setShowAvatarEditor(false)} title="Edit Avatar">
+          <AvatarMaker initialAvatar={user?.user_metadata?.avatar || ''} onSaved={(payload)=>{ setShowAvatarEditor(false); showToast && showToast('Avatar updated') }} />
+        </Dialog>
         
         {/* Partner Linking Status */}
         {linked ? (

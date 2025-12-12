@@ -3,7 +3,20 @@ import fetch from 'node-fetch'
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
 
+function setCORS(res, req) {
+  const origin = req.headers.origin || '*'
+  res.setHeader('Access-Control-Allow-Origin', origin)
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+}
+
 export default async function handler(req, res) {
+  // Handle CORS preflight
+  setCORS(res, req)
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end()
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   if (!SUPABASE_URL || !SERVICE_KEY) {
@@ -13,12 +26,14 @@ export default async function handler(req, res) {
   try {
     const body = req.body || {}
     const { idx, player, user_id } = body
+    console.debug && console.debug('validate-move request body', body)
     if (typeof idx !== 'number' || !['X','O'].includes(player) || !user_id) {
       return res.status(400).json({ error: 'Missing or invalid idx/player/user_id' })
     }
 
     // Find partner if any
     const relUrl = `${SUPABASE_URL}/rest/v1/relationships?user_id=eq.${user_id}`
+    if (process.env.NODE_ENV === 'development') console.debug('validate-move: fetching relationships for', user_id)
     const relRes = await fetch(relUrl, {
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` }
     })
@@ -37,8 +52,13 @@ export default async function handler(req, res) {
     // Fetch relevant game events (moves and starts/accepts) for these participants
     const userList = partnerId ? `${user_id},${partnerId}` : `${user_id}`
     const eventsUrl = `${SUPABASE_URL}/rest/v1/game_events?user_id=in.(${userList})&order=date.asc`
+    if (process.env.NODE_ENV === 'development') console.debug('validate-move: fetching events for list', userList)
     const eventsRes = await fetch(eventsUrl, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } })
-    if (!eventsRes.ok) return res.status(500).json({ error: 'Failed to fetch game events' })
+    if (!eventsRes.ok) {
+      const txt = await eventsRes.text().catch(()=>null)
+      console.error('validate-move: failed to fetch events', eventsRes.status, txt)
+      return res.status(500).json({ error: 'Failed to fetch game events', details: txt })
+    }
     const events = await eventsRes.json()
 
     // Reconstruct board
@@ -66,19 +86,29 @@ export default async function handler(req, res) {
       return null
     }
     const winner = checkWin(board)
-    if (winner) return res.status(400).json({ error: 'Game already finished' })
+    if (winner) {
+      console.warn('validate-move: move rejected, game already finished', { winner })
+      return res.status(400).json({ error: 'Game already finished' })
+    }
 
     // Determine expected player
     const expected = lastPlayer === 'X' ? 'O' : 'X'
     const firstExpected = 'X'
     const currentExpected = lastPlayer ? expected : firstExpected
 
-    if (player !== currentExpected) return res.status(400).json({ error: 'Not your turn', expected: currentExpected })
-    if (board[idx]) return res.status(400).json({ error: 'Cell already occupied' })
+    if (player !== currentExpected) {
+      console.warn('validate-move: not your turn', { expected: currentExpected, got: player })
+      return res.status(400).json({ error: 'Not your turn', expected: currentExpected })
+    }
+    if (board[idx]) {
+      console.warn('validate-move: cell occupied', { idx })
+      return res.status(400).json({ error: 'Cell already occupied' })
+    }
 
     // All good — insert move
     const insertUrl = `${SUPABASE_URL}/rest/v1/game_events`
     const payload = { user_id, author: body.author || null, content: `TICTACTOE_MOVE|${idx}|${player}`, date: new Date().toISOString() }
+    if (process.env.NODE_ENV === 'development') console.debug('validate-move: inserting move', payload)
     const insRes = await fetch(insertUrl, {
       method: 'POST',
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
@@ -86,6 +116,7 @@ export default async function handler(req, res) {
     })
     if (!insRes.ok) {
       const txt = await insRes.text().catch(()=>'')
+      console.error('validate-move: insert failed', insRes.status, txt)
       return res.status(500).json({ error: 'Insert failed', details: txt })
     }
     const inserted = await insRes.json().catch(()=>null)
