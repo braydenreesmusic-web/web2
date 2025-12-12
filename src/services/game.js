@@ -63,7 +63,13 @@ export function replayGameEvents(events = []) {
         // optional author_id supplied in content (when server duplicated rows
         // for partner visibility we include the original inviter id as parts[3])
         const author_id = parts[3] || n.user_id
-        pendingProposal = { side, author, author_id, date: n.date }
+        // Also include the row owner (user_id) so callers can tell whether
+        // this particular row belonged to the local user or the partner.
+        const row_user_id = n.user_id
+        pendingProposal = { side, author, author_id, row_user_id, date: n.date }
+        if (process?.env?.NODE_ENV === 'development') {
+          try { console.debug && console.debug('replayGameEvents: parsed PROPOSE', { row_user_id, side, author, author_id, date: n.date }) } catch (e) {}
+        }
         continue
       }
     }

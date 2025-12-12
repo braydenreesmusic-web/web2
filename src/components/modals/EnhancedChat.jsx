@@ -203,6 +203,9 @@ export default function EnhancedChat({ open, onClose }) {
           getGameEvents(user.id).then(ev => {
             const events = (ev || []).sort((a,b) => new Date(a.date) - new Date(b.date))
             const parsed = replayGameEvents(events)
+            if (import.meta.env.DEV) {
+              try { console.debug && console.debug('EnhancedChat: replay parsed', parsed) } catch (e) {}
+            }
             setLastReplayParsed(parsed)
             setGameMessages(parsed.gameMessages)
             setBoard(parsed.board)
@@ -210,7 +213,24 @@ export default function EnhancedChat({ open, onClose }) {
             setWinner(parsed.winner)
             setWinningLine(parsed.winningLine)
             setPlayersMap(parsed.playersMap)
-            setPendingProposal(parsed.pendingProposal)
+            // Normalize pending proposal so it always exposes an author_id.
+            // If the server duplicated rows for partner visibility it includes
+            // the original inviter id as `parts[3]`, and we store the row owner
+            // as `row_user_id` in the replay. If for some reason `author_id`
+            // is missing, fall back to `row_user_id` so UI decisions remain
+            // deterministic.
+            try {
+              const pp = parsed.pendingProposal ? { ...parsed.pendingProposal } : null
+              if (pp) {
+                if (!pp.author_id && pp.row_user_id) pp.author_id = pp.row_user_id
+                if (import.meta.env.DEV) {
+                  try { console.debug && console.debug('EnhancedChat: pendingProposal normalized', pp) } catch (e) {}
+                }
+              }
+              setPendingProposal(pp)
+            } catch (e) {
+              setPendingProposal(parsed.pendingProposal)
+            }
             setPendingRematch(parsed.pendingRematch)
             setMoveHistory(parsed.moveHistory)
             setLastReplayParsed(parsed)

@@ -40,13 +40,23 @@ export default function TicTacToe() {
         if (cancelled) return
         const events = (ev || []).sort((a,b)=> new Date(a.date) - new Date(b.date))
         const parsed = replayGameEvents(events)
+        if (process.env.NODE_ENV === 'development') {
+          try { console.debug && console.debug('TicTacToe: initial parsed', parsed) } catch (e) {}
+        }
         setGameMessages(parsed.gameMessages)
         setBoard(parsed.board)
         setCurrentPlayer(parsed.currentPlayer)
         setWinner(parsed.winner)
         setWinningLine(parsed.winningLine)
         setPlayersMap(parsed.playersMap)
-        setPendingProposal(parsed.pendingProposal)
+        // Normalize pendingProposal author_id using row_user_id if missing
+        try {
+          const pp = parsed.pendingProposal ? { ...parsed.pendingProposal } : null
+          if (pp && !pp.author_id && pp.row_user_id) pp.author_id = pp.row_user_id
+          setPendingProposal(pp)
+        } catch (e) {
+          setPendingProposal(parsed.pendingProposal)
+        }
         setPendingRematch(parsed.pendingRematch)
         setMoveHistory(parsed.moveHistory)
         const myAssigned = Object.keys(parsed.playersMap).find(p => parsed.playersMap[p] === user.id)
@@ -76,13 +86,20 @@ export default function TicTacToe() {
             if (process.env.NODE_ENV === 'development') console.debug('TicTacToe: refetching game_events due to insert', n.id)
             const events = (ev || []).sort((a,b)=> new Date(a.date) - new Date(b.date))
             const parsed = replayGameEvents(events)
+            if (process.env.NODE_ENV === 'development') console.debug('TicTacToe: parsed on INSERT', parsed)
             setGameMessages(parsed.gameMessages)
             setBoard(parsed.board)
             setCurrentPlayer(parsed.currentPlayer)
             setWinner(parsed.winner)
             setWinningLine(parsed.winningLine)
             setPlayersMap(parsed.playersMap)
-            setPendingProposal(parsed.pendingProposal)
+            try {
+              const pp = parsed.pendingProposal ? { ...parsed.pendingProposal } : null
+              if (pp && !pp.author_id && pp.row_user_id) pp.author_id = pp.row_user_id
+              setPendingProposal(pp)
+            } catch (e) {
+              setPendingProposal(parsed.pendingProposal)
+            }
             setPendingRematch(parsed.pendingRematch)
             setMoveHistory(parsed.moveHistory)
             const myAssigned = Object.keys(parsed.playersMap).find(p => parsed.playersMap[p] === user.id)
