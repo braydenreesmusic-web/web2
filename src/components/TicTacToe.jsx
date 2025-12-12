@@ -7,6 +7,7 @@ import { usePresence } from '../hooks/usePresence'
 import { timeAgo } from '../lib/time'
 import { useToast } from '../contexts/ToastContext'
 import { replayGameEvents, checkWinner, findWinningLine } from '../services/game'
+import { supabase } from '../lib/supabase'
 
 export default function TicTacToe() {
   const { user } = useAuth()

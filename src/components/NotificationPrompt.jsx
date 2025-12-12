@@ -59,7 +59,8 @@ export default function NotificationPrompt() {
       }
 
       const userId = user?.id ?? null
-      const sub = await subscribeToPush(vapid, userId)
+      // Only attempt server-side save when we have an authenticated user_id
+      const sub = await subscribeToPush(vapid, userId, Boolean(userId))
       await subscribeToPushAndReturn(vapid, userId)
       setMessage('Notifications enabled')
       localStorage.setItem(STORAGE_KEY, '1')
