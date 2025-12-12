@@ -25,7 +25,7 @@ export default function Header({ title }) {
           className="flex items-center gap-3 p-0 bg-transparent border-0"
         >
           <div className="w-10 h-10 rounded-md overflow-hidden flex items-center justify-center" style={{background:'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))'}}>
-            <img src="/logo copy.svg" alt="YouRees" className="w-8 h-8" />
+            <img src="/logo.svg" alt="YouRees" className="w-8 h-8" />
           </div>
           <span className="text-lg font-semibold hidden sm:inline gradient-text">YouRees</span>
         </button>
