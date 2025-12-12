@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { getNotes, createNote, subscribeToNotes, getCheckIns, createGameEvent } from '../../services/api'
 import { usePresence } from '../../hooks/usePresence'
 import { timeAgo } from '../../lib/time'
+import { useToast } from '../../contexts/ToastContext'
 
 function suggestionFromEmotion(emotion) {
   if (!emotion) return 'Thinking of you ❤️'
@@ -28,6 +29,7 @@ export default function EnhancedChat({ open, onClose }) {
   const timer = useRef(null)
   const [latestEmotion, setLatestEmotion] = useState('')
   const { isPartnerOnline, partnerPresence, partnerUserId, presenceEvents, partnerListeningSession } = usePresence()
+  const { showToast } = useToast()
   const [showPresenceDebug, setShowPresenceDebug] = useState(false)
   const [expandedEvents, setExpandedEvents] = useState({})
   const [allExpanded, setAllExpanded] = useState(false)
@@ -191,6 +193,12 @@ export default function EnhancedChat({ open, onClose }) {
     }
   }, [open, user])
 
+  useEffect(() => {
+    if (pendingProposal) {
+      showToast && showToast(`${pendingProposal.author} invited you to play as ${pendingProposal.side}`, { type: 'info', duration: 6000 })
+    }
+  }, [pendingProposal])
+
   const send = async () => {
     if (!input.trim() || !user) return
     const note = { 
@@ -288,7 +296,11 @@ export default function EnhancedChat({ open, onClose }) {
       date: new Date().toISOString()
     }
     setMessages(prev => [{ author: note.author, content: `Started game as ${side}`, date: note.date }, ...prev])
-    createGameEvent(note).catch(() => {})
+    createGameEvent(note).then(() => {
+      showToast && showToast(`Game started as ${side}`, { type: 'success' })
+    }).catch(() => {
+      showToast && showToast('Failed to start game', { type: 'error' })
+    })
   }
 
   const proposeStart = (side) => {
@@ -302,7 +314,11 @@ export default function EnhancedChat({ open, onClose }) {
     }
     setPendingProposal({ side, author: me, date: note.date })
     setMessages(prev => [{ author: note.author, content: `Proposed: ${me} as ${side}`, date: note.date }, ...prev])
-    createGameEvent(note).catch(() => {})
+    createGameEvent(note).then(() => {
+      showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' })
+    }).catch(() => {
+      showToast && showToast('Invite failed', { type: 'error' })
+    })
   }
 
   const proposeRematch = () => {
@@ -362,7 +378,11 @@ export default function EnhancedChat({ open, onClose }) {
     setMyPlayer(other)
     setPendingProposal(null)
     setMessages(prev => [{ author: note.author, content: `${me} accepted ${proposal.author}'s proposal for ${side}`, date: note.date }, ...prev])
-    createGameEvent(note).catch(() => {})
+    createGameEvent(note).then(() => {
+      showToast && showToast(`Accepted invite — you are ${other}`, { type: 'success' })
+    }).catch(() => {
+      showToast && showToast('Failed to accept invite', { type: 'error' })
+    })
   }
 
   const declineProposal = (proposal) => {
@@ -512,16 +532,34 @@ export default function EnhancedChat({ open, onClose }) {
 
         {mode === 'play' && (
           <div className="space-y-3 p-4">
+            {pendingProposal && (
+              <div className="mb-3 p-3 rounded-md bg-amber-50 border border-amber-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">Game invite</div>
+                    <div className="text-xs text-gray-600">{pendingProposal.author} invited you to play as {pendingProposal.side}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button onClick={() => acceptProposal(pendingProposal)}>Accept</Button>
+                    <Button onClick={() => declineProposal(pendingProposal)} className="bg-white">Decline</Button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-gray-600">Tic‑Tac‑Toe</div>
                 <div className="text-xs text-gray-500">Open the full game view to play in a dedicated page.</div>
-              </div>
-              <div>
-                <Link to="/play" className="no-underline">
-                  <Button>Open Play Page</Button>
-                </Link>
-              </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link to="/play" className="no-underline">
+                      <Button>Open Play Page</Button>
+                    </Link>
+                    <Button onClick={() => startGame('X')} className="px-3 py-1">Start X</Button>
+                    <Button onClick={() => startGame('O')} className="px-3 py-1">Start O</Button>
+                    <Button onClick={() => proposeStart('X')} className="px-3 py-1">Invite X</Button>
+                    <Button onClick={() => proposeStart('O')} className="px-3 py-1">Invite O</Button>
+                  </div>
             </div>
           </div>
         )}

@@ -5,11 +5,13 @@ import { useAuth } from '../contexts/AuthContext'
 import { getGameEvents, createGameEvent, subscribeToGameEvents } from '../services/api'
 import { usePresence } from '../hooks/usePresence'
 import { timeAgo } from '../lib/time'
+import { useToast } from '../contexts/ToastContext'
 import { replayGameEvents, checkWinner, findWinningLine } from '../services/game'
 
 export default function TicTacToe() {
   const { user } = useAuth()
   const { isPartnerOnline, partnerPresence, partnerUserId } = usePresence()
+  const { showToast } = useToast()
 
   const emptyBoard = Array(9).fill(null)
   const [board, setBoard] = useState(emptyBoard)
@@ -152,7 +154,7 @@ export default function TicTacToe() {
     const me = user.user_metadata?.name || user.email
     const note = { user_id: user.id, author: me, content: `TICTACTOE_PROPOSE|${side}|${me}`, date: new Date().toISOString() }
     setPendingProposal({ side, author: me, author_id: user.id, date: note.date })
-    createGameEvent(note).catch(() => {})
+    createGameEvent(note).then(() => { showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' }) }).catch(() => { showToast && showToast('Invite failed', { type: 'error' }) })
   }
 
   const startGame = (side) => {
@@ -165,7 +167,7 @@ export default function TicTacToe() {
     setWinner(null)
     setMoveHistory([])
     const note = { user_id: user.id, author: me, content: `TICTACTOE_START|${side}|${me}`, date: new Date().toISOString() }
-    createGameEvent(note).catch(() => {})
+    createGameEvent(note).then(() => { showToast && showToast(`Game started as ${side}`, { type: 'success' }) }).catch(() => { showToast && showToast('Failed to start game', { type: 'error' }) })
   }
 
   const proposeRematch = () => {
@@ -175,7 +177,7 @@ export default function TicTacToe() {
     setPendingRematch({ author: me, author_id: user.id, date: note.date })
     if (rematchTimer.current) clearTimeout(rematchTimer.current)
     rematchTimer.current = setTimeout(() => { setPendingRematch(null) }, REMATCH_TIMEOUT_MS)
-    createGameEvent(note).catch(() => {})
+    createGameEvent(note).then(() => { showToast && showToast('Rematch proposed', { type: 'success' }) }).catch(() => { showToast && showToast('Rematch failed', { type: 'error' }) })
   }
 
   const acceptRematch = (proposal) => {
@@ -184,7 +186,7 @@ export default function TicTacToe() {
     const note = { user_id: user.id, author: me, content: `TICTACTOE_REMATCH|ACCEPT|${proposal.author}|${me}`, date: new Date().toISOString() }
     setPendingRematch(null)
     if (rematchTimer.current) { clearTimeout(rematchTimer.current); rematchTimer.current = null }
-    createGameEvent(note).catch(() => {})
+    createGameEvent(note).then(() => { showToast && showToast('Rematch accepted', { type: 'success' }) }).catch(() => { showToast && showToast('Failed to accept rematch', { type: 'error' }) })
   }
 
   const acceptProposal = (proposal) => {
@@ -196,7 +198,7 @@ export default function TicTacToe() {
     setPlayersMap(prev => ({ ...prev, [side]: proposal.author_id || proposal.author || null, [other]: user.id }))
     setMyPlayer(other)
     setPendingProposal(null)
-    createGameEvent(note).catch(() => {})
+    createGameEvent(note).then(() => { showToast && showToast(`Accepted invite — you are ${other}`, { type: 'success' }) }).catch(() => { showToast && showToast('Failed to accept invite', { type: 'error' }) })
   }
 
   const sendGameMessage = async () => {
