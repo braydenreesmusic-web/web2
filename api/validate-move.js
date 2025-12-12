@@ -87,8 +87,32 @@ export default async function handler(req, res) {
         lastPlayer = p
         moveHistory.push({ idx: i, player: p, author: ev.author, user_id: ev.user_id, date: ev.date })
       }
+      // Ensure server-side replay resets when a new game is started/accepted
+      // so validation matches client-side `replayGameEvents` behavior.
       if (c.startsWith('TICTACTOE_START|')) {
-        // noop for turn calc
+        // Reset board/history/winner and lastPlayer when a START is seen
+        board.fill(null)
+        lastPlayer = null
+        moveHistory.length = 0
+        // clear any winner state
+        // (we compute winner later from board anyway)
+        continue
+      }
+      if (c.startsWith('TICTACTOE_ACCEPT|')) {
+        // Accepting a proposal begins a new game — clear prior moves
+        board.fill(null)
+        lastPlayer = null
+        moveHistory.length = 0
+        continue
+      }
+      if (c.startsWith('TICTACTOE_REMATCH|')) {
+        const parts = c.split('|')
+        if (parts.length >= 2 && parts[1] === 'ACCEPT') {
+          board.fill(null)
+          lastPlayer = null
+          moveHistory.length = 0
+          continue
+        }
       }
     }
 
