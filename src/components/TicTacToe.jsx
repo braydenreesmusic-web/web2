@@ -171,7 +171,8 @@ export default function TicTacToe() {
             console.error('send-game-invite failed', res.status, txt, json)
             return
           }
-          try { console.debug('send-game-invite response', json) } catch (e) {}
+          try { console.debug('send-game-invite response', JSON.stringify(json, null, 2)) } catch (e) {}
+          try { console.debug('send-game-invite compact', json?.inserted_user_ids || json?.inserted_contents) } catch (e) {}
           showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' })
         } catch (e) {
           console.error('send-game-invite error', e)

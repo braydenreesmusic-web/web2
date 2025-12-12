@@ -67,7 +67,10 @@ export default async function handler(req, res) {
 
     const inserted = await resp.json()
     try { console.debug && console.debug('send-game-invite inserted', inserted) } catch (e) {}
-    return res.status(200).json({ ok: true, inserted })
+    // Also return a compact list of inserted user_ids for easier client consumption
+    const inserted_user_ids = Array.isArray(inserted) ? inserted.map(r => r.user_id) : []
+    const inserted_contents = Array.isArray(inserted) ? inserted.map(r => ({ user_id: r.user_id, content: r.content })) : []
+    return res.status(200).json({ ok: true, inserted, inserted_user_ids, inserted_contents })
   } catch (err) {
     console.error('send-game-invite error', err)
     return res.status(500).json({ error: String(err) })

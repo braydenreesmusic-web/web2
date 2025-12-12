@@ -368,7 +368,8 @@ export default function EnhancedChat({ open, onClose }) {
                 return
               }
               // Log server response so we can confirm which rows were inserted
-              try { console.debug('send-game-invite response', json) } catch (e) {}
+              try { console.debug('send-game-invite response', JSON.stringify(json, null, 2)) } catch (e) {}
+              try { console.debug('send-game-invite compact', json.inserted_user_ids || json.inserted_contents) } catch (e) {}
               showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' })
         } catch (e) {
           console.error('send-game-invite error', e)
