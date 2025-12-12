@@ -46,7 +46,7 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 px-4 py-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -55,7 +55,7 @@ export default function Register() {
       >
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-slate-700 to-slate-500 rounded-full mb-4">
               <UserPlus className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
@@ -77,10 +77,10 @@ export default function Register() {
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3"
+              className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-lg flex items-start gap-3"
             >
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-green-800">Account created! Redirecting...</p>
+              <CheckCircle className="w-5 h-5 text-slate-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-slate-800">Account created! Redirecting...</p>
             </motion.div>
           )}
 
@@ -96,7 +96,7 @@ export default function Register() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent transition-all"
                   placeholder="Your name"
                   required
                   autoComplete="name"
@@ -115,7 +115,7 @@ export default function Register() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent transition-all"
                   placeholder="you@example.com"
                   required
                   autoComplete="email"
@@ -134,7 +134,7 @@ export default function Register() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent transition-all"
                   placeholder="••••••••"
                   required
                   autoComplete="new-password"
@@ -153,7 +153,7 @@ export default function Register() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent transition-all"
                   placeholder="••••••••"
                   required
                   autoComplete="new-password"
@@ -164,7 +164,7 @@ export default function Register() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all disabled:opacity-50"
+              className="w-full py-3 bg-gradient-to-r from-slate-700 to-slate-500 hover:from-slate-800 hover:to-slate-600 text-white font-medium rounded-lg transition-all disabled:opacity-50"
             >
               {loading ? 'Creating account...' : 'Create Account'}
             </Button>
@@ -173,7 +173,7 @@ export default function Register() {
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               Already have an account?{' '}
-              <Link to="/login" className="font-medium text-purple-600 hover:text-purple-700 transition-colors">
+              <Link to="/login" className="font-medium text-slate-700 hover:text-slate-800 transition-colors">
                 Sign in
               </Link>
             </p>

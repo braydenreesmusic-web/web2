@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import ReauthDialog from '../components/ReauthDialog'
 
 const AuthContext = createContext({})
 
@@ -14,18 +15,32 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showReauth, setShowReauth] = useState(false)
+  const prevUserRef = useRef(null)
 
   useEffect(() => {
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
+      prevUserRef.current = session?.user ?? null
       setLoading(false)
     })
 
     // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // If we had a previous user and now there's no session, prompt re-auth
+      const prevUser = prevUserRef.current
+      const newUser = session?.user ?? null
+
+      // Update stored user
+      setUser(newUser)
+      prevUserRef.current = newUser
       setLoading(false)
+
+      // Show reauth dialog if a signed-out happened after we previously had a user
+      if ((event === 'SIGNED_OUT' || event === 'TOKEN_REFRESH_FAILED') && prevUser && !newUser) {
+        setShowReauth(true)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -67,6 +82,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
+      // hide reauth prompt when user intentionally signs out
+      setShowReauth(false)
       return { error: null }
     } catch (error) {
       return { error }
@@ -102,6 +119,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
+    showReauth,
     signUp,
     signIn,
     signOut,
@@ -112,6 +130,7 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={value}>
       {children}
+      <ReauthDialog open={showReauth} onClose={() => setShowReauth(false)} />
     </AuthContext.Provider>
   )
 }

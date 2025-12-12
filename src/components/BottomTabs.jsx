@@ -20,7 +20,7 @@ export default function BottomTabs() {
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="w-full max-w-2xl glass-card px-2 sm:px-3 py-2 shadow-lg" 
+        className="w-full max-w-2xl glass-card px-2 sm:px-3 py-2 shadow-lg blur-bg" 
         style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
       >
       <ul className="grid grid-cols-7 gap-1">
@@ -31,14 +31,14 @@ export default function BottomTabs() {
             <li key={t.to}>
               <Link 
                 to={t.to} 
-                className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${active ? 'text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500' : 'text-gray-600 hover:bg-gray-100'}`}
+                className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${active ? 'text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-slate-500' : 'text-gray-600 hover:bg-gray-100'}`}
               >
                 <motion.div
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   <Icon 
-                    className={`w-5 h-5 mb-1 ${active ? 'text-purple-500' : ''}`}
+                    className={`w-5 h-5 mb-1 ${active ? 'text-slate-600' : ''}`}
                     strokeWidth={active ? 2.5 : 2}
                   />
                 </motion.div>

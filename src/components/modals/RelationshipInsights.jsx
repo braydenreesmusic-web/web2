@@ -7,7 +7,7 @@ import { getInsights, markInsightAsRead } from '../../services/api'
 export default function RelationshipInsights({ open, onClose }) {
   const { user } = useAuth()
   const [items, setItems] = useState([])
-  const color = (t)=> t==='communication' ? 'bg-blue-100 text-blue-700' : t==='dates' ? 'bg-pink-100 text-pink-700' : 'bg-purple-100 text-purple-700'
+  const color = (t)=> t==='communication' ? 'bg-blue-100 text-blue-700' : t==='dates' ? 'bg-slate-100 text-slate-700' : 'bg-slate-100 text-slate-700'
 
   useEffect(() => {
     if (!open || !user) return

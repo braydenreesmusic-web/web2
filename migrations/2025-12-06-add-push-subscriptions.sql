@@ -1,0 +1,2 @@
+-- Push subscriptions migration removed
+-- The project no longer uses server-side `push_subscriptions`. This migration is deprecated and intentionally left as a historical artifact.

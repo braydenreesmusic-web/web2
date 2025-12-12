@@ -1,4 +1,19 @@
 import { supabase } from '../lib/supabase'
+import { sendFallbackEmail } from './notify'
+
+// Helper: trigger a server-side push broadcast via our send-push endpoint.
+// Keep payload small; server will broadcast to all stored subscriptions.
+export async function triggerNotification({ title, body, user_id = null } = {}) {
+  try {
+    await fetch('/api/send-push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body, user_id })
+    })
+  } catch (err) {
+    console.warn('triggerNotification failed', err)
+  }
+}
 
 // ============== User & Relationship ==============
 
@@ -87,6 +102,8 @@ export const createCheckIn = async (checkInData) => {
     .single()
   
   if (error) throw error
+  // Notify about new check-in
+  triggerNotification({ title: 'New check-in', body: `${checkInData.user_name || 'Someone'} added a check-in` })
   return data
 }
 
@@ -128,6 +145,22 @@ export const createEvent = async (eventData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New event', body: `${eventData.title || 'Event'} created` })
+  // Attempt email fallback for partner if configured
+  (async () => {
+    try {
+      const rel = await getRelationshipData(eventData.user_id)
+      const to = rel?.fallback_email || rel?.partner_email
+      const enabled = rel?.email_fallback || rel?.enable_email_fallback
+      if (to && enabled) {
+        const subject = `New event: ${eventData.title || 'Event'}`
+        const text = `${eventData.title || 'Event'} scheduled for ${new Date(eventData.date).toLocaleString()}\n\n${eventData.note || ''}`
+        await sendFallbackEmail(to, subject, text)
+      }
+    } catch (e) {
+      console.warn('email fallback check failed', e)
+    }
+  })()
   return data
 }
 
@@ -140,6 +173,7 @@ export const updateEvent = async (eventId, updates) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'Event updated', body: `Event updated: ${updates.title || ''}` })
   return data
 }
 
@@ -150,6 +184,7 @@ export const deleteEvent = async (eventId) => {
     .eq('id', eventId)
   
   if (error) throw error
+  triggerNotification({ title: 'Event deleted', body: 'An event was removed' })
 }
 
 // ============== Tasks ==============
@@ -173,6 +208,7 @@ export const createTask = async (taskData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New task', body: `${taskData.title || 'Task'} added` })
   return data
 }
 
@@ -232,6 +268,7 @@ export const uploadMedia = async (file, metadata) => {
     .single()
 
   if (error) throw error
+  triggerNotification({ title: 'New photo', body: `${metadata.user_name || 'Someone'} added a photo` })
   return data
 }
 
@@ -260,6 +297,67 @@ export const getNotes = async (userId) => {
   return data
 }
 
+// Get game-related notes (TICTACTOE_*) so UI can surface persistent game notifications
+export const getGameNotes = async (userId) => {
+  // notes table stores game events; filter by content prefix
+  const { data, error } = await supabase
+    .from('notes')
+    .select('*')
+    .ilike('content', 'TICTACTOE_%')
+    .order('date', { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+// ============== Game Events (separate from notes) ==============
+
+// Use a dedicated `game_events` table to keep game messages/invites out of the
+// main `notes` feed. This keeps Love Notes purely conversational while the
+// real-time game flow uses a compact, separate table.
+export const getGameEvents = async (userId) => {
+  const { data, error } = await supabase
+    .from('game_events')
+    .select('*')
+    .order('date', { ascending: true })
+
+  if (error) throw error
+  return data
+}
+
+export const createGameEvent = async (eventData) => {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('createGameEvent payload:', eventData)
+    }
+  } catch (e) {}
+  const { data, error } = await supabase
+    .from('game_events')
+    .insert([eventData])
+    .select()
+    .single()
+
+  if (error) throw error
+  // lightweight notify; separate title so users can tune notifications later
+  triggerNotification({ title: 'Game update', body: `${eventData.author || 'Someone'} sent a game event`, user_id: eventData.user_id })
+  return data
+}
+
+export const subscribeToGameEvents = (userId, callback) => {
+  const ch = supabase.channel('game_events')
+  ch.on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'game_events'
+    },
+    callback
+  )
+
+  return ch.subscribe()
+}
+
 export const createNote = async (noteData) => {
   const { data, error } = await supabase
     .from('notes')
@@ -268,24 +366,28 @@ export const createNote = async (noteData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New note', body: `${noteData.title || 'A note'} was created` })
   return data
 }
 
 // Real-time subscription for notes
 export const subscribeToNotes = (userId, callback) => {
-  return supabase
-    .channel('notes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'notes',
-        filter: `user_id=eq.${userId}`
-      },
-      callback
-    )
-    .subscribe()
+  const ch = supabase.channel('notes')
+  // If userId provided, we still subscribe to whole table and let the client filter
+  // to avoid missing partner rows that may be returned via RLS in queries but not emitted
+  // for the filtered realtime channel. Subscribing to the whole table is acceptable
+  // for small apps; if needed we can add server-side routing later.
+  ch.on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'notes'
+    },
+    callback
+  )
+
+  return ch.subscribe()
 }
 
 // ============== Location & Pins ==============
@@ -308,6 +410,7 @@ export const createPin = async (pinData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New pin', body: 'A new location pin was added' })
   return data
 }
 
@@ -359,6 +462,7 @@ export const createBookmark = async (bookmarkData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New bookmark', body: `${bookmarkData.title || 'A bookmark'} added` })
   return data
 }
 
@@ -371,6 +475,44 @@ export const updateBookmark = async (bookmarkId, updates) => {
     .single()
   
   if (error) throw error
+  return data
+}
+
+export const deleteBookmark = async (bookmarkId) => {
+  // Return the deleted row so callers can verify the operation.
+  const { data, error } = await supabase
+    .from('bookmarks')
+    .delete()
+    .eq('id', bookmarkId)
+    .select()
+    .maybeSingle()
+
+  if (error) throw error
+  triggerNotification({ title: 'Bookmark deleted', body: 'A bookmark was removed' })
+  return data || null
+}
+
+/**
+ * Bulk update bookmark orders.
+ * Accepts an array of objects: [{ id: 'uuid', order: 0 }, ...]
+ * Uses upsert on `id` so it's best-effort (RLS still applies).
+ */
+export const bulkUpdateBookmarkOrder = async (orders = []) => {
+  if (!Array.isArray(orders) || orders.length === 0) return []
+
+  // Normalize payload to only include id and order
+  const payload = orders.map(o => ({ id: o.id, order: o.order }))
+
+  const { data, error } = await supabase
+    .from('bookmarks')
+    .upsert(payload, { onConflict: 'id' })
+    .select()
+
+  if (error) {
+    console.error('bulkUpdateBookmarkOrder error', { error })
+    throw error
+  }
+
   return data
 }
 
@@ -420,6 +562,7 @@ export const createSavingsGoal = async (goalData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New savings goal', body: `${goalData.title || 'Savings goal'} created` })
   return data
 }
 
@@ -466,7 +609,7 @@ export const addContribution = async (contributionData) => {
       .update({ current_amount: (goal.current_amount || 0) + contributionData.amount })
       .eq('id', contributionData.goal_id)
   }
-  
+  triggerNotification({ title: 'New contribution', body: `A contribution of ${contributionData.amount} was added` })
   return data
 }
 
@@ -504,6 +647,7 @@ export const saveMusicTrack = async (trackData) => {
     .single()
   
   if (error) throw error
+  triggerNotification({ title: 'New track saved', body: `${trackData.title || 'Track'} saved` })
   return data
 }
 
@@ -659,18 +803,41 @@ export const subscribeToListeningSession = (userId, callback) => {
 // ============== User Presence ==============
 
 export const updatePresence = async (userId, isOnline) => {
+  // When marking online, avoid touching last_seen so it remains the last-offline timestamp.
+  const now = new Date().toISOString()
+  const payload = {
+    user_id: userId,
+    is_online: isOnline,
+    last_seen: isOnline ? null : now,
+    updated_at: now
+  }
+
+  // Use atomic upsert to avoid duplicate key races
   const { data, error } = await supabase
     .from('user_presence')
-    .upsert({
-      user_id: userId,
-      is_online: isOnline,
-      last_seen: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
+    .upsert(payload, { onConflict: 'user_id' })
     .select()
-    .single()
-  
-  if (error) throw error
+    .maybeSingle()
+
+  // If a race still triggers a conflict, fall back to targeted update
+  if (error) {
+    const msg = error?.message || ''
+    const isConflict = error?.code === '23505' || /duplicate key|conflict/i.test(msg)
+    if (isConflict) {
+      const updatePayload = isOnline
+        ? { is_online: isOnline, updated_at: payload.updated_at }
+        : { is_online: isOnline, last_seen: payload.last_seen, updated_at: payload.updated_at }
+      const { data: upd, error: updErr } = await supabase
+        .from('user_presence')
+        .update(updatePayload)
+        .eq('user_id', userId)
+        .select()
+        .maybeSingle()
+      if (updErr) throw updErr
+      return upd
+    }
+    throw error
+  }
   return data
 }
 
@@ -683,15 +850,22 @@ export const getPresence = async () => {
   return data
 }
 
-export const subscribeToPresence = (callback) => {
+export const subscribeToPresence = (userId, callback) => {
+  if (!userId) {
+    return {
+      unsubscribe: () => {}
+    }
+  }
+
   return supabase
-    .channel('user_presence')
+    .channel(`user_presence_${userId}`)
     .on(
       'postgres_changes',
       {
         event: '*',
         schema: 'public',
-        table: 'user_presence'
+        table: 'user_presence',
+        filter: `user_id=eq.${userId}`
       },
       callback
     )

@@ -53,16 +53,21 @@ ON partner_requests FOR SELECT
 USING (
   auth.uid() = from_user_id 
   OR 
-  auth.email() = to_email
+  current_setting('jwt.claims.email', true) = to_email
 );
 
 CREATE POLICY "Users can create partner requests" 
 ON partner_requests FOR INSERT 
 WITH CHECK (auth.uid() = from_user_id);
 
+-- Allow the recipient (by JWT email) or the original sender (by uid) to update the row.
+-- Use the JWT email claim (available in Supabase auth tokens) rather than a non-standard auth.email() helper.
 CREATE POLICY "Users can update requests sent to them" 
 ON partner_requests FOR UPDATE 
-USING (auth.email() = to_email);
+USING (
+  current_setting('jwt.claims.email', true) = to_email
+  OR auth.uid() = from_user_id
+);
 
 -- Function to auto-link when request is accepted
 CREATE OR REPLACE FUNCTION handle_partner_request_acceptance()

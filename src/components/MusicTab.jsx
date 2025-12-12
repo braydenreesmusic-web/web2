@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Play, Pause, Plus, List, Music2, Users } from 'lucide-react'
+import { Search, Plus, List, Music2, Users } from 'lucide-react'
 import Button from './ui/button'
 import Dialog from './ui/dialog'
 import {
@@ -15,6 +15,11 @@ import {
 import { usePresence } from '../hooks/usePresence'
 import { syncToLeader, stopSync } from '../lib/listeningSync'
 import PartnerPlaybackControls from './PartnerPlaybackControls'
+import PlaybackControls from './PlaybackControls'
+import ProgressBar from './ProgressBar'
+import VolumeControl from './VolumeControl'
+import PartnerSessionBadge from './PartnerSessionBadge'
+import TrackCard from './TrackCard'
 
 export default function MusicTab({ user }) {
   const [view, setView] = useState('search') // search, library, playlists, listening
@@ -31,7 +36,9 @@ export default function MusicTab({ user }) {
   const [currentTrack, setCurrentTrack] = useState(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
   const audioRef = useRef(null)
+  const [volume, setVolume] = useState(0.9)
   const { partnerListeningSession, partnerUserId, setMyListeningSession } = usePresence()
   const [joinedSession, setJoinedSession] = useState(false)
 
@@ -151,14 +158,17 @@ export default function MusicTab({ user }) {
     
     const updateTime = () => setCurrentTime(audioRef.current.currentTime)
     const handleEnded = () => setIsPlaying(false)
+    const handleLoaded = () => setDuration(audioRef.current.duration || 0)
     
     audioRef.current.addEventListener('timeupdate', updateTime)
     audioRef.current.addEventListener('ended', handleEnded)
+    audioRef.current.addEventListener('loadedmetadata', handleLoaded)
     
     return () => {
       if (audioRef.current) {
         audioRef.current.removeEventListener('timeupdate', updateTime)
         audioRef.current.removeEventListener('ended', handleEnded)
+        audioRef.current.removeEventListener('loadedmetadata', handleLoaded)
       }
     }
   }, [])
@@ -187,6 +197,89 @@ export default function MusicTab({ user }) {
     }
   }, [partnerListeningSession, joinedSession])
 
+  // Keyboard controls: space toggles play/pause, arrows seek, up/down adjust volume
+  useEffect(() => {
+    const onKey = (e) => {
+      const tag = (e.target && e.target.tagName) || ''
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return
+
+      if (e.code === 'Space') {
+        e.preventDefault()
+        handlePlayPause()
+        return
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        if (!audioRef.current) return
+        audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 5)
+        setCurrentTime(audioRef.current.currentTime)
+        return
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        if (!audioRef.current) return
+        audioRef.current.currentTime = Math.min((duration || 0), audioRef.current.currentTime + 5)
+        setCurrentTime(audioRef.current.currentTime)
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        const v = Math.min(1, (volume || 0) + 0.05)
+        setVolume(v)
+        if (audioRef.current) audioRef.current.volume = v
+        return
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        const v = Math.max(0, (volume || 0) - 0.05)
+        setVolume(v)
+        if (audioRef.current) audioRef.current.volume = v
+        return
+      }
+    }
+
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [handlePlayPause, duration, volume])
+
+  const skipBack = () => {
+    if (!audioRef.current) return
+    audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10)
+    setCurrentTime(audioRef.current.currentTime)
+  }
+
+  const skipForward = () => {
+    if (!audioRef.current) return
+    audioRef.current.currentTime = Math.min((duration || 0), audioRef.current.currentTime + 10)
+    setCurrentTime(audioRef.current.currentTime)
+  }
+
+  const formatTime = (t = 0) => {
+    if (!t || !isFinite(t)) return '0:00'
+    const m = Math.floor(t / 60)
+    const s = Math.floor(t % 60).toString().padStart(2, '0')
+    return `${m}:${s}`
+  }
+
+  const handleSeek = (e) => {
+    if (!audioRef.current) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    const t = pct * (duration || 0)
+    audioRef.current.currentTime = t
+    setCurrentTime(t)
+  }
+
+  const handleVolumeChange = (e) => {
+    const v = Number(e.target.value)
+    setVolume(v)
+    if (audioRef.current) audioRef.current.volume = v
+  }
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume
+  }, [volume])
+
   return (
     <div className="space-y-4">
       {/* View tabs */}
@@ -195,11 +288,8 @@ export default function MusicTab({ user }) {
           <button
             key={v}
             onClick={() => setView(v)}
-            className={`px-3 py-2 rounded-xl capitalize transition-all ${
-              view === v
-                ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white'
-                : 'bg-gray-100 hover:bg-gray-200'
-            }`}
+            className={`px-3 py-2 rounded-xl capitalize transition-all ${view === v ? 'text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+            style={ view === v ? { background: 'linear-gradient(90deg, var(--accent-700), var(--accent-600))' } : {} }
           >
             {v}
           </button>
@@ -216,7 +306,7 @@ export default function MusicTab({ user }) {
               onChange={e => setSearchQuery(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
               placeholder="Search songs, artists, albums..."
-              className="flex-1 px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="flex-1 input"
             />
             <Button onClick={handleSearch} disabled={searching}>
               <Search className="w-4 h-4" />
@@ -227,36 +317,7 @@ export default function MusicTab({ user }) {
 
           <div className="grid md:grid-cols-2 gap-3">
             {searchResults.map(track => (
-              <motion.div
-                key={track.trackId}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="glass-card p-3 flex gap-3"
-              >
-                {track.artworkUrl60 && (
-                  <img src={track.artworkUrl60} alt="" className="w-16 h-16 rounded-lg" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{track.trackName}</div>
-                  <div className="text-sm text-gray-500 truncate">{track.artistName}</div>
-                  <div className="flex gap-2 mt-2">
-                    {track.previewUrl && (
-                      <button
-                        onClick={() => handlePlayTrack(track)}
-                        className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-600 hover:bg-purple-200"
-                      >
-                        <Play className="w-3 h-3" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleAddToLibrary(track)}
-                      className="text-xs px-2 py-1 rounded bg-pink-100 text-pink-600 hover:bg-pink-200"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
+              <TrackCard key={track.trackId} track={track} onPlay={handlePlayTrack} onAdd={handleAddToLibrary} />
             ))}
           </div>
         </div>
@@ -272,23 +333,7 @@ export default function MusicTab({ user }) {
             </div>
           )}
           {library.map(track => (
-            <div key={track.id} className="glass-card p-3 flex items-center gap-3">
-              {track.artwork_url && (
-                <img src={track.artwork_url} alt="" className="w-12 h-12 rounded" />
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{track.track_name}</div>
-                <div className="text-sm text-gray-500 truncate">{track.artist_name}</div>
-              </div>
-              {track.preview_url && (
-                <button
-                  onClick={() => handlePlayTrack(track)}
-                  className="p-2 rounded-full hover:bg-gray-100"
-                >
-                  <Play className="w-4 h-4 text-purple-600" />
-                </button>
-              )}
-            </div>
+            <TrackCard key={track.id} track={track} onPlay={handlePlayTrack} compact />
           ))}
         </div>
       )}
@@ -315,21 +360,47 @@ export default function MusicTab({ user }) {
       {/* Synced Listening view */}
       {view === 'listening' && (
         <div className="glass-card p-6 text-center space-y-4">
-          <Users className="w-12 h-12 mx-auto text-purple-500" />
+          <Users className="w-12 h-12 mx-auto" style={{color: 'var(--accent-600)'}} />
           <h3 className="font-semibold text-lg">Listen Together</h3>
           {currentTrack ? (
-            <div className="space-y-3">
-              {currentTrack.artwork_url && (
-                <img src={currentTrack.artwork_url} alt="" className="w-32 h-32 mx-auto rounded-lg shadow-lg" />
-              )}
-              <div className="font-medium">{currentTrack.track_name || currentTrack.trackName}</div>
-              <div className="text-sm text-gray-500">{currentTrack.artist_name || currentTrack.artistName}</div>
-              <button
-                onClick={handlePlayPause}
-                className="p-4 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:shadow-lg transition-shadow"
-              >
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+              <div className="flex items-center gap-4 md:col-span-1">
+                {(currentTrack.artwork_url || currentTrack.artworkUrl100) && (
+                  <motion.img
+                    layout
+                    src={currentTrack.artwork_url || currentTrack.artworkUrl100}
+                    alt="album art"
+                    className="w-36 h-36 rounded-lg shadow-2xl"
+                    whileHover={{ scale: 1.02 }}
+                  />
+                )}
+                <div className="hidden md:block">
+                  <div className="font-semibold text-lg">{currentTrack.track_name || currentTrack.trackName}</div>
+                  <div className="text-sm text-gray-400">{currentTrack.artist_name || currentTrack.artistName}</div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2 space-y-3">
+                <PlaybackControls
+                  isPlaying={isPlaying}
+                  onPlayPause={handlePlayPause}
+                  onSkipBack={skipBack}
+                  onSkipForward={skipForward}
+                />
+
+                <div className="w-full">
+                  <ProgressBar currentTime={currentTime} duration={duration} onSeek={handleSeek} />
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <div>{formatTime(currentTime)}</div>
+                    <div>{formatTime(duration)}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-4">
+                  <VolumeControl volume={volume} onChange={handleVolumeChange} />
+                  <PartnerSessionBadge partnerListeningSession={partnerListeningSession} joined={joinedSession} />
+                </div>
+              </div>
             </div>
           ) : (
             <p className="text-gray-500">No track playing. Search and play a song to start!</p>
@@ -364,12 +435,12 @@ export default function MusicTab({ user }) {
       {/* New Playlist Dialog */}
       <Dialog open={showNewPlaylist} onClose={() => setShowNewPlaylist(false)} title="Create Playlist">
         <div className="space-y-4">
-          <input
+                  <input
             type="text"
             value={playlistTitle}
             onChange={e => setPlaylistTitle(e.target.value)}
             placeholder="Playlist name"
-            className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full input"
           />
           <div className="flex gap-2 justify-end">
             <button

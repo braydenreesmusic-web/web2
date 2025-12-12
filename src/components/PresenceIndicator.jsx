@@ -48,7 +48,7 @@ export default function PresenceIndicator() {
           }}
           className={`w-2.5 h-2.5 rounded-full ${
             isPartnerOnline 
-              ? 'bg-green-500 shadow-lg shadow-green-500/50' 
+              ? 'bg-slate-600 shadow-lg shadow-slate-600/30' 
               : 'bg-gray-400'
           }`}
         />
@@ -63,7 +63,7 @@ export default function PresenceIndicator() {
               repeat: Infinity,
               ease: "easeInOut"
             }}
-            className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-green-500"
+            className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-slate-300/40"
           />
         )}
       </div>
