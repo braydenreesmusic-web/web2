@@ -89,8 +89,6 @@ export default function TicTacToe() {
         }
       }
     })
-      }
-    })
 
     return () => {
       sub.unsubscribe()
