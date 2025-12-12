@@ -233,7 +233,8 @@ export default function EnhancedChat({ open, onClose }) {
               // Prefer the proposal row that belongs to the current user (so
               // the incoming-invite banner is evaluated against the row that
               // actually appears in this user's feed). Fall back to the last
-              // parsed proposal for backward compatibility.
+              // parsed proposal for backward compatibility. As a final
+              // defensive step, pick any proposal authored by someone else.
               const meId = user?.id
               let pp = null
               try {
@@ -241,6 +242,15 @@ export default function EnhancedChat({ open, onClose }) {
                   pp = parsed.pendingProposalMap[meId] || null
                 }
                 if (!pp && parsed.pendingProposal) pp = { ...parsed.pendingProposal }
+                if (!pp && parsed.pendingProposalMap) {
+                  for (const k of Object.keys(parsed.pendingProposalMap)) {
+                    const candidate = parsed.pendingProposalMap[k]
+                    if (candidate && candidate.author_id && candidate.author_id !== meId) {
+                      pp = candidate
+                      break
+                    }
+                  }
+                }
                 if (pp && !pp.author_id && pp.row_user_id) pp.author_id = pp.row_user_id
                 if (import.meta.env.DEV) {
                   try { console.debug && console.debug('EnhancedChat: pendingProposal chosen', pp) } catch (e) {}
