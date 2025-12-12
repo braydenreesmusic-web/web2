@@ -326,6 +326,11 @@ export const getGameEvents = async (userId) => {
 }
 
 export const createGameEvent = async (eventData) => {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('createGameEvent payload:', eventData)
+    }
+  } catch (e) {}
   const { data, error } = await supabase
     .from('game_events')
     .insert([eventData])

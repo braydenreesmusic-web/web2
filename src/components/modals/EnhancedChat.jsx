@@ -4,10 +4,12 @@ import { Link } from 'react-router-dom'
 import Dialog from '../../components/ui/dialog.jsx'
 import Button from '../../components/ui/button.jsx'
 import { useAuth } from '../../contexts/AuthContext'
-import { getNotes, createNote, subscribeToNotes, getCheckIns, createGameEvent } from '../../services/api'
+import { getNotes, createNote, subscribeToNotes, getCheckIns, createGameEvent, getGameEvents, subscribeToGameEvents } from '../../services/api'
+import { supabase } from '../../lib/supabase'
 import { usePresence } from '../../hooks/usePresence'
 import { timeAgo } from '../../lib/time'
 import { useToast } from '../../contexts/ToastContext'
+import { replayGameEvents } from '../../services/game'
 
 function suggestionFromEmotion(emotion) {
   if (!emotion) return 'Thinking of you ❤️'
@@ -50,6 +52,7 @@ export default function EnhancedChat({ open, onClose }) {
   const turnMessageTimeout = useRef(null)
   const [pendingProposal, setPendingProposal] = useState(null)
   const [pendingRematch, setPendingRematch] = useState(null)
+  const [uiDebugEvents, setUiDebugEvents] = useState(null)
 
   // Utility: deterministic avatar gradient from a name
   const avatarGradientFor = (name) => {
@@ -187,17 +190,43 @@ export default function EnhancedChat({ open, onClose }) {
       }
     })
 
+    // Subscribe to canonical game_events so invites/start are visible here too
+    const gsub = subscribeToGameEvents(user.id, (payload) => {
+      if (payload.eventType === 'INSERT') {
+        const n = payload.new
+        if (!n) return
+        const content = n.content || ''
+        if ((content || '').startsWith('TICTACTOE_')) {
+          // Re-fetch and replay canonical game events
+          getGameEvents(user.id).then(ev => {
+            const events = (ev || []).sort((a,b) => new Date(a.date) - new Date(b.date))
+            const parsed = replayGameEvents(events)
+            setGameMessages(parsed.gameMessages)
+            setBoard(parsed.board)
+            setCurrentPlayer(parsed.currentPlayer)
+            setWinner(parsed.winner)
+            setWinningLine(parsed.winningLine)
+            setPlayersMap(parsed.playersMap)
+            setPendingProposal(parsed.pendingProposal)
+            setPendingRematch(parsed.pendingRematch)
+            setMoveHistory(parsed.moveHistory)
+          }).catch(e => console.error('EnhancedChat: failed to replay game_events', e))
+        }
+      }
+    })
+
     return () => {
       sub.unsubscribe()
+      try { gsub.unsubscribe() } catch (e) {}
       if (timer.current) clearInterval(timer.current)
     }
   }, [open, user])
 
   useEffect(() => {
-    if (pendingProposal) {
+    if (pendingProposal && pendingProposal.author_id !== user?.id) {
       showToast && showToast(`${pendingProposal.author} invited you to play as ${pendingProposal.side}`, { type: 'info', duration: 6000 })
     }
-  }, [pendingProposal])
+  }, [pendingProposal, user])
 
   const send = async () => {
     if (!input.trim() || !user) return
@@ -498,6 +527,22 @@ export default function EnhancedChat({ open, onClose }) {
                   className="px-2 py-1 bg-white border rounded text-xs"
                 >Copy JSON</button>
                 <button
+                  onClick={async () => {
+                    try {
+                      // Get session token from supabase client and call debug endpoint
+                      const { data } = await supabase.auth.getSession()
+                      const token = data?.session?.access_token
+                      const res = await fetch('/api/ui-game-events', { headers: { Authorization: token ? `Bearer ${token}` : '' } })
+                      const json = await res.json()
+                      setUiDebugEvents(json)
+                    } catch (e) {
+                      console.error('ui-game-events fetch failed', e)
+                      setUiDebugEvents({ error: String(e) })
+                    }
+                  }}
+                  className="px-2 py-1 bg-white border rounded text-xs"
+                >Fetch game_events (debug)</button>
+                <button
                   onClick={() => { setAllExpanded(s => { const next = !s; setExpandedEvents(() => { const map = {}; if (next && presenceEvents) { presenceEvents.forEach((_, idx) => map[idx]=true) } return map }); return next }) }}
                   className="px-2 py-1 bg-white border rounded text-xs"
                 >{allExpanded ? 'Collapse All' : 'Expand All'}</button>
@@ -530,9 +575,16 @@ export default function EnhancedChat({ open, onClose }) {
           </div>
         )}
 
+        {import.meta.env.DEV && uiDebugEvents && (
+          <div className="mt-2 p-2 bg-slate-50 border rounded text-xs">
+            <div className="font-medium text-sm">game_events (server)</div>
+            <pre className="max-h-60 overflow-auto text-xs mt-2 bg-white p-2 rounded border">{JSON.stringify(uiDebugEvents, null, 2)}</pre>
+          </div>
+        )}
+
         {mode === 'play' && (
           <div className="space-y-3 p-4">
-            {pendingProposal && (
+            {pendingProposal && pendingProposal.author_id !== user?.id && (
               <div className="mb-3 p-3 rounded-md bg-amber-50 border border-amber-200">
                 <div className="flex items-center justify-between">
                   <div>
@@ -555,10 +607,16 @@ export default function EnhancedChat({ open, onClose }) {
                     <Link to="/play" className="no-underline">
                       <Button>Open Play Page</Button>
                     </Link>
-                    <Button onClick={() => startGame('X')} className="px-3 py-1">Start X</Button>
-                    <Button onClick={() => startGame('O')} className="px-3 py-1">Start O</Button>
-                    <Button onClick={() => proposeStart('X')} className="px-3 py-1">Invite X</Button>
-                    <Button onClick={() => proposeStart('O')} className="px-3 py-1">Invite O</Button>
+                    {partnerUserId ? (
+                      <>
+                        <Button onClick={() => startGame('X')} className="px-3 py-1">Start X</Button>
+                        <Button onClick={() => startGame('O')} className="px-3 py-1">Start O</Button>
+                        <Button onClick={() => proposeStart('X')} className="px-3 py-1">Invite X</Button>
+                        <Button onClick={() => proposeStart('O')} className="px-3 py-1">Invite O</Button>
+                      </>
+                    ) : (
+                      <div className="text-xs text-gray-400">No partner linked — invite via profile to play</div>
+                    )}
                   </div>
             </div>
           </div>

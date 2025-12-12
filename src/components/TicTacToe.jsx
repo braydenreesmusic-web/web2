@@ -220,8 +220,14 @@ export default function TicTacToe() {
         </div>
         <div className="flex items-center gap-2">
           <div className={`text-sm px-2 py-1 rounded-md ${currentPlayer === myPlayer ? 'bg-slate-200' : 'bg-transparent'}`}>Active: {currentPlayer}</div>
-          <Button onClick={() => startGame('X')}>Start X</Button>
-          <Button onClick={() => startGame('O')}>Start O</Button>
+          {partnerUserId ? (
+            <>
+              <Button onClick={() => startGame('X')}>Start X</Button>
+              <Button onClick={() => startGame('O')}>Start O</Button>
+            </>
+          ) : (
+            <div className="text-xs text-gray-400">No partner linked — open profile to invite</div>
+          )}
         </div>
       </div>
 
