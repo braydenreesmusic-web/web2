@@ -67,9 +67,14 @@ export function replayGameEvents(events = []) {
         // this particular row belonged to the local user or the partner.
         const row_user_id = n.user_id
         pendingProposal = { side, author, author_id, row_user_id, date: n.date }
-        if (process?.env?.NODE_ENV === 'development') {
-          try { console.debug && console.debug('replayGameEvents: parsed PROPOSE', { row_user_id, side, author, author_id, date: n.date }) } catch (e) {}
-        }
+        // Use `import.meta.env.DEV` check in browser builds; guard for other
+        // environments to avoid referencing an undefined `process` global.
+        try {
+          const isDev = (typeof import !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) || (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development')
+          if (isDev) {
+            try { console.debug && console.debug('replayGameEvents: parsed PROPOSE', { row_user_id, side, author, author_id, date: n.date }) } catch (e) {}
+          }
+        } catch (e) {}
         continue
       }
     }
