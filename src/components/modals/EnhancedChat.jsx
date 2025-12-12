@@ -53,6 +53,7 @@ export default function EnhancedChat({ open, onClose }) {
   const [pendingProposal, setPendingProposal] = useState(null)
   const [pendingRematch, setPendingRematch] = useState(null)
   const [uiDebugEvents, setUiDebugEvents] = useState(null)
+  const [relationshipDebug, setRelationshipDebug] = useState(null)
 
   // Utility: deterministic avatar gradient from a name
   const avatarGradientFor = (name) => {
@@ -335,6 +336,9 @@ export default function EnhancedChat({ open, onClose }) {
   const proposeStart = (side) => {
     if (!user) return
     const me = user.user_metadata?.name || user.email
+    if (process.env.NODE_ENV === 'development') {
+      try { console.debug('proposeStart', { user_id: user.id, partnerUserId, side }) } catch (e) {}
+    }
     const note = {
       user_id: user.id,
       author: me,
@@ -543,6 +547,25 @@ export default function EnhancedChat({ open, onClose }) {
                   className="px-2 py-1 bg-white border rounded text-xs"
                 >Fetch game_events (debug)</button>
                 <button
+                  onClick={async () => {
+                    try {
+                      // Fetch relationship row for current user (DEV-only)
+                      const { data: rel, error } = await supabase
+                        .from('relationships')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .maybeSingle()
+                      if (error) throw error
+                      setRelationshipDebug(rel || null)
+                      try { console.debug('relationshipDebug', rel) } catch (e) {}
+                    } catch (e) {
+                      console.error('relationship fetch failed', e)
+                      setRelationshipDebug({ error: String(e) })
+                    }
+                  }}
+                  className="px-2 py-1 bg-white border rounded text-xs"
+                >Fetch relationship (debug)</button>
+                <button
                   onClick={() => { setAllExpanded(s => { const next = !s; setExpandedEvents(() => { const map = {}; if (next && presenceEvents) { presenceEvents.forEach((_, idx) => map[idx]=true) } return map }); return next }) }}
                   className="px-2 py-1 bg-white border rounded text-xs"
                 >{allExpanded ? 'Collapse All' : 'Expand All'}</button>
@@ -579,6 +602,13 @@ export default function EnhancedChat({ open, onClose }) {
           <div className="mt-2 p-2 bg-slate-50 border rounded text-xs">
             <div className="font-medium text-sm">game_events (server)</div>
             <pre className="max-h-60 overflow-auto text-xs mt-2 bg-white p-2 rounded border">{JSON.stringify(uiDebugEvents, null, 2)}</pre>
+          </div>
+        )}
+
+        {import.meta.env.DEV && relationshipDebug && (
+          <div className="mt-2 p-2 bg-slate-50 border rounded text-xs">
+            <div className="font-medium text-sm">relationship (client)</div>
+            <pre className="max-h-40 overflow-auto text-xs mt-2 bg-white p-2 rounded border">{JSON.stringify(relationshipDebug, null, 2)}</pre>
           </div>
         )}
 
