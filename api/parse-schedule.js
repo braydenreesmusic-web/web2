@@ -64,6 +64,7 @@ async function callGoogleVision(base64Data) {
     ]
   }
 
+  // Prefer service account access token if provided
   if (GOOGLE_SA_JSON_BASE64) {
     const accessToken = await getAccessTokenFromServiceAccount(GOOGLE_SA_JSON_BASE64)
     const res = await fetch('https://vision.googleapis.com/v1/images:annotate', {
@@ -79,6 +80,7 @@ async function callGoogleVision(base64Data) {
     return json?.responses?.[0]?.fullTextAnnotation?.text || ''
   }
 
+  // Fallback to API key if configured
   if (GOOGLE_VISION_KEY) {
     const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_KEY}`, {
       method: 'POST',
@@ -97,6 +99,7 @@ async function callGoogleVision(base64Data) {
 }
 
 async function callOcrSpace(base64Data) {
+  // OCR.Space accepts base64 without the data: prefix
   const body = new URLSearchParams()
   body.append('apikey', OCR_SPACE_API_KEY)
   body.append('base64Image', base64Data.replace(/^data:\w+\/\w+;base64,/, ''))
@@ -141,22 +144,26 @@ async function callGeminiExtract(text) {
   const textOut = data?.candidates?.[0]?.content?.parts?.[0]?.text
   if (!textOut) throw new Error('Unexpected Gemini response')
 
+  // Try to extract a JSON blob from the response
   const jsonMatch = textOut.match(/\[\s*\{[\s\S]*\}\s*\]/m)
   if (jsonMatch) {
     try {
       const raw = JSON.parse(jsonMatch[0])
       return Array.isArray(raw) ? raw.map(normalizeParsedItem) : []
     } catch (e) {
+      // fallback to trying to eval-safe by stripping trailing commas
       const cleaned = jsonMatch[0].replace(/,\s*}/g, '}').replace(/,\s*\]/g, ']')
       const raw = JSON.parse(cleaned)
       return Array.isArray(raw) ? raw.map(normalizeParsedItem) : []
     }
   }
 
+  // If not JSON, try to parse simple lines like "- 2025-12-10 09:00 Dentist"
   const items = []
   textOut.split('\n').forEach(line => {
     const trimmed = line.trim()
     if (!trimmed) return
+    // naive date detection
     const dateMatch = trimmed.match(/(\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?)/)
     const title = trimmed.replace(dateMatch ? dateMatch[0] : '', '').replace(/^[-:\s]+/, '').trim()
     if (title) {
@@ -167,12 +174,15 @@ async function callGeminiExtract(text) {
   return items
 }
 
+// Try to parse common date formats into ISO; return null if unknown
 function parseDateString(str) {
   if (!str) return null
   const s = String(str).trim()
+  // Try Date.parse first
   const d1 = new Date(s)
   if (!Number.isNaN(d1.getTime())) return d1.toISOString()
 
+  // YYYY-MM-DD or YYYY/MM/DD optional time
   let m = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/)
   if (m) {
     const [_, y, mo, da, hh='00', mi='00', ss='00'] = m
@@ -180,6 +190,7 @@ function parseDateString(str) {
     if (!Number.isNaN(iso.getTime())) return iso.toISOString()
   }
 
+  // MM/DD/YYYY or M/D/YY
   m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:[ \t](\d{1,2}):(\d{2}))?/)
   if (m) {
     const [_, mo, da, yr, hh='00', mi='00'] = m
@@ -188,6 +199,7 @@ function parseDateString(str) {
     if (!Number.isNaN(iso.getTime())) return iso.toISOString()
   }
 
+  // Month name formats - let Date try a cleaned English string
   const cleaned = s.replace(/(st|nd|rd|th)/gi, '')
   const d2 = new Date(cleaned)
   if (!Number.isNaN(d2.getTime())) return d2.toISOString()
@@ -212,6 +224,7 @@ export default async function handler(req, res) {
     const { image } = req.body || {}
     if (!image) return res.status(400).json({ error: 'image (data URL) required in body' })
 
+    // 1) OCR - prefer Google Vision if configured, otherwise OCR.Space
     let ocrText = ''
     if (GOOGLE_VISION_KEY) {
       try {
@@ -237,6 +250,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ events: [] , raw_text: ocrText })
     }
 
+    // 2) Send extracted text to Gemini to parse into events
     let events = []
     try {
       events = await callGeminiExtract(ocrText)

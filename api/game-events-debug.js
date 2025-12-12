@@ -7,6 +7,7 @@ function setCORS(res, req) {
   res.setHeader('Access-Control-Allow-Origin', origin)
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-debug-secret')
+  // Allow cookies/credentials when origin is echoed (not '*')
   res.setHeader('Access-Control-Allow-Credentials', 'true')
 }
 

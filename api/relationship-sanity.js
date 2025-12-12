@@ -1,3 +1,6 @@
+// Admin/debug endpoint to sanity-check relationships and game_events between two users.
+// Protected by GAME_EVENTS_DEBUG_SECRET header (`x-debug-secret`).
+
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -20,10 +23,12 @@ export default async function handler(req, res) {
     const { userA, userB } = req.body || {}
     if (!userA || !userB) return res.status(400).json({ error: 'Missing userA or userB in body' })
 
+    // Check relationships linking the users (either direction)
     const relUrl = `${SUPABASE_URL}/rest/v1/relationships?or=(and(user_id.eq.${userA},partner_user_id.eq.${userB}),and(user_id.eq.${userB},partner_user_id.eq.${userA}))`
     const relRes = await fetch(relUrl, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } })
     const rel = relRes.ok ? await relRes.json() : []
 
+    // Fetch sample game_events for each user (server-side view)
     const eventsAUrl = `${SUPABASE_URL}/rest/v1/game_events?user_id=eq.${userA}&order=date.asc&limit=20`
     const eventsBUrl = `${SUPABASE_URL}/rest/v1/game_events?user_id=eq.${userB}&order=date.asc&limit=20`
     const [evARes, evBRes] = await Promise.all([

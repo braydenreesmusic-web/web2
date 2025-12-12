@@ -1,5 +1,10 @@
 import webpush from 'web-push'
 
+// Returns the public VAPID key for client subscriptions.
+// If VAPID keys are not configured in env, this will generate ephemeral keys
+// and return the public key (developer should run `npm run generate-vapid`
+// and add them to Vercel envs for persistent sending).
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
@@ -14,8 +19,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ publicKey: VAPID_PUBLIC })
     }
 
+    // Generate ephemeral keys if none configured. Log a friendly warning.
     const keys = webpush.generateVAPIDKeys()
-    console.warn('VAPID keys not configured. Generated ephemeral VAPID keys for this request.')
+    console.warn('VAPID keys not configured. Generated ephemeral VAPID keys for this request. Persist these by running `npm run generate-vapid` and adding to your envs.')
     return res.status(200).json({ publicKey: keys.publicKey })
   } catch (err) {
     console.error('vapid error', err)

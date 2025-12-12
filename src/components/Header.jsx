@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Sparkles, User } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import PresenceIndicator from './PresenceIndicator'
-import Avatar from './Avatar.jsx'
 import { usePresence } from '../hooks/usePresence'
 
 export default function Header({ title }) {
@@ -60,7 +59,11 @@ export default function Header({ title }) {
         </button>
         {user ? (
           <button onClick={() => navigate('/profile')} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-50">
-            <Avatar src={user.user_metadata?.avatar} name={user.user_metadata?.name || user.email} size="md" />
+            {user.user_metadata?.avatar ? (
+              <img src={user.user_metadata.avatar} alt="me" className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center"><User className="w-4 h-4 text-slate-600" /></div>
+            )}
           </button>
         ) : null}
       </div>

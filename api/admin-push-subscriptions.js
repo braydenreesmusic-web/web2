@@ -5,6 +5,7 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABAS
 const ADMIN_SECRET = process.env.ADMIN_SECRET || process.env.SEND_PUSH_TOKEN || null
 
 export default async function handler(req, res) {
+  // Simple admin protection: require matching header
   const provided = req.headers['x-admin-secret'] || req.headers['x-admin-secret'.toLowerCase()]
   if (!ADMIN_SECRET || provided !== ADMIN_SECRET) {
     return res.status(401).json({ error: 'Missing or invalid admin secret' })

@@ -22,6 +22,10 @@ export default async function handler(req, res) {
       const url = `${SUPABASE_URL}/rest/v1/presence?user_id=eq.${user_id}`
       const payload = { user_id, online, last_active: new Date().toISOString(), meta }
 
+      // Upsert via PATCH with on_conflict isn't available through REST easily,
+      // so use POST then on conflict fallback: use RPC or PUT via upsert is complex.
+      // Keep it simple: attempt INSERT, if conflict (409/HTTP error) then PATCH.
+
       let r = await fetch(`${SUPABASE_URL}/rest/v1/presence`, {
         method: 'POST',
         headers: {
@@ -34,6 +38,7 @@ export default async function handler(req, res) {
       })
 
       if (!r.ok && r.status === 409) {
+        // conflict: update existing
         r = await fetch(`${SUPABASE_URL}/rest/v1/presence?user_id=eq.${user_id}`, {
           method: 'PATCH',
           headers: {

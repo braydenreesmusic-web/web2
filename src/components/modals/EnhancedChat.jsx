@@ -11,7 +11,6 @@ import { usePresence } from '../../hooks/usePresence'
 import { timeAgo } from '../../lib/time'
 import { useToast } from '../../contexts/ToastContext'
 import { replayGameEvents } from '../../services/game'
-import Avatar from '../../components/Avatar.jsx'
 
 function suggestionFromEmotion(emotion) {
   if (!emotion) return 'Thinking of you ❤️'
@@ -627,12 +626,13 @@ export default function EnhancedChat({ open, onClose }) {
               {messages.map((m, i) => (
                   <div key={i} className="chat-row">
                     {/* Prefer showing a real avatar image when available for the current user */}
-                    <Avatar
-                      src={m.author === (user?.user_metadata?.name || user?.email?.split('@')[0]) ? user?.user_metadata?.avatar : null}
-                      name={m.author}
-                      size="md"
-                      className="flex-shrink-0"
-                    />
+                    {m.author === (user?.user_metadata?.name || user?.email?.split('@')[0]) && user?.user_metadata?.avatar ? (
+                      <div className="chat-avatar" aria-hidden>
+                        <img src={user.user_metadata.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="chat-avatar" aria-hidden style={{background: avatarGradientFor(m.author)}}>{(m.author||'U').slice(0,1).toUpperCase()}</div>
+                    )}
                     <div className="chat-bubble">
                     <div className="chat-message glass-card p-2">
                       <div className="meta flex items-center justify-between">

@@ -36,6 +36,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
+      // admin: list recent signals
       const r = await fetch(`${SUPABASE_URL}/rest/v1/signals?select=*&order=created_at.desc&limit=200`, {
         headers: {
           'apikey': SERVICE_KEY,

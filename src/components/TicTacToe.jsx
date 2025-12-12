@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import Button from './ui/button.jsx'
-import Avatar from './Avatar.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import { getGameEvents, createGameEvent, subscribeToGameEvents } from '../services/api'
 import { usePresence } from '../hooks/usePresence'
@@ -380,12 +379,10 @@ export default function TicTacToe() {
             {moveHistory.map((m, i) => (
               <div key={i} className="glass-card p-2 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {(
-                    <Avatar
-                      src={m.user_id === user?.id ? user?.user_metadata?.avatar : null}
-                      name={m.author}
-                      size="sm"
-                    />
+                  {m.user_id === user?.id && user?.user_metadata?.avatar ? (
+                    <img src={user.user_metadata.avatar} alt="avatar" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="player-avatar" style={{background: `linear-gradient(135deg, hsl(${(m.author||'A').charCodeAt(0)%360} 60% 36%), hsl(${((m.author||'A').charCodeAt(0)+45)%360} 55% 44% )`}}>{(m.author||'U').slice(0,1).toUpperCase()}</div>
                   )}
                   <div className="text-xs text-gray-600">{m.author}</div>
                 </div>

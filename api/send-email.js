@@ -1,7 +1,10 @@
+// Serverless handler to send email via SendGrid
+// Supports CORS preflight so browser fetches won't get 405.
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY
 const EMAIL_FROM = process.env.EMAIL_FROM
 
 export default async function handler(req, res) {
+  // Set CORS headers for all responses
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -14,6 +17,9 @@ export default async function handler(req, res) {
 
   const { to, subject, text, html, from } = req.body || {}
   const fromEmail = from || EMAIL_FROM
+
+  // Debug (do not print secrets)
+  console.log('send-email called', { hasApiKey: !!SENDGRID_API_KEY, hasFrom: !!fromEmail, toPresent: !!to })
 
   if (!SENDGRID_API_KEY) return res.status(500).json({ error: 'SENDGRID_API_KEY not configured' })
   if (!fromEmail) return res.status(500).json({ error: 'EMAIL_FROM not configured' })

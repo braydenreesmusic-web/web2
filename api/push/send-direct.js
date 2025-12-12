@@ -1,5 +1,10 @@
 import webpush from 'web-push'
 
+// Send a single immediate push to the provided subscription object.
+// This endpoint is intended for quick testing without requiring stored
+// subscriptions. It expects a POST body:
+// { subscription: {...}, title: '...', body: '...', url: '/' }
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -12,13 +17,13 @@ export default async function handler(req, res) {
   const VAPID_PRIVATE = process.env.VITE_VAPID_PRIVATE || process.env.VAPID_PRIVATE
 
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
-    return res.status(500).json({ error: 'VAPID keys not configured on server.' })
+    return res.status(500).json({ error: 'VAPID keys not configured on server. Run `npm run generate-vapid` and add keys to env.' })
   }
 
   try {
     const { subscription, title, body, url } = req.body || {}
     if (!subscription) return res.status(400).json({ error: 'subscription required' })
-    webpush.setVapidDetails('mailto:notifications@example.com', VAPID_PUBLIC, VAPID_PRIVATE)
+    webpush.setVapidDetails('mailto:notifications@yourees.xyz', VAPID_PUBLIC, VAPID_PRIVATE)
 
     const payload = JSON.stringify({ title: title || 'Test Notification', body: body || 'Hello from your app', url: url || '/' })
 
