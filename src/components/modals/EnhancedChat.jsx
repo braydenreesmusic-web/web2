@@ -347,11 +347,38 @@ export default function EnhancedChat({ open, onClose }) {
     }
     setPendingProposal({ side, author: me, date: note.date })
     setMessages(prev => [{ author: note.author, content: `Proposed: ${me} as ${side}`, date: note.date }, ...prev])
-    createGameEvent(note).then(() => {
-      showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' })
-    }).catch(() => {
-      showToast && showToast('Invite failed', { type: 'error' })
-    })
+
+    // If we have a partnerUserId, use server endpoint to create an invite row for both
+    // inviter and partner (so partner can read it even if relationship row isn't set).
+    if (partnerUserId) {
+      (async () => {
+        try {
+          const { data } = await supabase.auth.getSession()
+          const token = data?.session?.access_token
+          const res = await fetch('/api/send-game-invite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
+            body: JSON.stringify({ user_id: user.id, author: me, side, partnerUserId })
+          })
+          if (!res.ok) {
+            const txt = await res.text().catch(()=>null)
+            showToast && showToast('Invite failed', { type: 'error' })
+            console.error('send-game-invite failed', res.status, txt)
+            return
+          }
+          showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' })
+        } catch (e) {
+          console.error('send-game-invite error', e)
+          showToast && showToast('Invite failed', { type: 'error' })
+        }
+      })()
+    } else {
+      createGameEvent(note).then(() => {
+        showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' })
+      }).catch(() => {
+        showToast && showToast('Invite failed', { type: 'error' })
+      })
+    }
   }
 
   const proposeRematch = () => {

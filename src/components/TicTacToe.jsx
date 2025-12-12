@@ -154,7 +154,31 @@ export default function TicTacToe() {
     const me = user.user_metadata?.name || user.email
     const note = { user_id: user.id, author: me, content: `TICTACTOE_PROPOSE|${side}|${me}`, date: new Date().toISOString() }
     setPendingProposal({ side, author: me, author_id: user.id, date: note.date })
-    createGameEvent(note).then(() => { showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' }) }).catch(() => { showToast && showToast('Invite failed', { type: 'error' }) })
+    if (partnerUserId) {
+      (async () => {
+        try {
+          const { data } = await supabase.auth.getSession()
+          const token = data?.session?.access_token
+          const res = await fetch('/api/send-game-invite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
+            body: JSON.stringify({ user_id: user.id, author: me, side, partnerUserId })
+          })
+          if (!res.ok) {
+            const txt = await res.text().catch(()=>null)
+            showToast && showToast('Invite failed', { type: 'error' })
+            console.error('send-game-invite failed', res.status, txt)
+            return
+          }
+          showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' })
+        } catch (e) {
+          console.error('send-game-invite error', e)
+          showToast && showToast('Invite failed', { type: 'error' })
+        }
+      })()
+    } else {
+      createGameEvent(note).then(() => { showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' }) }).catch(() => { showToast && showToast('Invite failed', { type: 'error' }) })
+    }
   }
 
   const startGame = (side) => {
