@@ -77,6 +77,8 @@ export default function AvatarMaker({ initialAvatar, onSaved }) {
       alert('Failed to save avatar')
     }
 
+  }
+
 
   // Generate the avatar payload (data URL) without saving.
   const generatePayload = async () => {
