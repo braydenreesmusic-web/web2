@@ -60,7 +60,10 @@ export function replayGameEvents(events = []) {
       if (parts.length >= 3) {
         const side = parts[1]
         const author = parts[2]
-        pendingProposal = { side, author, author_id: n.user_id, date: n.date }
+        // optional author_id supplied in content (when server duplicated rows
+        // for partner visibility we include the original inviter id as parts[3])
+        const author_id = parts[3] || n.user_id
+        pendingProposal = { side, author, author_id, date: n.date }
         continue
       }
     }

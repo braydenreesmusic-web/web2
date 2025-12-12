@@ -152,7 +152,7 @@ export default function TicTacToe() {
   const proposeStart = (side) => {
     if (!user) return
     const me = user.user_metadata?.name || user.email
-    const note = { user_id: user.id, author: me, content: `TICTACTOE_PROPOSE|${side}|${me}`, date: new Date().toISOString() }
+    const note = { user_id: user.id, author: me, content: `TICTACTOE_PROPOSE|${side}|${me}|${user.id}`, date: new Date().toISOString() }
     setPendingProposal({ side, author: me, author_id: user.id, date: note.date })
     if (partnerUserId) {
       (async () => {

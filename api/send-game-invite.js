@@ -41,10 +41,17 @@ export default async function handler(req, res) {
 
     // Build payloads: one for inviter (so they have a local record) and one for partner (so partner can see it)
     const now = new Date().toISOString()
-    const inviterPayload = { user_id, author: author || null, content: `TICTACTOE_PROPOSE|${side}|${author||''}`, date: now }
+    // Include inviter's id inside the content so partner-targeted rows still
+    // carry the original author id (replay logic previously used n.user_id
+    // which becomes the partner's id for partner-row and caused UI to think
+    // the invite was authored by the partner). Content format:
+    // TICTACTOE_PROPOSE|<side>|<author>|<author_id>
+    const inviterContent = `TICTACTOE_PROPOSE|${side}|${author||''}|${user_id}`
+    const inviterPayload = { user_id, author: author || null, content: inviterContent, date: now }
     const rows = [inviterPayload]
     if (partnerUserId) {
-      const partnerPayload = { user_id: partnerUserId, author: author || null, content: `TICTACTOE_PROPOSE|${side}|${author||''}`, date: now }
+      const partnerContent = `TICTACTOE_PROPOSE|${side}|${author||''}|${user_id}`
+      const partnerPayload = { user_id: partnerUserId, author: author || null, content: partnerContent, date: now }
       rows.push(partnerPayload)
     }
 

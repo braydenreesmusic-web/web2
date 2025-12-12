@@ -342,7 +342,8 @@ export default function EnhancedChat({ open, onClose }) {
     const note = {
       user_id: user.id,
       author: me,
-      content: `TICTACTOE_PROPOSE|${side}|${me}`,
+      // include author id in content for consistency with server-side invites
+      content: `TICTACTOE_PROPOSE|${side}|${me}|${user.id}`,
       date: new Date().toISOString()
     }
     setPendingProposal({ side, author: me, date: note.date })
