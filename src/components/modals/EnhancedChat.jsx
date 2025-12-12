@@ -400,7 +400,9 @@ export default function EnhancedChat({ open, onClose }) {
       content: `TICTACTOE_PROPOSE|${side}|${me}|${user.id}`,
       date: new Date().toISOString()
     }
-    setPendingProposal({ side, author: me, date: note.date })
+    // Include author_id in optimistic state so the local user doesn't
+    // incorrectly see the incoming-invite banner for their own proposal.
+    setPendingProposal({ side, author: me, author_id: user.id, date: note.date })
     setMessages(prev => [{ author: note.author, content: `Proposed: ${me} as ${side}`, date: note.date }, ...prev])
 
     // If we have a partnerUserId, use server endpoint to create an invite row for both
