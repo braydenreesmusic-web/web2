@@ -94,6 +94,13 @@ export function replayGameEvents(events = []) {
         const proposer = parts[2]
         const accepter = parts[3]
         const other = side === 'X' ? 'O' : 'X'
+        // Accepting a proposal means a new game begins with these assignments.
+        // Reset board and history so only moves after this accept/start are applied.
+        board.fill(null)
+        moveHistory.length = 0
+        winner = null
+        winningLine = null
+        currentPlayer = 'X'
         playersMap[side] = n.user_id
         playersMap[other] = playersMap[other] || null
         continue
@@ -103,6 +110,13 @@ export function replayGameEvents(events = []) {
       const parts = content.split('|')
       if (parts.length >= 3) {
         const side = parts[1]
+        // Starting a game should reset any prior moves so the replay begins
+        // from this START. Clear board and history and set current player.
+        board.fill(null)
+        moveHistory.length = 0
+        winner = null
+        winningLine = null
+        currentPlayer = 'X'
         playersMap[side] = playersMap[side] || n.user_id
         continue
       }
