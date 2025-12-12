@@ -26,8 +26,8 @@ export default async function handler(req, res) {
     const authHeader = req.headers['authorization'] || ''
     if (!authHeader) return res.status(401).json({ error: 'Missing Authorization header' })
 
-    // Get caller info
-    const userResp = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { Authorization: authHeader } })
+    // Get caller info (include service apikey so Supabase accepts the server-side request)
+    const userResp = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { Authorization: authHeader, apikey: SERVICE_KEY } })
     if (!userResp.ok) {
       const txt = await userResp.text().catch(()=>null)
       return res.status(401).json({ error: 'Invalid session', detail: txt })
