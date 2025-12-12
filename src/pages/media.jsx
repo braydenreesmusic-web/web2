@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import EmptyState from '../components/EmptyState'
 import { getNotes, createNote, getMedia, uploadMedia } from '../services/api'
 import MusicTab from '../components/MusicTab'
-import { Camera, Sparkles } from 'lucide-react'
+import { Camera, Sparkles, Heart, Search } from 'lucide-react'
 
 export default function Media() {
   const [tab, setTab] = useState('photos')
@@ -23,6 +23,9 @@ export default function Media() {
   const fileInput = useRef(null)
   const videoInput = useRef(null)
   const [loading, setLoading] = useState(true)
+  const [query, setQuery] = useState('')
+  const [onlyFavorites, setOnlyFavorites] = useState(false)
+  const [sort, setSort] = useState('newest')
   const tabs = ['photos', 'videos', 'notes', 'music']
 
   useEffect(() => {
@@ -140,6 +143,28 @@ export default function Media() {
     setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, caption: newCaption } : p))
   }
 
+  const toggleFavorite = (photoId) => {
+    setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, favorite: !p.favorite } : p))
+  }
+
+  const downloadPhoto = (url) => {
+    const el = document.createElement('a')
+    el.href = url
+    el.download = `photo-${Date.now()}.jpg`
+    document.body.appendChild(el)
+    el.click()
+    el.remove()
+  }
+
+  const filteredPhotos = photos
+    .filter(p => (!onlyFavorites || p.favorite))
+    .filter(p => (!query || (p.caption || '').toLowerCase().includes(query.toLowerCase())))
+    .sort((a,b) => {
+      if (sort === 'newest') return new Date(b.date) - new Date(a.date)
+      if (sort === 'oldest') return new Date(a.date) - new Date(b.date)
+      return 0
+    })
+
   return (
     <section className="space-y-6 pb-6">
       {/* Tabs */}
@@ -162,28 +187,53 @@ export default function Media() {
       {tab === 'photos' && (
         <div className="space-y-4">
           <input ref={fileInput} type="file" accept="image/*" onChange={onSelectPhoto} className="hidden" />
-          <Button onClick={() => fileInput.current?.click()} disabled={uploading} className="w-full btn flex items-center justify-center gap-2 py-3">
-            <Camera size={20} />
-            {uploading ? 'Uploading...' : 'Add Photo'}
-          </Button>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Button onClick={() => fileInput.current?.click()} disabled={uploading} className="w-full btn flex items-center justify-center gap-2 py-3">
+                <Camera size={20} />
+                {uploading ? 'Uploading...' : 'Add Photo'}
+              </Button>
 
-          <div className="grid grid-cols-2 gap-4">
-            {photos.map(p => (
-              <div
-                key={p.id}
-                onClick={() => {setSelectedPhoto(p); setCaption(p.caption || '')}}
-                className="cursor-pointer transform hover:scale-105 transition-transform"
-              >
-                <div className="bg-white p-3 pb-12 rounded-lg shadow-xl">
-                  <img src={p.url} alt={p.caption || 'Photo'} className="w-full aspect-square object-cover rounded" />
-                  <div className="mt-3 text-center">
-                    <p className="text-sm text-gray-700 line-clamp-2">
-                      {p.caption || 'Tap to add caption'}
-                    </p>
-                  </div>
+              <div className="mt-3 p-3 bg-white rounded-lg shadow">
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-gray-400" />
+                  <input placeholder="Search captions" className="input flex-1" value={query} onChange={e=>setQuery(e.target.value)} />
+                </div>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <button className={`px-3 py-1 rounded ${onlyFavorites ? 'bg-red-600 text-white' : 'bg-gray-100'}`} onClick={()=>setOnlyFavorites(prev=>!prev)}>
+                    <Heart className="w-4 h-4 inline" /> <span className="ml-2 text-sm">Favorites</span>
+                  </button>
+                  <select className="input w-36" value={sort} onChange={e=>setSort(e.target.value)}>
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                  </select>
+                  <div className="ml-auto text-sm text-gray-500">{filteredPhotos.length} photos</div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            <div className="col-span-2">
+              <div className="grid grid-cols-2 gap-4">
+                {filteredPhotos.map(p => (
+                  <div key={p.id} className="relative bg-white p-2 rounded-lg shadow">
+                    <img src={p.url} alt={p.caption || 'Photo'} className="w-full aspect-square object-cover rounded cursor-pointer" onClick={() => {setSelectedPhoto(p); setCaption(p.caption || '')}} />
+                    <div className="mt-2 flex items-start gap-2">
+                      <div className="flex-1">
+                        <input className="input text-sm" value={p.caption || ''} onChange={e=>updatePhotoCaption(p.id, e.target.value)} placeholder="Add a caption..." />
+                        <div className="text-xs text-gray-400 mt-1">{p.date}</div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <button onClick={()=>toggleFavorite(p.id)} className={`p-2 rounded ${p.favorite ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`} aria-label="favorite">
+                          <Heart className="w-4 h-4" />
+                        </button>
+                        <button onClick={()=>downloadPhoto(p.url)} className="p-2 rounded bg-gray-100 text-gray-600" aria-label="download">↓</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {photos.length === 0 && !loading && (
