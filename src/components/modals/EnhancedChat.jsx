@@ -56,6 +56,16 @@ export default function EnhancedChat({ open, onClose }) {
   const [relationshipDebug, setRelationshipDebug] = useState(null)
   const [lastReplayParsed, setLastReplayParsed] = useState(null)
 
+  // Allow DEV controls to be shown either in dev builds or when the
+  // `?debug_game_events=1` query param is present. This makes it easier
+  // to inspect server canonical rows on preview/staging builds.
+  let showDevControls = false
+  try {
+    showDevControls = (typeof window !== 'undefined') && (import.meta.env?.DEV || new URLSearchParams(window.location.search).has('debug_game_events'))
+  } catch (e) {
+    showDevControls = !!(typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug_game_events'))
+  }
+
   // Utility: deterministic avatar gradient from a name
   const avatarGradientFor = (name) => {
     const s = String(name || '')
@@ -549,7 +559,7 @@ export default function EnhancedChat({ open, onClose }) {
             <button onClick={() => setMode('chat')} className={`mode-btn ${mode==='chat' ? 'active' : ''}`}>Chat</button>
             <button onClick={() => setMode('play')} className={`mode-btn ${mode==='play' ? 'active' : ''}`}>Play</button>
           </div>
-          {import.meta.env.DEV && (
+          {showDevControls && (
             <button onClick={() => setShowPresenceDebug(s => !s)} className="ml-3 px-2 py-1 text-xs rounded-md bg-gray-100">{showPresenceDebug ? 'Hide' : 'Show'} Presence Debug</button>
           )}
         </div>
@@ -664,14 +674,14 @@ export default function EnhancedChat({ open, onClose }) {
           </div>
         )}
 
-        {import.meta.env.DEV && uiDebugEvents && (
+        {showDevControls && uiDebugEvents && (
           <div className="mt-2 p-2 bg-slate-50 border rounded text-xs">
             <div className="font-medium text-sm">game_events (server)</div>
             <pre className="max-h-60 overflow-auto text-xs mt-2 bg-white p-2 rounded border">{JSON.stringify(uiDebugEvents, null, 2)}</pre>
           </div>
         )}
 
-        {import.meta.env.DEV && relationshipDebug && (
+        {showDevControls && relationshipDebug && (
           <div className="mt-2 p-2 bg-slate-50 border rounded text-xs">
             <div className="font-medium text-sm">relationship (client)</div>
             <pre className="max-h-40 overflow-auto text-xs mt-2 bg-white p-2 rounded border">{JSON.stringify(relationshipDebug, null, 2)}</pre>
