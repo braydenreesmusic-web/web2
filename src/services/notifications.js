@@ -12,7 +12,7 @@ export async function registerServiceWorker() {
   }
 }
 
-export async function subscribeToPush(vapidPublicKey) {
+export async function subscribeToPush(vapidPublicKey, userId = null) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) throw new Error('Push not supported');
 
   // Note: permission must be requested from a user gesture in the UI.
@@ -30,10 +30,12 @@ export async function subscribeToPush(vapidPublicKey) {
 
   // Try to persist the subscription server-side so we can send pushes later.
   try {
+    const body = { subscription: json, user_agent: navigator.userAgent }
+    if (userId) body.user_id = userId
     const res = await fetch('/api/push-subscriptions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: json, user_agent: navigator.userAgent })
+      body: JSON.stringify(body)
     })
     if (!res.ok) {
       const text = await res.text()
@@ -51,9 +53,9 @@ export async function subscribeToPush(vapidPublicKey) {
   return json;
 }
 
-export async function subscribeToPushAndReturn(vapidPublicKey) {
+export async function subscribeToPushAndReturn(vapidPublicKey, userId = null) {
   // convenience wrapper for subscribeToPush that returns the raw subscription JSON
-  return await subscribeToPush(vapidPublicKey)
+  return await subscribeToPush(vapidPublicKey, userId)
 }
 
 export async function unsubscribeFromPush() {

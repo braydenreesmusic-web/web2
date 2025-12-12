@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { subscribeToPush, subscribeToPushAndReturn, registerServiceWorker, isPushSupported } from '../services/notifications'
+import { useAuth } from '../contexts/AuthContext'
 
 const STORAGE_KEY = 'notifications_prompt_dismissed'
 
@@ -37,6 +38,8 @@ export default function NotificationPrompt() {
     setShow(false)
   }
 
+  const { user } = useAuth()
+
   const handleEnable = async () => {
     setLoading(true)
     setMessage(null)
@@ -55,8 +58,9 @@ export default function NotificationPrompt() {
         if (perm !== 'granted') throw new Error('Notification permission denied')
       }
 
-      const sub = await subscribeToPush(vapid)
-      await subscribeToPushAndReturn(vapid)
+      const userId = user?.id ?? null
+      const sub = await subscribeToPush(vapid, userId)
+      await subscribeToPushAndReturn(vapid, userId)
       setMessage('Notifications enabled')
       localStorage.setItem(STORAGE_KEY, '1')
       setTimeout(() => setShow(false), 900)
