@@ -7,6 +7,7 @@ const Schedule = lazy(() => import('./pages/schedule.jsx'))
 const Media = lazy(() => import('./pages/media.jsx'))
 const MapPage = lazy(() => import('./pages/map.jsx'))
 const Profile = lazy(() => import('./pages/profile.jsx'))
+const AdminGameEvents = lazy(() => import('./pages/admin-game-events.jsx'))
 const Bookmarks = lazy(() => import('./pages/bookmarks.jsx'))
 const Play = lazy(() => import('./pages/play.jsx'))
 
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
   { path: '/media', element: <PageTransition><Media /></PageTransition> },
   { path: '/map', element: <PageTransition><MapPage /></PageTransition> },
   { path: '/profile', element: <PageTransition><Profile /></PageTransition> },
+  { path: '/admin/game-events', element: <PageTransition><AdminGameEvents /></PageTransition> },
   { path: '/bookmarks', element: <PageTransition><Bookmarks /></PageTransition> },
   { path: '/play', element: <PageTransition><Play /></PageTransition> },
 ])

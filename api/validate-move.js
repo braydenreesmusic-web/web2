@@ -2,6 +2,7 @@ import fetch from 'node-fetch'
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
+const DEBUG_SECRET = process.env.GAME_EVENTS_DEBUG_SECRET || process.env.DEBUG_SECRET
 
 function setCORS(res, req) {
   const origin = req.headers.origin || '*'
@@ -27,13 +28,20 @@ export default async function handler(req, res) {
     const body = req.body || {}
     const { idx, player, user_id } = body
     console.debug && console.debug('validate-move request body', body)
+    // If caller provided the debug secret header, enable verbose logging for this request
+    const reqDebugSecret = req.headers['x-debug-secret'] || req.headers['x-debug-token']
+    const verbose = DEBUG_SECRET && reqDebugSecret === DEBUG_SECRET
+    if (verbose) {
+      console.debug('validate-move: verbose logging enabled for this request')
+      try { console.debug('headers', req.headers) } catch (e) {}
+    }
     if (typeof idx !== 'number' || !['X','O'].includes(player) || !user_id) {
       return res.status(400).json({ error: 'Missing or invalid idx/player/user_id' })
     }
 
     // Find partner if any
     const relUrl = `${SUPABASE_URL}/rest/v1/relationships?user_id=eq.${user_id}`
-    if (process.env.NODE_ENV === 'development') console.debug('validate-move: fetching relationships for', user_id)
+    if (process.env.NODE_ENV === 'development' || verbose) console.debug('validate-move: fetching relationships for', user_id)
     const relRes = await fetch(relUrl, {
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` }
     })
@@ -52,7 +60,7 @@ export default async function handler(req, res) {
     // Fetch relevant game events (moves and starts/accepts) for these participants
     const userList = partnerId ? `${user_id},${partnerId}` : `${user_id}`
     const eventsUrl = `${SUPABASE_URL}/rest/v1/game_events?user_id=in.(${userList})&order=date.asc`
-    if (process.env.NODE_ENV === 'development') console.debug('validate-move: fetching events for list', userList)
+    if (process.env.NODE_ENV === 'development' || verbose) console.debug('validate-move: fetching events for list', userList)
     const eventsRes = await fetch(eventsUrl, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } })
     if (!eventsRes.ok) {
       const txt = await eventsRes.text().catch(()=>null)
@@ -60,6 +68,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch game events', details: txt })
     }
     const events = await eventsRes.json()
+
+    if (verbose) {
+      try { console.debug('validate-move: events', events) } catch (e) {}
+    }
 
     // Reconstruct board
     const board = Array(9).fill(null)
@@ -98,10 +110,12 @@ export default async function handler(req, res) {
 
     if (player !== currentExpected) {
       console.warn('validate-move: not your turn', { expected: currentExpected, got: player })
+      if (verbose) console.debug('validate-move: board state', board, 'lastPlayer', lastPlayer)
       return res.status(400).json({ error: 'Not your turn', expected: currentExpected })
     }
     if (board[idx]) {
       console.warn('validate-move: cell occupied', { idx })
+      if (verbose) console.debug('validate-move: board state', board)
       return res.status(400).json({ error: 'Cell already occupied' })
     }
 
