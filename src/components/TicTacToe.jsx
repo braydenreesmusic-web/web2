@@ -163,6 +163,33 @@ export default function TicTacToe() {
       if (!res.ok) {
         const txt = await res.text().catch(()=>null)
         console.warn('validate-move rejected', res.status, txt)
+        showToast && showToast((txt && JSON.parse(txt)?.error) || txt || 'Move rejected', { type: 'error' })
+        // Re-sync canonical game_events and replay authoritative state so
+        // client doesn't remain optimistic when server rejects the move.
+        try {
+          const ev = await getGameEvents(user.id)
+          const events = (ev || []).sort((a,b)=> new Date(a.date) - new Date(b.date))
+          const parsed = replayGameEvents(events)
+          setGameMessages(parsed.gameMessages)
+          setBoard(parsed.board)
+          setCurrentPlayer(parsed.currentPlayer)
+          setWinner(parsed.winner)
+          setWinningLine(parsed.winningLine)
+          setPlayersMap(parsed.playersMap)
+          try {
+            const pp = parsed.pendingProposal ? { ...parsed.pendingProposal } : null
+            if (pp && !pp.author_id && pp.row_user_id) pp.author_id = pp.row_user_id
+            setPendingProposal(pp)
+          } catch (e) {
+            setPendingProposal(parsed.pendingProposal)
+          }
+          setPendingRematch(parsed.pendingRematch)
+          setMoveHistory(parsed.moveHistory)
+          const myAssigned = Object.keys(parsed.playersMap).find(p => parsed.playersMap[p] === user.id)
+          setMyPlayer(myAssigned || null)
+        } catch (e) {
+          console.error('validate-move: failed to re-sync events', e)
+        }
       }
     }).catch((err) => {
       console.error('validate-move request failed', err)
