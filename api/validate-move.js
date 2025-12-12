@@ -73,9 +73,10 @@ export default async function handler(req, res) {
       try { console.debug('validate-move: events', events) } catch (e) {}
     }
 
-    // Reconstruct board
+    // Reconstruct board and move history
     const board = Array(9).fill(null)
     let lastPlayer = null
+    const moveHistory = []
     for (const ev of events) {
       const c = ev.content || ''
       if (c.startsWith('TICTACTOE_MOVE|')) {
@@ -84,6 +85,7 @@ export default async function handler(req, res) {
         const p = parts[2]
         if (Number.isFinite(i) && i >= 0 && i < 9) board[i] = p
         lastPlayer = p
+        moveHistory.push({ idx: i, player: p, author: ev.author, user_id: ev.user_id, date: ev.date })
       }
       if (c.startsWith('TICTACTOE_START|')) {
         // noop for turn calc
@@ -100,6 +102,9 @@ export default async function handler(req, res) {
     const winner = checkWin(board)
     if (winner) {
       console.warn('validate-move: move rejected, game already finished', { winner })
+      if (verbose || process.env.NODE_ENV === 'development') {
+        return res.status(400).json({ error: 'Game already finished', winner, board, moveHistory })
+      }
       return res.status(400).json({ error: 'Game already finished' })
     }
 
