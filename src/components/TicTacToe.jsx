@@ -13,6 +13,15 @@ export default function TicTacToe() {
   const { isPartnerOnline, partnerPresence, partnerUserId } = usePresence()
   const { showToast } = useToast()
 
+  // Show a simple signed-in debug indicator when requested via query param
+  let showDevControls = false
+  try {
+    showDevControls = (typeof window !== 'undefined') && (import.meta.env?.DEV || new URLSearchParams(window.location.search).has('debug_game_events'))
+  } catch (e) {
+    showDevControls = !!(typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug_game_events'))
+  }
+  const showSignedInDebug = showDevControls && !!user
+
   const emptyBoard = Array(9).fill(null)
   const [board, setBoard] = useState(emptyBoard)
   const [currentPlayer, setCurrentPlayer] = useState('X')
@@ -306,6 +315,9 @@ export default function TicTacToe() {
 
   return (
     <div className="space-y-4">
+      {showSignedInDebug && (
+        <div className="mb-2 p-2 rounded bg-yellow-50 border border-yellow-200 text-xs text-gray-700">Signed in as <strong>{user.user_metadata?.name || user.email}</strong> <span className="ml-2 font-mono text-xs text-gray-500">{user.id}</span></div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <div className="text-lg font-semibold">Tic‑Tac‑Toe</div>

@@ -66,6 +66,9 @@ export default function EnhancedChat({ open, onClose }) {
     showDevControls = !!(typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug_game_events'))
   }
 
+  // Expose a simple debug indicator when debug_game_events flag is present
+  const showSignedInDebug = showDevControls && !!user
+
   // Utility: deterministic avatar gradient from a name
   const avatarGradientFor = (name) => {
     const s = String(name || '')
@@ -575,6 +578,13 @@ export default function EnhancedChat({ open, onClose }) {
             <button onClick={() => setShowPresenceDebug(s => !s)} className="ml-3 px-2 py-1 text-xs rounded-md bg-gray-100">{showPresenceDebug ? 'Hide' : 'Show'} Presence Debug</button>
           )}
         </div>
+
+        {showSignedInDebug && (
+          <div className="mt-2 p-2 rounded bg-yellow-50 border border-yellow-200 text-xs text-gray-700">
+            Signed in as <strong>{user.user_metadata?.name || user.email}</strong>
+            <span className="ml-2 font-mono text-xs text-gray-500">{user.id}</span>
+          </div>
+        )}
 
         {mode === 'chat' && (
           <>
