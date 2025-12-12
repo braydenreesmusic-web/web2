@@ -54,6 +54,7 @@ export default function EnhancedChat({ open, onClose }) {
   const [pendingRematch, setPendingRematch] = useState(null)
   const [uiDebugEvents, setUiDebugEvents] = useState(null)
   const [relationshipDebug, setRelationshipDebug] = useState(null)
+  const [lastReplayParsed, setLastReplayParsed] = useState(null)
 
   // Utility: deterministic avatar gradient from a name
   const avatarGradientFor = (name) => {
@@ -202,6 +203,7 @@ export default function EnhancedChat({ open, onClose }) {
           getGameEvents(user.id).then(ev => {
             const events = (ev || []).sort((a,b) => new Date(a.date) - new Date(b.date))
             const parsed = replayGameEvents(events)
+            setLastReplayParsed(parsed)
             setGameMessages(parsed.gameMessages)
             setBoard(parsed.board)
             setCurrentPlayer(parsed.currentPlayer)
@@ -211,6 +213,7 @@ export default function EnhancedChat({ open, onClose }) {
             setPendingProposal(parsed.pendingProposal)
             setPendingRematch(parsed.pendingRematch)
             setMoveHistory(parsed.moveHistory)
+            setLastReplayParsed(parsed)
           }).catch(e => console.error('EnhancedChat: failed to replay game_events', e))
         }
       }
