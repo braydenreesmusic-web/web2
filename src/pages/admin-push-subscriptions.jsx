@@ -18,7 +18,7 @@ export default function AdminPushSubscriptions(){
     if (!adminSecret) return setError('Provide admin secret to load subscriptions')
     setLoading(true); setError(null)
     try{
-      const res = await fetch('/api/admin-push-subscriptions', { headers: { 'x-admin-secret': adminSecret }})
+      const res = await fetch('/api/admin/push-subscriptions', { headers: { 'x-admin-secret': adminSecret }})
       if (!res.ok) {
         const txt = await res.text().catch(()=>null)
         throw new Error(txt || `status ${res.status}`)
@@ -32,7 +32,7 @@ export default function AdminPushSubscriptions(){
   const associate = async (id, userId) => {
     if (!adminSecret) return setError('Admin secret required')
     try{
-      const res = await fetch('/api/admin-push-subscriptions', {
+      const res = await fetch('/api/admin/push-subscriptions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
         body: JSON.stringify({ id, user_id: userId })
@@ -48,7 +48,7 @@ export default function AdminPushSubscriptions(){
   const remove = async (id) => {
     if (!adminSecret) return setError('Admin secret required')
     try{
-      const res = await fetch('/api/admin-push-subscriptions', {
+      const res = await fetch('/api/admin/push-subscriptions', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
         body: JSON.stringify({ id })

@@ -15,7 +15,7 @@ export default function AdminGameEvents() {
     setRows(null)
     try {
       const q = new URLSearchParams({ user_id: userId, limit: String(limit), secret })
-      const res = await fetch(`/api/game-events-debug?${q.toString()}`)
+      const res = await fetch(`/api/admin/game-events-debug?${q.toString()}`)
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || JSON.stringify(json))
       setRows(json.rows || [])

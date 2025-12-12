@@ -19,7 +19,7 @@ export default function AdminPresence(){
     if (!adminSecret) return setError('Provide admin secret to load signals')
     setLoadingSignals(true); setError(null)
     try{
-      const res = await fetch('/api/signals', { headers: { 'x-admin-secret': adminSecret }})
+      const res = await fetch('/api/admin/signals', { headers: { 'x-admin-secret': adminSecret }})
       if (!res.ok) {
         const txt = await res.text().catch(()=>null)
         throw new Error(txt || `status ${res.status}`)
@@ -37,7 +37,7 @@ export default function AdminPresence(){
     try{
       let meta = {};
       try{ meta = JSON.parse(presenceMeta || '{}') }catch(e){ throw new Error('Invalid JSON for meta') }
-      const res = await fetch('/api/presence', {
+      const res = await fetch('/api/admin/presence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
         body: JSON.stringify({ user_id: presenceUserId, online: true, meta })
@@ -53,7 +53,7 @@ export default function AdminPresence(){
     if (!presenceUserId) return setError('Provide user id')
     setError(null)
     try{
-      const res = await fetch('/api/presence', {
+      const res = await fetch('/api/admin/presence', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
         body: JSON.stringify({ user_id: presenceUserId })
