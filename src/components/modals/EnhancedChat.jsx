@@ -360,13 +360,16 @@ export default function EnhancedChat({ open, onClose }) {
             headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
             body: JSON.stringify({ user_id: user.id, author: me, side, partnerUserId })
           })
-          if (!res.ok) {
-            const txt = await res.text().catch(()=>null)
-            showToast && showToast('Invite failed', { type: 'error' })
-            console.error('send-game-invite failed', res.status, txt)
-            return
-          }
-          showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' })
+              const json = await res.json().catch(()=>null)
+              if (!res.ok) {
+                const txt = (json && (json.detail || json.error)) || await res.text().catch(()=>null)
+                showToast && showToast('Invite failed', { type: 'error' })
+                console.error('send-game-invite failed', res.status, txt, json)
+                return
+              }
+              // Log server response so we can confirm which rows were inserted
+              try { console.debug('send-game-invite response', json) } catch (e) {}
+              showToast && showToast(`Invite sent — ${me} proposed ${side}`, { type: 'success' })
         } catch (e) {
           console.error('send-game-invite error', e)
           showToast && showToast('Invite failed', { type: 'error' })

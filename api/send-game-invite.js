@@ -22,6 +22,10 @@ export default async function handler(req, res) {
     const { user_id, author, side, partnerUserId } = body
     if (!user_id || !side) return res.status(400).json({ error: 'Missing user_id or side' })
 
+    if (process.env.NODE_ENV === 'development') {
+      try { console.debug('send-game-invite request', { body }) } catch (e) {}
+    }
+
     // Validate session token and ensure caller matches user_id
     const authHeader = req.headers['authorization'] || ''
     if (!authHeader) return res.status(401).json({ error: 'Missing Authorization header' })
@@ -62,6 +66,7 @@ export default async function handler(req, res) {
     }
 
     const inserted = await resp.json()
+    try { console.debug && console.debug('send-game-invite inserted', inserted) } catch (e) {}
     return res.status(200).json({ ok: true, inserted })
   } catch (err) {
     console.error('send-game-invite error', err)
