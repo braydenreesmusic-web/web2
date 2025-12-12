@@ -1,5 +1,3 @@
-import fetch from 'node-fetch'
-
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
 const DEBUG_SECRET = process.env.GAME_EVENTS_DEBUG_SECRET || process.env.DEBUG_SECRET
@@ -8,7 +6,9 @@ function setCORS(res, req) {
   const origin = req.headers.origin || '*'
   res.setHeader('Access-Control-Allow-Origin', origin)
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-debug-secret')
+  // Allow cookies/credentials when origin is echoed (not '*')
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
 }
 
 export default async function handler(req, res) {
