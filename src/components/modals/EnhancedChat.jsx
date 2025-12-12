@@ -220,12 +220,23 @@ export default function EnhancedChat({ open, onClose }) {
             // is missing, fall back to `row_user_id` so UI decisions remain
             // deterministic.
             try {
-              const pp = parsed.pendingProposal ? { ...parsed.pendingProposal } : null
-              if (pp) {
-                if (!pp.author_id && pp.row_user_id) pp.author_id = pp.row_user_id
-                if (import.meta.env.DEV) {
-                  try { console.debug && console.debug('EnhancedChat: pendingProposal normalized', pp) } catch (e) {}
+              // Prefer the proposal row that belongs to the current user (so
+              // the incoming-invite banner is evaluated against the row that
+              // actually appears in this user's feed). Fall back to the last
+              // parsed proposal for backward compatibility.
+              const meId = user?.id
+              let pp = null
+              try {
+                if (parsed.pendingProposalMap && meId) {
+                  pp = parsed.pendingProposalMap[meId] || null
                 }
+                if (!pp && parsed.pendingProposal) pp = { ...parsed.pendingProposal }
+                if (pp && !pp.author_id && pp.row_user_id) pp.author_id = pp.row_user_id
+                if (import.meta.env.DEV) {
+                  try { console.debug && console.debug('EnhancedChat: pendingProposal chosen', pp) } catch (e) {}
+                }
+              } catch (e) {
+                pp = parsed.pendingProposal
               }
               setPendingProposal(pp)
             } catch (e) {

@@ -35,6 +35,7 @@ export function replayGameEvents(events = []) {
   const moveHistory = []
   const gameMessages = []
   let pendingProposal = null
+  const pendingProposalMap = {}
   let pendingRematch = null
 
   const applyMove = (note) => {
@@ -66,7 +67,9 @@ export function replayGameEvents(events = []) {
         // Also include the row owner (user_id) so callers can tell whether
         // this particular row belonged to the local user or the partner.
         const row_user_id = n.user_id
-        pendingProposal = { side, author, author_id, row_user_id, date: n.date }
+        const proposalObj = { side, author, author_id, row_user_id, date: n.date }
+        pendingProposal = proposalObj
+        pendingProposalMap[row_user_id] = proposalObj
         // Use `import.meta.env.DEV` check in browser builds; guard for other
         // environments to avoid referencing an undefined `process` global.
         try {
@@ -150,6 +153,7 @@ export function replayGameEvents(events = []) {
     moveHistory,
     gameMessages,
     pendingProposal,
+    pendingProposalMap,
     pendingRematch
   }
 }

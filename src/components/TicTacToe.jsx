@@ -49,9 +49,12 @@ export default function TicTacToe() {
         setWinner(parsed.winner)
         setWinningLine(parsed.winningLine)
         setPlayersMap(parsed.playersMap)
-        // Normalize pendingProposal author_id using row_user_id if missing
+        // Prefer the proposal that belongs to this user (if present).
         try {
-          const pp = parsed.pendingProposal ? { ...parsed.pendingProposal } : null
+          const meId = user?.id
+          let pp = null
+          if (parsed.pendingProposalMap && meId) pp = parsed.pendingProposalMap[meId] || null
+          if (!pp && parsed.pendingProposal) pp = { ...parsed.pendingProposal }
           if (pp && !pp.author_id && pp.row_user_id) pp.author_id = pp.row_user_id
           setPendingProposal(pp)
         } catch (e) {
