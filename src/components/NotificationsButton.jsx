@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Bell, BellOff } from 'lucide-react'
 import { registerServiceWorker, subscribeToPush, subscribeToPushAndReturn, unsubscribeFromPush, isPushSupported } from '../services/notifications'
+import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 
 export default function NotificationsButton() {
@@ -21,6 +22,8 @@ export default function NotificationsButton() {
     }
     check()
   }, [])
+
+  const { user } = useAuth()
 
   // use global showToast
 
@@ -54,7 +57,8 @@ export default function NotificationsButton() {
       }
 
       // permission is granted now — perform registration & subscribe
-      const sub = await subscribeToPushAndReturn(vapid)
+      // Pass current user id so server-side save includes `user_id` when signed-in
+      const sub = await subscribeToPushAndReturn(vapid, user?.id ?? null)
       // After subscribing, attempt a quick test push to the subscription so users
       // immediately observe a notification (best-effort).
       try {
