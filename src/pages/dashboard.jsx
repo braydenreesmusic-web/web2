@@ -69,14 +69,14 @@ export default function Dashboard() {
         <div className="glass-card p-4">Loading your overview…</div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="glass-card p-4">
-          <div className="text-sm text-gray-500">Days Together</div>
+        <div className="expensive-card p-4">
+          <div className="text-sm muted">Days Together</div>
           <div className="text-3xl font-semibold">512</div>
         </div>
-        <Link to="/savings" className="glass-card p-4 hover:shadow-lg transition-shadow">
+        <Link to="/savings" className="expensive-card p-4 hover:shadow-lg transition-shadow">
           <div className="flex items-center gap-2 mb-2">
-            <PiggyBank className="w-4 h-4 text-slate-600" />
-            <div className="text-sm text-gray-500">Savings Goals</div>
+            <PiggyBank className="w-4 h-4 text-[var(--accent-600)]" />
+            <div className="text-sm muted">Savings Goals</div>
           </div>
           {savings.length > 0 ? (
             <>
@@ -92,8 +92,8 @@ export default function Dashboard() {
             <div className="text-xs text-gray-400">No goals yet</div>
           )}
         </Link>
-        <div className="glass-card p-4">
-          <div className="text-sm text-gray-500 mb-2">Presence</div>
+        <div className="expensive-card p-4">
+          <div className="text-sm muted mb-2">Presence</div>
           {presence.filter(p => p.is_online).length > 0 ? (
             <div className="flex flex-col gap-1">
               {presence.filter(p => p.is_online).map(p => {
@@ -106,40 +106,40 @@ export default function Dashboard() {
                 const name = isMe ? myName : partnerName
                 return (
                   <div key={p.user_id} className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-slate-600"/>
+                      <span className="w-2 h-2 rounded-full bg-green-400 shadow-sm"/>
                       <span className="text-sm font-medium">{name}{isMe ? ' (you)' : ''}</span>
-                      <span className="text-xs text-gray-400"> • {p.updated_at ? new Date(p.updated_at).toLocaleTimeString() : ''}</span>
+                      <span className="text-xs muted"> • {p.updated_at ? new Date(p.updated_at).toLocaleTimeString() : ''}</span>
                     </div>
                 )
               })}
             </div>
           ) : (
-            <div className="text-sm text-gray-400">No one online</div>
+            <div className="text-sm muted">No one online</div>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button onClick={()=>setShowCheckIn(true)} className="glass-card p-4 text-left hover:scale-[1.02] transition">
+        <button onClick={()=>setShowCheckIn(true)} className="expensive-card p-4 text-left hover:scale-[1.02] transition">
           <div className="text-lg font-semibold gradient-text">Check-In</div>
-          <div className="text-sm text-gray-500">Daily mood & energy</div>
+          <div className="text-sm muted">Daily mood & energy</div>
         </button>
-        <button onClick={()=>setShowGalaxy(true)} className="glass-card p-4 text-left hover:scale-[1.02] transition">
+        <button onClick={()=>setShowGalaxy(true)} className="expensive-card p-4 text-left hover:scale-[1.02] transition">
           <div className="text-lg font-semibold gradient-text">Memories</div>
-          <div className="text-sm text-gray-500">Timeline & grid</div>
+          <div className="text-sm muted">Timeline & grid</div>
         </button>
-        <button onClick={()=>setShowInsights(true)} className="glass-card p-4 text-left hover:scale-[1.02] transition">
+        <button onClick={()=>setShowInsights(true)} className="expensive-card p-4 text-left hover:scale-[1.02] transition">
           <div className="text-lg font-semibold gradient-text">Insights</div>
-          <div className="text-sm text-gray-500">Tips for you two</div>
+          <div className="text-sm muted">Tips for you two</div>
         </button>
-        <button onClick={()=>setShowChat(true)} className="glass-card p-4 text-left hover:scale-[1.02] transition">
+        <button onClick={()=>setShowChat(true)} className="expensive-card p-4 text-left hover:scale-[1.02] transition">
           <div className="text-lg font-semibold gradient-text">Love Notes</div>
-          <div className="text-sm text-gray-500">Chat with suggestions</div>
+          <div className="text-sm muted">Chat with suggestions</div>
         </button>
       </div>
 
-      <div className="glass-card p-4">
-        <div className="text-sm text-gray-500 mb-2">Recent Check-Ins</div>
+      <div className="expensive-card p-4">
+        <div className="text-sm muted mb-2">Recent Check-Ins</div>
         {checkIns.slice(0, 3).map(ci => (
           <div key={ci.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
             <div className="flex items-center gap-3">
@@ -156,7 +156,7 @@ export default function Dashboard() {
         ))}
         {!checkIns.length && (
           <div className="py-4">
-            <EmptyState title="No check-ins yet" description="Log a check-in to track your progress and feelings over time." action={<button className="btn">Log Check-In</button>} />
+            <EmptyState title="No check-ins yet" description="Log a check-in to track your progress and feelings over time." action={<Button onClick={()=>setShowCheckIn(true)}>Log Check-In</Button>} />
           </div>
         )}
       </div>

@@ -125,7 +125,22 @@ h1, .heading {
   border-radius: var(--radius-sm);
   box-shadow: 0 0 0 0 rgba(var(--focus-ring), 0);
 }
-.input:focus { outline: none; box-shadow: 0 6px 28px rgba(var(--focus-ring), 0.08), 0 0 0 4px rgba(var(--focus-ring), 0.08); }
+.input:focus { outline: none; box-shadow: 0 6px 28px rgba(var(--focus-ring), 0.08), 0 0 0 4px rgba(var(--focus-ring), 0.06); border-color: var(--accent-600); }
+.input:focus-visible { outline: none; box-shadow: 0 8px 36px rgba(var(--focus-ring), 0.12), 0 0 0 6px rgba(var(--focus-ring), 0.06); border-color: var(--accent-600); }
+
+/* Photo card utilities */
+.photo-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform var(--motion-short) ease, box-shadow var(--motion-short) ease;
+}
+.photo-card:hover { transform: translateY(-4px); box-shadow: var(--elev-2); }
+.photo-image { width: 100%; height: auto; display: block; object-fit: cover; }
+.photo-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px; background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.5) 100%); color: white; }
+.photo-actions { display:flex; gap:8px; align-items:center }
+.photo-caption-input { background: rgba(255,255,255,0.92); padding:8px 10px; border-radius:10px; color:var(--text); border:1px solid rgba(255,255,255,0.6); }
 .card { @apply rounded-2xl border bg-white; border-color: var(--border); }
 
 /* Typographic scale and spacing */

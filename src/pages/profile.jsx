@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { LogOut, User, Heart, Calendar, Camera, FileText, Edit2, Check, Send, UserPlus, CheckCircle, XCircle, Mail } from 'lucide-react'
 import AvatarMaker from '../components/AvatarMaker'
 import Dialog from '../components/ui/dialog'
+import Input from '../components/ui/input'
 import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../services/api'
 import NotificationsButton from '../components/NotificationsButton'
 import { useToast } from '../contexts/ToastContext'
@@ -418,12 +419,11 @@ export default function Profile() {
                   <span className="text-sm font-semibold" style={{color: 'var(--text)'}}>Link Your Partner</span>
                 </div>
                 <div className="flex gap-2">
-                  <input
+                  <Input
                     type="email"
                     value={partnerEmail}
                     onChange={e => setPartnerEmail(e.target.value)}
                     placeholder="partner@example.com"
-                    className="input"
                     onKeyPress={e => e.key === 'Enter' && sendRequest()}
                   />
                   <button

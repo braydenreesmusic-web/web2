@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import Input from '../components/ui/input'
 
 export default function AdminPresence(){
   const { user } = useAuth()
@@ -74,7 +75,7 @@ export default function AdminPresence(){
         <div className="mt-3">
           <label className="text-xs text-gray-500">Admin Secret</label>
           <div className="flex gap-2 mt-1">
-            <input value={adminSecret} onChange={e=>setAdminSecret(e.target.value)} className="input" placeholder="Paste admin secret for API requests" />
+            <Input value={adminSecret} onChange={e=>setAdminSecret(e.target.value)} placeholder="Paste admin secret for API requests" />
             <button onClick={loadSignals} className="btn">Load Signals</button>
           </div>
           {error && <div className="text-xs text-red-600 mt-2">{error}</div>}
@@ -84,9 +85,9 @@ export default function AdminPresence(){
       <div className="glass-card p-4">
         <div className="font-medium">Manage Presence</div>
         <div className="mt-3 space-y-2">
-          <input className="input" placeholder="user_id (UUID)" value={presenceUserId} onChange={e=>setPresenceUserId(e.target.value)} />
+          <Input placeholder="user_id (UUID)" value={presenceUserId} onChange={e=>setPresenceUserId(e.target.value)} />
           <label className="text-xs text-gray-500">Meta (JSON)</label>
-          <textarea className="input" rows={3} value={presenceMeta} onChange={e=>setPresenceMeta(e.target.value)} />
+          <Input as="textarea" rows={3} value={presenceMeta} onChange={e=>setPresenceMeta(e.target.value)} />
           <div className="flex gap-2">
             <button className="btn" onClick={upsertPresence}>Upsert Presence</button>
             <button className="btn" onClick={deletePresence}>Delete Presence</button>

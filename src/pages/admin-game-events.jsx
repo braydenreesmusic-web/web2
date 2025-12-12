@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Button from '../components/ui/button'
+import Input from '../components/ui/input'
 
 export default function AdminGameEvents() {
   const [userId, setUserId] = useState('')
@@ -31,10 +32,10 @@ export default function AdminGameEvents() {
       <div className="glass-card p-4">
         <h2 className="font-semibold text-lg">Game Events Debug</h2>
         <div className="mt-3 space-y-2">
-          <input className="input" placeholder="user_id (UUID)" value={userId} onChange={e=>setUserId(e.target.value)} />
-          <input className="input" placeholder="debug secret" value={secret} onChange={e=>setSecret(e.target.value)} />
+          <Input placeholder="user_id (UUID)" value={userId} onChange={e=>setUserId(e.target.value)} />
+          <Input placeholder="debug secret" value={secret} onChange={e=>setSecret(e.target.value)} />
           <div className="flex items-center gap-2">
-            <input type="number" className="input w-24" value={limit} onChange={e=>setLimit(Number(e.target.value||0))} />
+            <Input type="number" className="w-24" value={limit} onChange={e=>setLimit(Number(e.target.value||0))} />
             <Button onClick={fetchEvents} disabled={!userId || loading}>{loading ? 'Loading…' : 'Fetch Events'}</Button>
           </div>
         </div>

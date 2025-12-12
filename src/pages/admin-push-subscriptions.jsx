@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import Dialog from '../components/ui/dialog'
+import Input from '../components/ui/input'
 
 export default function AdminPushSubscriptions(){
   const { user } = useAuth()
@@ -68,7 +69,7 @@ export default function AdminPushSubscriptions(){
         <div className="mt-3">
           <label className="text-xs text-gray-500">Admin Secret</label>
           <div className="flex gap-2 mt-1">
-            <input value={adminSecret} onChange={e=>setAdminSecret(e.target.value)} className="input" placeholder="Paste admin secret for API requests" />
+            <Input value={adminSecret} onChange={e=>setAdminSecret(e.target.value)} placeholder="Paste admin secret for API requests" />
             <button onClick={load} className="btn">Load</button>
           </div>
           {error && <div className="text-xs text-red-600 mt-2">{error}</div>}
@@ -106,7 +107,7 @@ function AssociateForm({ currentUserId, onAssociate, onRemove }){
   const [val, setVal] = useState(currentUserId||'')
   return (
     <div className="flex flex-col items-end">
-      <input className="input text-xs w-40" value={val} onChange={e=>setVal(e.target.value)} placeholder="user id (uuid)" />
+      <Input className="text-xs w-40" value={val} onChange={e=>setVal(e.target.value)} placeholder="user id (uuid)" />
       <div className="flex gap-2 mt-2">
         <button className="px-2 py-1 bg-green-600 text-white text-xs rounded" onClick={()=>onAssociate(val)}>Associate</button>
         <button className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded" onClick={onRemove}>Delete</button>

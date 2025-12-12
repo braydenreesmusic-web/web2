@@ -203,25 +203,23 @@ export default function SavingsGoals() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Goal Title</label>
-            <input
+            <Input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="Summer Vacation"
-              className="input"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Target Amount</label>
-            <input
+            <Input
               type="number"
               value={target}
               onChange={e => setTarget(e.target.value)}
               placeholder="5000"
               min="0"
               step="0.01"
-              className="input"
             />
           </div>
 
@@ -240,11 +238,10 @@ export default function SavingsGoals() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Deadline (optional)</label>
-            <input
+            <Input
               type="date"
               value={deadline}
               onChange={e => setDeadline(e.target.value)}
-              className="input"
             />
           </div>
 
@@ -271,20 +268,20 @@ export default function SavingsGoals() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-            <input
+            <Input
               type="number"
               value={amount}
               onChange={e => setAmount(e.target.value)}
               placeholder="100.00"
               min="0"
               step="0.01"
-              className="input"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Note (optional)</label>
-            <textarea
+            <Input
+              as="textarea"
               value={note}
               onChange={e => setNote(e.target.value)}
               placeholder="Birthday money"

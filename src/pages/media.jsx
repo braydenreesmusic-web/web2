@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Dialog from '../components/ui/dialog.jsx'
 import Button from '../components/ui/button.jsx'
+import Input from '../components/ui/input'
 import { useAuth } from '../contexts/AuthContext'
 import EmptyState from '../components/EmptyState'
 import { getNotes, createNote, getMedia, uploadMedia } from '../services/api'
@@ -187,28 +188,33 @@ export default function Media() {
       {tab === 'photos' && (
         <div className="space-y-4">
           <input ref={fileInput} type="file" accept="image/*" onChange={onSelectPhoto} className="hidden" />
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-4">
             <div>
-              <Button onClick={() => fileInput.current?.click()} disabled={uploading} className="w-full btn flex items-center justify-center gap-2 py-3">
+              <Button onClick={() => fileInput.current?.click()} disabled={uploading} className="w-full" variant="solid">
                 <Camera size={20} />
                 {uploading ? 'Uploading...' : 'Add Photo'}
               </Button>
 
-              <div className="mt-3 p-3 bg-white rounded-lg shadow">
-                <div className="flex items-center gap-2">
+              <div className="mt-4 p-4 expensive-card">
+                <div className="flex items-center gap-3">
                   <Search className="w-4 h-4 text-gray-400" />
-                  <input placeholder="Search captions" className="input flex-1" value={query} onChange={e=>setQuery(e.target.value)} />
+                  <Input placeholder="Search captions" className="flex-1" value={query} onChange={e=>setQuery(e.target.value)} />
                 </div>
 
-                <div className="mt-3 flex items-center gap-2">
-                  <button className={`px-3 py-1 rounded ${onlyFavorites ? 'bg-red-600 text-white' : 'bg-gray-100'}`} onClick={()=>setOnlyFavorites(prev=>!prev)}>
-                    <Heart className="w-4 h-4 inline" /> <span className="ml-2 text-sm">Favorites</span>
+                <div className="mt-4 flex items-center gap-3">
+                  <button
+                    onClick={()=>setOnlyFavorites(prev=>!prev)}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md font-semibold ${onlyFavorites ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                    aria-pressed={onlyFavorites}
+                  >
+                    <Heart className="w-4 h-4" />
+                    <span className="text-sm">Favorites</span>
                   </button>
                   <select className="input w-36" value={sort} onChange={e=>setSort(e.target.value)}>
                     <option value="newest">Newest</option>
                     <option value="oldest">Oldest</option>
                   </select>
-                  <div className="ml-auto text-sm text-gray-500">{filteredPhotos.length} photos</div>
+                  <div className="ml-auto text-sm muted">{filteredPhotos.length} photos</div>
                 </div>
               </div>
             </div>
@@ -216,18 +222,22 @@ export default function Media() {
             <div className="col-span-2">
               <div className="grid grid-cols-2 gap-4">
                 {filteredPhotos.map(p => (
-                  <div key={p.id} className="relative bg-white p-2 rounded-lg shadow">
-                    <img src={p.url} alt={p.caption || 'Photo'} className="w-full aspect-square object-cover rounded cursor-pointer" onClick={() => {setSelectedPhoto(p); setCaption(p.caption || '')}} />
-                    <div className="mt-2 flex items-start gap-2">
-                      <div className="flex-1">
-                        <input className="input text-sm" value={p.caption || ''} onChange={e=>updatePhotoCaption(p.id, e.target.value)} placeholder="Add a caption..." />
-                        <div className="text-xs text-gray-400 mt-1">{p.date}</div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <button onClick={()=>toggleFavorite(p.id)} className={`p-2 rounded ${p.favorite ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`} aria-label="favorite">
-                          <Heart className="w-4 h-4" />
-                        </button>
-                        <button onClick={()=>downloadPhoto(p.url)} className="p-2 rounded bg-gray-100 text-gray-600" aria-label="download">↓</button>
+                  <div key={p.id} className="relative photo-card">
+                    <button onClick={() => {setSelectedPhoto(p); setCaption(p.caption || '')}} className="block w-full p-0 border-0">
+                      <img src={p.url} alt={p.caption || 'Photo'} className="photo-image" />
+                    </button>
+                    <div className="p-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1">
+                          <Input className="text-sm" value={p.caption || ''} onChange={e=>updatePhotoCaption(p.id, e.target.value)} placeholder="Add a caption..." />
+                          <div className="text-xs muted mt-1">{p.date}</div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <Button onClick={()=>toggleFavorite(p.id)} variant={p.favorite ? 'solid' : 'ghost'} size="sm" className={p.favorite ? 'bg-red-50 text-red-600' : ''} aria-label="favorite">
+                            <Heart className="w-4 h-4" />
+                          </Button>
+                          <Button onClick={()=>downloadPhoto(p.url)} variant="ghost" size="sm" aria-label="download">↓</Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -299,10 +309,11 @@ export default function Media() {
       {/* Add Note Dialog */}
       <Dialog open={open} onClose={() => setOpen(false)} title="Add Note">
         <div className="space-y-3">
-          <textarea
+          <Input
+            as="textarea"
             value={newNote}
             onChange={e => setNewNote(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none transition"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 transition"
             rows={6}
             placeholder="Write something sweet…"
           />
@@ -325,12 +336,11 @@ export default function Media() {
 
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700">Caption</label>
-              <input
+              <Input
                 type="text"
                 value={caption}
                 onChange={e => setCaption(e.target.value)}
                 placeholder="Add a caption..."
-                className="input"
               />
             </div>
 

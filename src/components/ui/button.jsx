@@ -18,6 +18,7 @@ export default function Button({ children, className = '', variant = 'solid', si
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
       className={`${base} ${sizes[size]} ${variants[variant]} ${className}`}
+      type={props.type ?? 'button'}
       {...props}
     >
       {children}
