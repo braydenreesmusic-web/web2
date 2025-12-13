@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import Dialog from './ui/dialog.jsx'
 import Button from './ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
-import { getCheckIns, getPresence, getNotes, getMedia, getSavingsGoals, getEvents } from '../services/api'
 import AIInsights from './modals/AIInsights'
 
 export default function QuickDashboard() {
@@ -23,13 +22,14 @@ export default function QuickDashboard() {
     if (!user) return
     ;(async () => {
       try {
+        const api = await import('../services/api')
         const [checkIns, presenceData, notes, photos, savings, events] = await Promise.all([
-          getCheckIns(user.id),
-          getPresence(),
-          getNotes(user.id),
-          getMedia(user.id, 'photo'),
-          getSavingsGoals(user.id),
-          getEvents(user.id)
+          api.getCheckIns(user.id),
+          api.getPresence(),
+          api.getNotes(user.id),
+          api.getMedia(user.id, 'photo'),
+          api.getSavingsGoals(user.id),
+          api.getEvents(user.id)
         ])
         setLatest(checkIns?.[0] || null)
         setPresence(presenceData || [])
