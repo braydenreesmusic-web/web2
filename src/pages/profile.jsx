@@ -106,13 +106,41 @@ export default function Profile() {
     
     loadData()
     
-    // Subscribe to real-time updates
-    const subscription = subscribeToPartnerRequests(user.email, () => {
-      loadData()
+    // Subscribe to real-time updates. `subscribeToPartnerRequests` is a
+    // lazyApi wrapper that returns a Promise (it dynamically imports
+    // `services/api`). Handle both Promise and direct return shapes and
+    // unsubscribe defensively on cleanup.
+    let mounted = true
+    let subscriptionRef = null
+    const subPromise = subscribeToPartnerRequests(user.email, () => {
+      if (mounted) loadData()
     })
-    
+
+    // The wrapper returns a Promise that resolves to the real subscription
+    // object (or sometimes the channel directly). Capture it for cleanup.
+    Promise.resolve(subPromise).then(s => {
+      subscriptionRef = s
+    }).catch(err => {
+      console.debug && console.debug('subscribeToPartnerRequests error', err)
+    })
+
     return () => {
-      subscription.unsubscribe()
+      mounted = false
+      // If we got a subscription object, try common unsubscribe patterns.
+      if (!subscriptionRef) return
+      try {
+        if (typeof subscriptionRef.unsubscribe === 'function') {
+          subscriptionRef.unsubscribe()
+        } else if (typeof subscriptionRef.remove === 'function') {
+          // some libs use `remove()`
+          subscriptionRef.remove()
+        } else if (typeof subscriptionRef === 'function') {
+          // fallback: if the subscription itself is a function, call it
+          subscriptionRef()
+        }
+      } catch (e) {
+        console.debug && console.debug('Failed to unsubscribe partner requests', e)
+      }
     }
   }, [user])
 
