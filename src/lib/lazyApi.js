@@ -21,6 +21,7 @@ const fns = [
   'getBookmarks','createBookmark','updateBookmark','deleteBookmark','bulkUpdateBookmarkOrder',
   'getProfileById',
   'uploadMedia','toggleMediaFavorite','updateMedia','createNote',
+  'sendPartnerRequest','getPartnerRequests','acceptPartnerRequest','rejectPartnerRequest','subscribeToPartnerRequests',
   'getGameEvents','createGameEvent','subscribeToGameEvents',
   'getMusicTracks','getPlaylists','searchItunesMusic','saveMusicTrack','createPlaylist','getPlaylistTracks','addTrackToPlaylist',
   'updatePresence','subscribeToPresence','subscribeToListeningSession','updateListeningSession','triggerNotification'
@@ -38,6 +39,7 @@ export const {
   getBookmarks,createBookmark,updateBookmark,deleteBookmark,bulkUpdateBookmarkOrder,
   getProfileById,
   uploadMedia,toggleMediaFavorite,updateMedia,createNote,
+  sendPartnerRequest,getPartnerRequests,acceptPartnerRequest,rejectPartnerRequest,subscribeToPartnerRequests,
   getGameEvents,createGameEvent,subscribeToGameEvents,
   getMusicTracks,getPlaylists,searchItunesMusic,saveMusicTrack,createPlaylist,getPlaylistTracks,addTrackToPlaylist,
   updatePresence,subscribeToPresence,subscribeToListeningSession,updateListeningSession,triggerNotification
