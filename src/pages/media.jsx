@@ -3,7 +3,6 @@ import Dialog from '../components/ui/dialog.jsx'
 import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import EmptyState from '../components/EmptyState'
-import { getNotes, createNote, getMedia, uploadMedia, toggleMediaFavorite, updateMedia } from '../services/api'
 import MusicTab from '../components/MusicTab'
 import { Camera, Sparkles, Heart, Search } from 'lucide-react'
 
@@ -34,10 +33,11 @@ export default function Media() {
       if (!user) return
       setLoading(true)
       try {
+        const api = await import('../services/api')
         const [nt, ph, vd] = await Promise.all([
-          getNotes(user.id),
-          getMedia(user.id, 'photo'),
-          getMedia(user.id, 'video')
+          api.getNotes(user.id),
+          api.getMedia(user.id, 'photo'),
+          api.getMedia(user.id, 'video')
         ])
         if (cancelled) return
         setNotes(nt || [])
@@ -84,7 +84,10 @@ export default function Media() {
     setNotes(prev => [{ ...note, id: Math.random() }, ...prev])
     setNewNote('')
     setOpen(false)
-    try { await createNote(note) } catch (e) { console.error(e) }
+    try {
+      const api = await import('../services/api')
+      await api.createNote(note)
+    } catch (e) { console.error(e) }
   }
 
   const onSelectPhoto = async (e) => {
@@ -92,7 +95,8 @@ export default function Media() {
     if (!file || !user) return
     setUploading(true)
     try {
-      const saved = await uploadMedia(file, {
+      const api = await import('../services/api')
+      const saved = await api.uploadMedia(file, {
         user_id: user.id,
         type: 'photo',
         caption: '',
@@ -118,7 +122,8 @@ export default function Media() {
     const file = e.target.files?.[0]
     if (!file || !user) return
     try {
-      const saved = await uploadMedia(file, {
+      const api = await import('../services/api')
+      const saved = await api.uploadMedia(file, {
         user_id: user.id,
         type: 'video',
         caption: '',
@@ -142,7 +147,8 @@ export default function Media() {
   const updatePhotoCaption = async (photoId, newCaption) => {
     setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, caption: newCaption } : p))
     try {
-      await updateMedia(photoId, { caption: newCaption })
+      const api = await import('../services/api')
+      await api.updateMedia(photoId, { caption: newCaption })
     } catch (e) {
       console.error('Failed to persist caption', e)
     }
@@ -155,7 +161,8 @@ export default function Media() {
     try {
       const cur = photos.find(p => p.id === photoId)
       const newFav = !(cur && cur.favorite)
-      await toggleMediaFavorite(photoId, newFav)
+      const api = await import('../services/api')
+      await api.toggleMediaFavorite(photoId, newFav)
     } catch (e) {
       console.error('toggleFavorite failed', e)
       // revert on error
