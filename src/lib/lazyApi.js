@@ -18,6 +18,7 @@ const fns = [
   'getSavingsGoals','createSavingsGoal','addContribution','deleteSavingsGoal',
   'getPins','createPin','updateLocationShare',
   'getCheckIns','getNotes','getMedia','getPresence','getRelationshipData',
+  'updateRelationshipData',
   'getBookmarks','createBookmark','updateBookmark','deleteBookmark','bulkUpdateBookmarkOrder',
   'getProfileById',
   'uploadMedia','toggleMediaFavorite','updateMedia','createNote',
@@ -51,6 +52,7 @@ export const getNotes = wrap('getNotes')
 export const getMedia = wrap('getMedia')
 export const getPresence = wrap('getPresence')
 export const getRelationshipData = wrap('getRelationshipData')
+export const updateRelationshipData = wrap('updateRelationshipData')
 
 export const getBookmarks = wrap('getBookmarks')
 export const createBookmark = wrap('createBookmark')
