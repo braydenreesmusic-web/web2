@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import Dialog from '../components/ui/dialog.jsx'
 import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import EmptyState from '../components/EmptyState'
-import MusicTab from '../components/MusicTab'
+const MusicTab = lazy(() => import('../components/MusicTab'))
 import { Camera, Sparkles, Heart, Search } from 'lucide-react'
 
 export default function Media() {
@@ -356,7 +356,11 @@ export default function Media() {
       )}
 
       {/* Music Tab */}
-      {tab === 'music' && <MusicTab user={user} />}
+      {tab === 'music' && (
+        <Suspense fallback={<div className="p-6 text-center text-sm text-gray-600">Loading music…</div>}>
+          <MusicTab user={user} />
+        </Suspense>
+      )}
 
       {/* Add Note Dialog */}
       <Dialog open={open} onClose={() => setOpen(false)} title="Add Note">
