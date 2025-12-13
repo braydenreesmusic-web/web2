@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Dialog from '../../components/ui/dialog.jsx'
 import Button from '../../components/ui/button.jsx'
 import { useAuth } from '../../contexts/AuthContext'
-import { getInsights, markInsightAsRead } from '../../services/api'
+import { getInsights, markInsightAsRead } from '../../lib/lazyApi'
 
 export default function RelationshipInsights({ open, onClose }) {
   const { user } = useAuth()

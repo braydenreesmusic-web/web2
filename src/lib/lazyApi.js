@@ -18,6 +18,7 @@ const fns = [
   'getSavingsGoals','createSavingsGoal','addContribution','deleteSavingsGoal',
   'getPins','createPin','updateLocationShare',
   'getCheckIns','getNotes','getMedia','getPresence','getRelationshipData',
+  'createCheckIn',
   'updateRelationshipData',
   'getBookmarks','createBookmark','updateBookmark','deleteBookmark','bulkUpdateBookmarkOrder',
   'getProfileById',
@@ -48,7 +49,9 @@ export const createPin = wrap('createPin')
 export const updateLocationShare = wrap('updateLocationShare')
 
 export const getCheckIns = wrap('getCheckIns')
+export const createCheckIn = wrap('createCheckIn')
 export const getNotes = wrap('getNotes')
+export const subscribeToNotes = wrap('subscribeToNotes')
 export const getMedia = wrap('getMedia')
 export const getPresence = wrap('getPresence')
 export const getRelationshipData = wrap('getRelationshipData')
@@ -61,6 +64,9 @@ export const deleteBookmark = wrap('deleteBookmark')
 export const bulkUpdateBookmarkOrder = wrap('bulkUpdateBookmarkOrder')
 
 export const getProfileById = wrap('getProfileById')
+
+export const getInsights = wrap('getInsights')
+export const markInsightAsRead = wrap('markInsightAsRead')
 
 export const uploadMedia = wrap('uploadMedia')
 export const toggleMediaFavorite = wrap('toggleMediaFavorite')
@@ -96,6 +102,8 @@ const defaultExport = {
   getSavingsGoals,createSavingsGoal,addContribution,deleteSavingsGoal,
   getPins,createPin,updateLocationShare,
   getCheckIns,getNotes,getMedia,getPresence,getRelationshipData,
+  subscribeToNotes,
+  getInsights,markInsightAsRead,
   getBookmarks,createBookmark,updateBookmark,deleteBookmark,bulkUpdateBookmarkOrder,
   getProfileById,
   uploadMedia,toggleMediaFavorite,updateMedia,createNote,

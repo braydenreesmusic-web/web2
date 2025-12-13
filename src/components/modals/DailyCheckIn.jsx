@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import { createCheckIn } from '../../services/api'
+import { createCheckIn } from '../../lib/lazyApi'
 import { motion } from 'framer-motion'
 import { Smile, Zap, Heart } from 'lucide-react'
 import Dialog from '../../components/ui/dialog.jsx'

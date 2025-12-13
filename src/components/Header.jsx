@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Sparkles, User } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import PresenceIndicator from './PresenceIndicatorWrapper'
-import { usePresence } from '../hooks/usePresence'
 
 export default function Header({ title }) {
   const { pathname } = useLocation()
