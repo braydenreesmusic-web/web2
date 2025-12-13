@@ -25,7 +25,8 @@
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.26.2",
-    "web-push": "^3.5.0"
+    "web-push": "^3.5.0",
+    "source-map-js": "^1.0.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
