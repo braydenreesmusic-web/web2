@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { PiggyBank, Plus, TrendingUp, DollarSign, Calendar, Trash2 } from 'lucide-react'
 import Dialog from '../components/ui/dialog'
 import Button from '../components/ui/button'
+import Input from '../components/ui/input'
 import { getSavingsGoals, createSavingsGoal, addContribution, deleteSavingsGoal } from '../services/api'
 
 export default function SavingsGoals() {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Button from '../components/ui/button.jsx'
+import { supabase } from '../lib/supabase'
+import Dialog from '../components/ui/dialog'
 import { useAuth } from '../contexts/AuthContext'
 import EmptyState from '../components/EmptyState'
 import { getCheckIns, getNotes, getMedia, getSavingsGoals, getPresence, getRelationshipData } from '../services/api'
@@ -23,6 +25,8 @@ export default function Dashboard() {
   const [savings, setSavings] = useState([])
   const [presence, setPresence] = useState([])
   const [relationship, setRelationship] = useState(null)
+  const [partnerDisplayName, setPartnerDisplayName] = useState('')
+  const [showDaysModal, setShowDaysModal] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -55,6 +59,27 @@ export default function Dashboard() {
     return () => { cancelled = true }
   }, [user])
 
+  useEffect(() => {
+    let cancelled = false
+    if (!relationship?.partner_user_id) return
+    ;(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('display_name, full_name')
+          .eq('id', relationship.partner_user_id)
+          .maybeSingle()
+        if (error) throw error
+        if (cancelled) return
+        const name = data?.display_name || data?.full_name || ''
+        setPartnerDisplayName(name)
+      } catch (e) {
+        // ignore
+      }
+    })()
+    return () => { cancelled = true }
+  }, [relationship])
+
   const latestCheckIn = useMemo(() => checkIns?.[0] || null, [checkIns])
   const memories = useMemo(() => {
     return [
@@ -69,10 +94,10 @@ export default function Dashboard() {
         <div className="glass-card p-4">Loading your overview…</div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="expensive-card p-4">
+        <button onClick={() => setShowDaysModal(true)} className="expensive-card p-4 text-left">
           <div className="text-sm muted">Days Together</div>
-          <div className="text-3xl font-semibold">512</div>
-        </div>
+          <div className="text-3xl font-semibold">{relationship?.start_date ? Math.floor((Date.now() - new Date(relationship.start_date)) / (1000*60*60*24)) : 512}</div>
+        </button>
         <Link to="/savings" className="expensive-card p-4 hover:shadow-lg transition-shadow">
           <div className="flex items-center gap-2 mb-2">
             <PiggyBank className="w-4 h-4 text-[var(--accent-600)]" />
@@ -95,14 +120,12 @@ export default function Dashboard() {
         <div className="expensive-card p-4">
           <div className="text-sm muted mb-2">Presence</div>
           {presence.filter(p => p.is_online).length > 0 ? (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-3">
               {presence.filter(p => p.is_online).map(p => {
                 const isMe = p.user_id === user.id
                 const myName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'You'
-                const partnerName = relationship?.display_name 
-                  || relationship?.partner_b 
-                  || relationship?.partner_a 
-                  || 'Partner'
+                const fallbackPartner = relationship?.partner_a || relationship?.partner_b || relationship?.display_name || 'Partner'
+                const partnerName = partnerDisplayName || fallbackPartner
                 const name = isMe ? myName : partnerName
                 return (
                   <div key={p.user_id} className="flex items-center gap-2">
@@ -165,6 +188,49 @@ export default function Dashboard() {
       <Memories open={showGalaxy} onClose={()=>setShowGalaxy(false)} memories={memories} />
       <RelationshipInsights open={showInsights} onClose={()=>setShowInsights(false)} />
       <EnhancedChat open={showChat} onClose={()=>setShowChat(false)} />
+      <Dialog open={showDaysModal} onClose={() => setShowDaysModal(false)} title="Time Together">
+        <div className="space-y-4">
+          {relationship?.start_date ? (
+            (() => {
+              const start = new Date(relationship.start_date)
+              const diff = Math.max(0, Date.now() - start.getTime())
+              const secondsTotal = Math.floor(diff / 1000)
+              const years = Math.floor(secondsTotal / (365.25 * 24 * 3600))
+              const weeks = Math.floor((secondsTotal % (365.25 * 24 * 3600)) / (7 * 24 * 3600))
+              const days = Math.floor((secondsTotal % (7 * 24 * 3600)) / (24 * 3600))
+              const seconds = secondsTotal % 60
+              return (
+                <div>
+                  <div className="text-lg font-semibold">Since {new Date(relationship.start_date).toLocaleDateString()}</div>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="expensive-card p-3 text-center">
+                      <div className="text-2xl font-bold">{years}</div>
+                      <div className="text-sm muted">Years</div>
+                    </div>
+                    <div className="expensive-card p-3 text-center">
+                      <div className="text-2xl font-bold">{weeks}</div>
+                      <div className="text-sm muted">Weeks</div>
+                    </div>
+                    <div className="expensive-card p-3 text-center">
+                      <div className="text-2xl font-bold">{days}</div>
+                      <div className="text-sm muted">Days</div>
+                    </div>
+                    <div className="expensive-card p-3 text-center">
+                      <div className="text-2xl font-bold">{seconds}</div>
+                      <div className="text-sm muted">Seconds</div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()
+          ) : (
+            <div className="text-sm muted">Start date not set for your relationship.</div>
+          )}
+          <div className="flex justify-end">
+            <Button onClick={() => setShowDaysModal(false)}>Close</Button>
+          </div>
+        </div>
+      </Dialog>
     </section>
   )
 }
