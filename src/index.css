@@ -13,6 +13,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* iOS safe-area support: ensure content isn't obscured by notch / home indicator */
+body { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Touch target utility for iOS (44x44 recommended minimum) */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+
+/* Ensure backdrop-filter has webkit fallback for iOS Safari */
+.glass-card, .blur-bg, .backdrop-blur-sm {
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
 :root {
   --accent: #334155; /* slate-700 */
   --accent-600: #475569; /* slate-600 */

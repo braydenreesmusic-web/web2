@@ -31,7 +31,7 @@ export default function BottomTabs() {
             <li key={t.to}>
               <Link 
                 to={t.to} 
-                className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${active ? 'text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-slate-500' : 'text-gray-600 hover:bg-gray-100'}`}
+                className={`touch-target flex flex-col items-center justify-center py-2 rounded-xl transition-all ${active ? 'text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-slate-500' : 'text-gray-600 hover:bg-gray-100'}`}
               >
                 <motion.div
                   whileHover={{ scale: 1.1 }}
