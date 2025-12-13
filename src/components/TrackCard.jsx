@@ -11,7 +11,7 @@ export default function TrackCard({ track, onPlay, onAdd, compact = false }) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ translateY: -3 }}
-      className={`glass-card p-3 flex items-center gap-3 ${compact ? 'py-2' : ''}`}
+      className={`glass-card p-3 flex items-center gap-3 ${compact ? 'py-2' : ''} hover:shadow-lg transition-shadow`}
     >
       {artwork && (
         <div className={`relative flex-shrink-0 ${compact ? 'w-12 h-12' : 'w-20 h-20'}`}>

@@ -318,7 +318,9 @@ export default function MusicTab({ user }) {
       </aside>
 
       {/* Main content area */}
-      <main className="flex-1">
+      <main className="flex-1 pb-28">{
+        /* add bottom padding so page content isn't hidden behind the sticky player */
+      }
         {/* Top search / actions */}
         <div className="glass-card p-4 mb-4 flex items-center gap-3">
           <input
@@ -472,13 +474,16 @@ export default function MusicTab({ user }) {
       </main>
 
       {/* Sticky bottom player bar (Spotify-style) */}
-      <div className="fixed left-0 right-0 bottom-0 bg-white/80 backdrop-blur border-t border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
+      <div
+        className="fixed left-0 right-0 md:bottom-0 bottom-20 bg-gradient-to-t from-white/95 to-white/60 backdrop-blur-sm border-t border-gray-100 shadow-2xl"
+        style={{ zIndex: 70, paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-4">
           <div className="flex items-center gap-3">
             {(currentTrack?.artwork_url || currentTrack?.artworkUrl100) ? (
-              <img src={currentTrack.artwork_url || currentTrack.artworkUrl100} alt="art" className="w-12 h-12 rounded" />
+              <img src={currentTrack.artwork_url || currentTrack.artworkUrl100} alt="art" className="w-14 h-14 rounded-lg shadow-md object-cover" />
             ) : (
-              <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">🎵</div>
+              <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center">🎵</div>
             )}
             <div className="min-w-0">
               <div className="font-semibold truncate">{currentTrack?.track_name || currentTrack?.trackName || 'Not playing'}</div>
