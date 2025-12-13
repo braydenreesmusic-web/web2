@@ -171,6 +171,16 @@ export default function Media() {
     }
   }
 
+  // filteredPhotos must be computed before effects that reference it
+  const filteredPhotos = photos
+    .filter(p => (!onlyFavorites || p.favorite))
+    .filter(p => (!query || (p.caption || '').toLowerCase().includes(query.toLowerCase())))
+    .sort((a,b) => {
+      if (sort === 'newest') return new Date(b.date) - new Date(a.date)
+      if (sort === 'oldest') return new Date(a.date) - new Date(b.date)
+      return 0
+    })
+
   // keyboard navigation in dialog (left/right to move between photos, escape to close)
   useEffect(() => {
     if (!selectedPhoto) return
@@ -209,14 +219,7 @@ export default function Media() {
     el.remove()
   }
 
-  const filteredPhotos = photos
-    .filter(p => (!onlyFavorites || p.favorite))
-    .filter(p => (!query || (p.caption || '').toLowerCase().includes(query.toLowerCase())))
-    .sort((a,b) => {
-      if (sort === 'newest') return new Date(b.date) - new Date(a.date)
-      if (sort === 'oldest') return new Date(a.date) - new Date(b.date)
-      return 0
-    })
+  // filteredPhotos is declared earlier to avoid TDZ when used in effects
 
   return (
     <section className="space-y-6 pb-6">
