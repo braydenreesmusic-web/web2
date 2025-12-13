@@ -183,67 +183,76 @@ export default function Media() {
         </div>
       </div>
 
-      {/* Photos Tab - Polaroid Style */}
-      {tab === 'photos' && (
-        <div className="space-y-4">
-          <input ref={fileInput} type="file" accept="image/*" onChange={onSelectPhoto} className="hidden" />
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Button onClick={() => fileInput.current?.click()} disabled={uploading} className="w-full btn flex items-center justify-center gap-2 py-3">
-                <Camera size={20} />
-                {uploading ? 'Uploading...' : 'Add Photo'}
+        {/* Photos Tab — toolbar + full-width grid */}
+        {tab === 'photos' && (
+          <div className="space-y-4">
+            <input ref={fileInput} type="file" accept="image/*" onChange={onSelectPhoto} className="hidden" />
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button onClick={() => fileInput.current?.click()} disabled={uploading} className="flex items-center gap-2" variant="solid">
+                <Camera size={16} />
+                {uploading ? 'Uploading...' : 'Upload'}
               </Button>
 
-              <div className="mt-3 p-3 bg-white rounded-lg shadow">
+              <div className="flex-1 min-w-[180px] max-w-xl">
                 <div className="flex items-center gap-2">
                   <Search className="w-4 h-4 text-gray-400" />
-                  <input placeholder="Search captions" className="input flex-1" value={query} onChange={e=>setQuery(e.target.value)} />
-                </div>
-
-                <div className="mt-3 flex items-center gap-2">
-                  <button className={`px-3 py-1 rounded ${onlyFavorites ? 'bg-red-600 text-white' : 'bg-gray-100'}`} onClick={()=>setOnlyFavorites(prev=>!prev)}>
-                    <Heart className="w-4 h-4 inline" /> <span className="ml-2 text-sm">Favorites</span>
-                  </button>
-                  <select className="input w-36" value={sort} onChange={e=>setSort(e.target.value)}>
-                    <option value="newest">Newest</option>
-                    <option value="oldest">Oldest</option>
-                  </select>
-                  <div className="ml-auto text-sm text-gray-500">{filteredPhotos.length} photos</div>
+                  <input
+                    placeholder="Search captions"
+                    className="input flex-1"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                  />
                 </div>
               </div>
+
+              <button
+                onClick={() => setOnlyFavorites(prev => !prev)}
+                className={`px-3 py-1 rounded-md font-semibold ${onlyFavorites ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                aria-pressed={onlyFavorites}
+              >
+                <Heart className="w-4 h-4 inline" /> <span className="ml-2 text-sm">Favorites</span>
+              </button>
+
+              <select className="input w-40" value={sort} onChange={e => setSort(e.target.value)}>
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+              </select>
+
+              <div className="ml-auto text-sm muted">{filteredPhotos.length} photos</div>
             </div>
 
-            <div className="col-span-2">
-              <div className="grid grid-cols-2 gap-4">
-                {filteredPhotos.map(p => (
-                  <div key={p.id} className="relative bg-white p-2 rounded-lg shadow">
-                    <img src={p.url} alt={p.caption || 'Photo'} className="w-full aspect-square object-cover rounded cursor-pointer" onClick={() => {setSelectedPhoto(p); setCaption(p.caption || '')}} />
-                    <div className="mt-2 flex items-start gap-2">
-                      <div className="flex-1">
-                        <input className="input text-sm" value={p.caption || ''} onChange={e=>updatePhotoCaption(p.id, e.target.value)} placeholder="Add a caption..." />
-                        <div className="text-xs text-gray-400 mt-1">{p.date}</div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <button onClick={()=>toggleFavorite(p.id)} className={`p-2 rounded ${p.favorite ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`} aria-label="favorite">
-                          <Heart className="w-4 h-4" />
-                        </button>
-                        <button onClick={()=>downloadPhoto(p.url)} className="p-2 rounded bg-gray-100 text-gray-600" aria-label="download">↓</button>
-                      </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredPhotos.map(p => (
+                <div key={p.id} className="relative glass-card overflow-hidden rounded-xl">
+                  <button onClick={() => { setSelectedPhoto(p); setCaption(p.caption || '') }} className="block w-full p-0 border-0">
+                    <img src={p.url} alt={p.caption || 'Photo'} className="w-full h-56 object-cover" />
+                  </button>
+
+                  <div className="p-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{p.caption || 'No caption'}</div>
+                      <div className="text-xs muted mt-1">{p.date}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => toggleFavorite(p.id)} aria-label="favorite" className={`p-2 rounded ${p.favorite ? 'text-red-600' : 'text-gray-500'}`}>
+                        ❤
+                      </button>
+                      <button onClick={() => downloadPhoto(p.url)} aria-label="download" className="p-2 rounded text-gray-500">↓</button>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          </div>
 
-          {photos.length === 0 && !loading && (
-            <div className="text-center py-12 glass-card rounded-2xl">
-              <Camera size={48} className="mx-auto text-gray-300 mb-4" />
-              <EmptyState title="No photos" description="Upload photos to preserve memories here." action={<button className="btn">Upload Photo</button>} />
-            </div>
-          )}
-        </div>
-      )}
+            {photos.length === 0 && !loading && (
+              <div className="text-center py-12 glass-card rounded-2xl">
+                <Camera size={48} className="mx-auto text-gray-300 mb-4" />
+                <EmptyState title="No photos" description="Upload photos to preserve memories here." action={<button className="btn">Upload Photo</button>} />
+              </div>
+            )}
+          </div>
+        )}
 
       {/* Videos Tab */}
       {tab === 'videos' && (
