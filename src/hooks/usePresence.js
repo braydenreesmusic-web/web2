@@ -44,6 +44,13 @@ export const usePresence = () => {
           const partner = allPresence?.find(p => p.user_id === partnerId)
           const initial = partner || { is_online: false, last_seen: null, updated_at: null }
           setPartnerPresence(initial)
+          // Instrument: log partner profile-ish payload for debugging avatar/404 issues
+          try {
+            const profile = await api.getProfileById(partnerId).catch(() => null)
+            console.debug && console.debug('usePresence: partner profile fetched', { partnerId, profile })
+          } catch (e) {
+            console.debug && console.debug('usePresence: profile fetch failed', e)
+          }
           if (process.env.NODE_ENV === 'development') setPresenceEvents(prev => [{ ts: new Date().toISOString(), type: 'init', partnerId, payload: initial }, ...prev].slice(0,50))
           // dev diagnostics: log initial presence for debugging
           if (process.env.NODE_ENV === 'development') console.debug('presence:init', partnerId, initial)

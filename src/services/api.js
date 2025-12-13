@@ -65,8 +65,11 @@ export const getProfileById = async (id) => {
     .maybeSingle()
 
   if (error) {
-    console.error('getProfileById error', { id, error })
-    throw error
+    // Don't throw here to avoid noisy console errors during optional
+    // partner profile lookups (these are best-effort). Log at debug
+    // level so real issues can still be inspected during development.
+    if (process.env.NODE_ENV === 'development') console.debug('getProfileById error', { id, error })
+    return null
   }
   return data || null
 }

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { LogOut, User, Heart, Calendar, Camera, FileText, Edit2, Check, Send, UserPlus, CheckCircle, XCircle, Mail } from 'lucide-react'
 import AvatarMaker from '../components/AvatarMaker'
+import { normalizeAvatarUrl } from '../lib/mediaUrl'
 import Dialog from '../components/ui/dialog'
 import Input from '../components/ui/input'
 import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../lib/lazyApi'
@@ -26,6 +27,7 @@ export default function Profile() {
     } catch (e) { return '' }
   })()
   const [counts, setCounts] = useState({ notes: 0, photos: 0, events: 0 })
+  const [resolvedAvatar, setResolvedAvatar] = useState(null)
   const [editing, setEditing] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [partners, setPartners] = useState('')
@@ -41,6 +43,22 @@ export default function Profile() {
 
   useEffect(() => {
     if (!user) return
+    // Resolve any storage-relative avatar paths to a public URL to avoid
+    // browser 404s for relative storage paths coming from the profile.
+    ;(async () => {
+      try {
+        const raw = user?.user_metadata?.avatar
+        if (raw) {
+          const resolved = await normalizeAvatarUrl(raw)
+          setResolvedAvatar(resolved)
+          console.debug && console.debug('Profile: avatar resolved', { raw, resolved })
+        } else {
+          setResolvedAvatar(null)
+        }
+      } catch (e) {
+        console.debug && console.debug('Profile: avatar normalization failed', e)
+      }
+    })()
     
     const loadData = async () => {
       try {
@@ -278,8 +296,9 @@ export default function Profile() {
             <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center" style={{background: 'linear-gradient(135deg, var(--accent-600), var(--accent-700))'}}>
               {/* Avatar preview: prefer uploaded/data URL, emoji, initials, or fallback icon */}
               {user?.user_metadata?.avatar ? (
-                user.user_metadata.avatar.startsWith('data:') || user.user_metadata.avatar.startsWith('http') ? (
-                  <img src={user.user_metadata.avatar} alt="avatar" className="w-16 h-16 object-cover" />
+                // Prefer a fully-resolved avatar URL, fall back to raw value
+                (resolvedAvatar || user.user_metadata.avatar).startsWith('data:') || (resolvedAvatar || user.user_metadata.avatar).startsWith('http') ? (
+                  <img src={resolvedAvatar || user.user_metadata.avatar} alt="avatar" className="w-16 h-16 object-cover" />
                 ) : user.user_metadata.avatar.startsWith('color:') ? (
                   <div style={{background: user.user_metadata.avatar.replace('color:','')}} className="w-16 h-16 flex items-center justify-center text-white text-lg font-semibold">{avatarInitials}</div>
                 ) : (
