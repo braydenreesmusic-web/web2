@@ -38,11 +38,11 @@ export default function BottomTabs() {
                   whileTap={{ scale: 0.9 }}
                 >
                   <Icon 
-                    className={`w-5 h-5 mb-1 ${active ? 'text-slate-600' : ''}`}
+                    className={`w-6 h-6 mb-1 ${active ? 'text-slate-600' : ''}`}
                     strokeWidth={active ? 2.5 : 2}
                   />
                 </motion.div>
-                <span className="text-xs font-medium">{t.label}</span>
+                <span className="text-[11px] font-medium">{t.label}</span>
               </Link>
             </li>
           )

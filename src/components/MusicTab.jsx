@@ -376,9 +376,11 @@ export default function MusicTab({ user }) {
 
               <div className="grid md:grid-cols-2 gap-4">
                 {playlists.map(playlist => (
-                  <div key={playlist.id} className="glass-card p-4">
+                  <div key={playlist.id} className="glass-card p-4 hover:shadow-lg transition-shadow">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">🎵</div>
+                      <div className="w-16 h-16 bg-gradient-to-br from-accent-700 to-accent-600 rounded-full flex items-center justify-center shadow-md text-white text-xl">
+                        🎵
+                      </div>
                       <div className="flex-1">
                         <div className="font-semibold">{playlist.title}</div>
                         <div className="text-sm text-gray-500">{playlist.description || 'No description'}</div>

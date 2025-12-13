@@ -15,7 +15,7 @@ export default function TrackCard({ track, onPlay, onAdd, compact = false }) {
     >
       {artwork && (
         <div className={`relative flex-shrink-0 ${compact ? 'w-12 h-12' : 'w-20 h-20'}`}>
-          <img src={artwork} alt="" className={`rounded ${compact ? 'w-12 h-12' : 'w-20 h-20'} object-cover`} />
+          <img src={artwork} alt="" className={`${compact ? 'rounded ' : 'rounded-full ring-1 ring-white/60'} ${compact ? 'w-12 h-12' : 'w-20 h-20'} object-cover`} />
 
           {/* Hover overlay play button for non-compact cards */}
           {!compact && (track.preview_url || track.previewUrl) && (

@@ -13,10 +13,10 @@ export default function PlaybackControls({ isPlaying, onPlayPause, onSkipBack, o
 
       <button
         onClick={onPlayPause}
-        className="p-4 rounded-full bg-gradient-to-r from-accent-700 to-accent-500 text-white hover:shadow-2xl transform hover:-translate-y-0.5 transition-all flex items-center justify-center"
+        className="p-5 rounded-full bg-gradient-to-r from-accent-700 to-accent-500 text-white hover:shadow-2xl transform hover:-translate-y-0.5 transition-all flex items-center justify-center"
         aria-label={isPlaying ? 'Pause' : 'Play'}
       >
-        {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+        {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7" />}
       </button>
 
       <button
