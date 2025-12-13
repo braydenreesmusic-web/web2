@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { updatePresence, subscribeToPresence, getPresence, getRelationshipData, subscribeToListeningSession, updateListeningSession, triggerNotification } from '../services/api'
+// Avoid importing `../services/api` at module-evaluation time to prevent circular
+// dependency / TDZ issues in some bundlers (Safari/iOS can surface this as
+// "Cannot access uninitialized variable"). We'll dynamically import API helpers
+// inside async effects so the hook can initialize safely.
 
 export const usePresence = () => {
   const { user } = useAuth()
@@ -22,13 +25,22 @@ export const usePresence = () => {
     const prevOnline = { current: false }
 
     const initialize = async () => {
+      // Dynamically import API helpers here to avoid circular import / TDZ
+      // errors that can occur when modules reference each other at top-level.
+      let api
       try {
-        const relationship = await getRelationshipData(user.id)
+        api = await import('../services/api')
+      } catch (e) {
+        console.error('Failed to load services/api dynamically', e)
+        return
+      }
+      try {
+        const relationship = await api.getRelationshipData(user.id)
         const partnerId = relationship?.partner_user_id
 
         if (partnerId) {
           setPartnerUserId(partnerId)
-          const allPresence = await getPresence()
+          const allPresence = await api.getPresence()
           const partner = allPresence?.find(p => p.user_id === partnerId)
           const initial = partner || { is_online: false, last_seen: null, updated_at: null }
           setPartnerPresence(initial)
@@ -39,7 +51,7 @@ export const usePresence = () => {
 
         if (partnerId) {
           try {
-            listenSubscription = subscribeToListeningSession(partnerId, (payload) => {
+            listenSubscription = api.subscribeToListeningSession(partnerId, (payload) => {
               const { eventType, new: newRecord } = payload
               if (eventType === 'INSERT' || eventType === 'UPDATE') {
                 setPartnerListeningSession(newRecord || null)
@@ -57,7 +69,7 @@ export const usePresence = () => {
         if (!inFlight.current) {
           inFlight.current = true
           try {
-            await updatePresence(user.id, true)
+            await api.updatePresence(user.id, true)
             // Notify partner via server push when we transition to online
             try {
               const enabled = import.meta.env.VITE_PRESENCE_PUSH_ONLINE === '1'
@@ -65,7 +77,7 @@ export const usePresence = () => {
                 // Only trigger when transitioning from offline -> online
                 if (!prevOnline.current) {
                   const me = user.user_metadata?.name || user.email
-                  triggerNotification({ title: 'Partner active', body: `${me} is active now`, user_id: partnerId })
+                  api.triggerNotification({ title: 'Partner active', body: `${me} is active now`, user_id: partnerId })
                 }
                 prevOnline.current = true
               }
@@ -78,11 +90,11 @@ export const usePresence = () => {
         }
 
         // heartbeat
-        heartbeatInterval = setInterval(async () => {
+          heartbeatInterval = setInterval(async () => {
           try {
             if (document.visibilityState === 'visible' && !inFlight.current) {
               inFlight.current = true
-              await updatePresence(user.id, true)
+              await api.updatePresence(user.id, true)
               // heartbeat shouldn't re-trigger push if already online; ensure prevOnline set
               prevOnline.current = true
             }
@@ -95,7 +107,7 @@ export const usePresence = () => {
 
         // subscribe to partner presence
         if (partnerId) {
-          subscription = subscribeToPresence(partnerId, (payload) => {
+          subscription = api.subscribeToPresence(partnerId, (payload) => {
             const { eventType, new: newRecord, old: oldRecord } = payload
             // dev diagnostics: surface realtime payloads
             if (process.env.NODE_ENV === 'development') console.debug('presence:event', partnerId, eventType, { new: newRecord, old: oldRecord })
@@ -144,7 +156,12 @@ export const usePresence = () => {
 
     const handleBeforeUnload = async () => {
       if (navigator.sendBeacon) {
-        await updatePresence(user.id, false)
+        try {
+          const api = await import('../services/api')
+          await api.updatePresence(user.id, false)
+        } catch (e) {
+          console.warn('Failed to update presence on unload', e)
+        }
         prevOnline.current = false
       }
     }
@@ -156,13 +173,19 @@ export const usePresence = () => {
           if (!inFlight.current) {
             inFlight.current = true
             const isVisible = document.visibilityState === 'visible'
-            await updatePresence(user.id, isVisible)
+            try {
+              const api = await import('../services/api')
+              await api.updatePresence(user.id, isVisible)
+            } catch (e) {
+              console.warn('Failed to update presence (visibility)', e)
+            }
             // Fire presence push on become-visible if enabled
             try {
               const enabled = import.meta.env.VITE_PRESENCE_PUSH_ONLINE === '1'
               if (enabled && isVisible && partnerId && !prevOnline.current) {
                 const me = user.user_metadata?.name || user.email
-                triggerNotification({ title: 'Partner active', body: `${me} is active now`, user_id: partnerId })
+                const api = await import('../services/api')
+                api.triggerNotification({ title: 'Partner active', body: `${me} is active now`, user_id: partnerId })
                 prevOnline.current = true
               }
               if (!isVisible) prevOnline.current = false
@@ -189,9 +212,16 @@ export const usePresence = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       if (!inFlight.current) {
         inFlight.current = true
-        updatePresence(user.id, false).finally(() => {
-          inFlight.current = false
-        })
+        ;(async () => {
+          try {
+            const api = await import('../services/api')
+            await api.updatePresence(user.id, false)
+          } catch (e) {
+            console.warn('Failed to set presence false during cleanup', e)
+          } finally {
+            inFlight.current = false
+          }
+        })()
       }
     }
   }, [user])
@@ -235,7 +265,8 @@ export const usePresence = () => {
     presenceEvents,
     setMyListeningSession: async (sessionData) => {
       try {
-        return await updateListeningSession(user.id, sessionData)
+        const api = await import('../services/api')
+        return await api.updateListeningSession(user.id, sessionData)
       } catch (e) {
         console.error('Failed to update listening session', e)
       }
