@@ -11,7 +11,7 @@ export default function Dialog({ open, onClose, title, children }) {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 8, opacity: 0 }}
         transition={{ duration: 0.22 }}
-        className="card rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="card rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -29,7 +29,7 @@ export default function Dialog({ open, onClose, title, children }) {
             <X className="w-4 h-4 text-[var(--muted)]" />
           </button>
         </div>
-        <div className="px-4 pb-4">
+        <div className="px-6 pb-6 pt-4">
           {children}
         </div>
       </motion.div>

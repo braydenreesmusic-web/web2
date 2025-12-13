@@ -17,7 +17,9 @@ const formatTimeAgo = (date) => {
 }
 
 export default function PresenceIndicator() {
-  const { isPartnerOnline, partnerLastSeen, partnerListeningSession } = usePresence()
+  const { isPartnerOnline, partnerLastSeen, partnerListeningSession, partnerPresence } = usePresence()
+
+  const displayName = partnerPresence?.__display_name || partnerListeningSession?.user_name || partnerPresence?.user_name || 'Partner'
 
   const getLastSeenText = () => {
     if (isPartnerOnline) return 'Online now'
@@ -69,7 +71,7 @@ export default function PresenceIndicator() {
       </div>
       <div className="flex flex-col">
         <span className="text-xs font-medium text-gray-700">
-          {getLastSeenText()}
+          {displayName} — {getLastSeenText()}
         </span>
         {partnerListeningSession && partnerListeningSession.track && (
           <span className="text-xs text-gray-600">

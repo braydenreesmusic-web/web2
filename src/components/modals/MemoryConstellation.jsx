@@ -11,10 +11,12 @@ export default function MemoryConstellation({ open, onClose, memories }) {
   const [filter, setFilter] = useState('all')
   const [index, setIndex] = useState(0)
   const filtered = useMemo(() => {
-    if (filter === 'favorites') return memories.filter(m => m.favorite)
-    if (filter === 'photos') return memories.filter(m => m.type === 'photo')
-    if (filter === 'notes') return memories.filter(m => m.type === 'note')
-    return memories
+    // Exclude game invites stored in memory content
+    const cleaned = (memories || []).filter(m => !(m.content && typeof m.content === 'string' && m.content.startsWith('TICTACTOE_')))
+    if (filter === 'favorites') return cleaned.filter(m => m.favorite)
+    if (filter === 'photos') return cleaned.filter(m => m.type === 'photo')
+    if (filter === 'notes') return cleaned.filter(m => m.type === 'note')
+    return cleaned
   }, [filter, memories])
   useEffect(()=>{ setIndex(0) }, [filter])
   const next = () => setIndex((i)=> (i+1) % Math.max(filtered.length,1))

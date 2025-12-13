@@ -3,7 +3,7 @@ import Dialog from '../components/ui/dialog.jsx'
 import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import EmptyState from '../components/EmptyState'
-import { getNotes, createNote, getMedia, uploadMedia } from '../services/api'
+import { getNotes, createNote, getMedia, uploadMedia, toggleMediaFavorite, updateMedia } from '../services/api'
 import MusicTab from '../components/MusicTab'
 import { Camera, Sparkles, Heart, Search } from 'lucide-react'
 
@@ -141,11 +141,57 @@ export default function Media() {
 
   const updatePhotoCaption = async (photoId, newCaption) => {
     setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, caption: newCaption } : p))
+    try {
+      await updateMedia(photoId, { caption: newCaption })
+    } catch (e) {
+      console.error('Failed to persist caption', e)
+    }
   }
 
-  const toggleFavorite = (photoId) => {
+  const toggleFavorite = async (photoId) => {
+    // optimistic UI
     setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, favorite: !p.favorite } : p))
+    setSelectedPhoto(prev => prev && prev.id === photoId ? { ...prev, favorite: !(prev.favorite) } : prev)
+    try {
+      const cur = photos.find(p => p.id === photoId)
+      const newFav = !(cur && cur.favorite)
+      await toggleMediaFavorite(photoId, newFav)
+    } catch (e) {
+      console.error('toggleFavorite failed', e)
+      // revert on error
+      setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, favorite: !(p.favorite) } : p))
+      setSelectedPhoto(prev => prev && prev.id === photoId ? { ...prev, favorite: !(prev.favorite) } : prev)
+    }
   }
+
+  // keyboard navigation in dialog (left/right to move between photos, escape to close)
+  useEffect(() => {
+    if (!selectedPhoto) return
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedPhoto(null)
+        setCaption('')
+        setAiDescription('')
+        return
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const idx = filteredPhotos.findIndex(x => x.id === selectedPhoto.id)
+        if (idx === -1) return
+        if (e.key === 'ArrowLeft' && idx > 0) {
+          const prev = filteredPhotos[idx - 1]
+          setSelectedPhoto(prev)
+          setCaption(prev.caption || '')
+        }
+        if (e.key === 'ArrowRight' && idx < filteredPhotos.length - 1) {
+          const nxt = filteredPhotos[idx + 1]
+          setSelectedPhoto(nxt)
+          setCaption(nxt.caption || '')
+        }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [selectedPhoto, filteredPhotos])
 
   const downloadPhoto = (url) => {
     const el = document.createElement('a')
@@ -224,7 +270,7 @@ export default function Media() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredPhotos.map(p => (
-                <div key={p.id} className="relative glass-card overflow-hidden rounded-xl">
+                <div key={p.id} className="relative photo-card overflow-hidden rounded-xl">
                   <button onClick={() => { setSelectedPhoto(p); setCaption(p.caption || '') }} className="block w-full p-0 border-0">
                     <img src={p.url} alt={p.caption || 'Photo'} className="w-full h-56 object-cover" />
                   </button>
@@ -330,7 +376,9 @@ export default function Media() {
       {selectedPhoto && (
         <Dialog open={!!selectedPhoto} onClose={() => {setSelectedPhoto(null); setAiDescription(''); setCaption('')}} title="Photo Details">
           <div className="space-y-4">
-            <img src={selectedPhoto.url} alt="Full size" className="w-full rounded-xl" />
+            <div className="w-full flex items-center justify-center">
+              <img src={selectedPhoto.url} alt="Full size" className="max-h-[60vh] w-auto rounded-xl" />
+            </div>
 
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700">Caption</label>
@@ -358,28 +406,57 @@ export default function Media() {
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  // prev
+                  const idx = filteredPhotos.findIndex(x => x.id === selectedPhoto.id)
+                  if (idx > 0) {
+                    const prev = filteredPhotos[idx - 1]
+                    setSelectedPhoto(prev)
+                    setCaption(prev.caption || '')
+                    return
+                  }
+                }}
+                className="px-3 py-2 rounded bg-gray-100"
+                aria-label="Previous photo"
+              >◀</button>
+
               <Button
-                onClick={() => {
+                onClick={async () => {
+                  // save caption
                   updatePhotoCaption(selectedPhoto.id, caption)
-                  setSelectedPhoto(null)
-                  setCaption('')
                   setAiDescription('')
                 }}
                 className="flex-1 btn"
               >
-                Save
+                Save Caption
               </Button>
-              <Button
-                onClick={() => {
-                  setSelectedPhoto(null)
-                  setCaption('')
-                  setAiDescription('')
+
+              <button
+                onClick={async () => {
+                  // next
+                  const idx = filteredPhotos.findIndex(x => x.id === selectedPhoto.id)
+                  if (idx >= 0 && idx < filteredPhotos.length - 1) {
+                    const nxt = filteredPhotos[idx + 1]
+                    setSelectedPhoto(nxt)
+                    setCaption(nxt.caption || '')
+                  }
                 }}
-                className="flex-1 bg-gray-200 text-gray-700"
+                className="px-3 py-2 rounded bg-gray-100"
+                aria-label="Next photo"
+              >▶</button>
+            </div>
+
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => toggleFavorite(selectedPhoto.id)}
+                className={`px-3 py-2 rounded ${selectedPhoto.favorite ? 'bg-red-600 text-white' : 'bg-gray-100'}`}
               >
-                Close
-              </Button>
+                {selectedPhoto.favorite ? '♥ Favorited' : '♡ Favorite'}
+              </button>
+              <Button onClick={() => downloadPhoto(selectedPhoto.url)} className="flex-1">Download</Button>
+              <Button onClick={() => { setSelectedPhoto(null); setCaption(''); setAiDescription('') }} className="bg-gray-200 text-gray-700">Close</Button>
             </div>
           </div>
         </Dialog>

@@ -56,6 +56,21 @@ export const getRelationshipData = async (userId) => {
   return data || null
 }
 
+// Fetch profile by id (lightweight helper used by presence/profile components)
+export const getProfileById = async (id) => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, avatar, full_name, display_name, username')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) {
+    console.error('getProfileById error', { id, error })
+    throw error
+  }
+  return data || null
+}
+
 // Upsert relationship row for a given user_id. Used as a client-side fallback when server trigger
 // didn't create the relationship row. Note: RLS may block upserting other users' rows.
 export const upsertRelationship = async (userId, relationshipData) => {
@@ -312,6 +327,19 @@ export const toggleMediaFavorite = async (mediaId, favorite) => {
     .select()
     .single()
   
+  if (error) throw error
+  return data
+}
+
+// Update arbitrary media fields (caption, favorite, etc.)
+export const updateMedia = async (mediaId, updates = {}) => {
+  const { data, error } = await supabase
+    .from('media')
+    .update(updates)
+    .eq('id', mediaId)
+    .select()
+    .single()
+
   if (error) throw error
   return data
 }

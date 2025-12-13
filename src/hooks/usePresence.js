@@ -198,6 +198,21 @@ export const usePresence = () => {
 
   return {
     partnerPresence,
+          if (partnerId) {
+            // Try to fetch partner profile display name for nicer UI (username instead of email)
+            try {
+              // dynamic import to avoid circular dependency
+              const api = await import('../services/api')
+              if (api && api.getProfileById) {
+                const profile = await api.getProfileById(partnerId)
+                if (profile && (profile.display_name || profile.full_name)) {
+                  setPartnerPresence(prev => ({ ...prev, __display_name: profile.display_name || profile.full_name }))
+                }
+              }
+            } catch (e) {
+              console.debug('partner profile fetch (usePresence) failed', e)
+            }
+          }
     partnerUserId,
     isPartnerOnline: (() => {
       if (!partnerPresence) return false

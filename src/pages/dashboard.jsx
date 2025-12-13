@@ -82,9 +82,10 @@ export default function Dashboard() {
 
   const latestCheckIn = useMemo(() => checkIns?.[0] || null, [checkIns])
   const memories = useMemo(() => {
+    const cleanedNotes = (notes || []).filter(n => !(n.content && typeof n.content === 'string' && n.content.startsWith('TICTACTOE_')))
     return [
       ...photos.map(p=> ({ id:p.id, type:'photo', url:p.url, caption:p.caption, date:p.date, favorite:p.favorite })),
-      ...notes.map(n=> ({ id:n.id, type:'note', content:n.content, date:n.date, favorite:false })),
+      ...cleanedNotes.map(n=> ({ id:n.id, type:'note', content:n.content, date:n.date, favorite:false })),
     ]
   }, [photos, notes])
 

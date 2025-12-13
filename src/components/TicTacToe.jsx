@@ -43,6 +43,7 @@ export default function TicTacToe() {
   useEffect(() => {
     if (!user) return
     let cancelled = false
+    const subRef = { current: null }
 
     const load = async () => {
       try {
@@ -141,9 +142,60 @@ export default function TicTacToe() {
       }
     })
 
+    // keep a ref to the subscription so we can check it from visibility handler
+    try { subRef.current = sub } catch (e) { /* ignore */ }
+
+    // If the client was backgrounded (common on mobile) the realtime socket
+    // or subscription can be paused by the browser. When the page becomes
+    // visible again, proactively re-fetch canonical game events so the UI
+    // immediately reflects the latest state without a full browser refresh.
+    const handleVisibility = () => {
+      try {
+        if (document.visibilityState === 'visible') {
+          // re-sync authoritative state
+          getGameEvents(user.id).then(ev => {
+            const events = (ev || []).sort((a,b)=> new Date(a.date) - new Date(b.date))
+            const parsed = replayGameEvents(events)
+            setGameMessages(parsed.gameMessages)
+            setBoard(parsed.board)
+            setCurrentPlayer(parsed.currentPlayer)
+            setWinner(parsed.winner)
+            setWinningLine(parsed.winningLine)
+            setPlayersMap(parsed.playersMap)
+            try {
+              const meId = user?.id
+              let pp = parsed.pendingProposal ? { ...parsed.pendingProposal } : null
+              if (!pp && parsed.pendingProposalMap) {
+                for (const k of Object.keys(parsed.pendingProposalMap)) {
+                  const candidate = parsed.pendingProposalMap[k]
+                  if (candidate && candidate.author_id && candidate.author_id !== meId) {
+                    pp = candidate
+                    break
+                  }
+                }
+              }
+              if (pp && !pp.author_id && pp.row_user_id) pp.author_id = pp.row_user_id
+              setPendingProposal(pp)
+            } catch (e) {
+              setPendingProposal(parsed.pendingProposal)
+            }
+            setPendingRematch(parsed.pendingRematch)
+            setMoveHistory(parsed.moveHistory)
+            const myAssigned = Object.keys(parsed.playersMap).find(p => parsed.playersMap[p] === user.id)
+            setMyPlayer(myAssigned || null)
+          }).catch(e => console.error('TicTacToe: visibility resync failed', e))
+        }
+      } catch (e) {
+        console.error('visibility handler failed', e)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+
     return () => {
-      sub.unsubscribe()
+      try { sub.unsubscribe() } catch (e) {}
       if (rematchTimer.current) clearTimeout(rematchTimer.current)
+      try { document.removeEventListener('visibilitychange', handleVisibility) } catch (e) {}
     }
   }, [user])
 
