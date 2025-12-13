@@ -196,23 +196,31 @@ export const usePresence = () => {
     }
   }, [user])
 
+  // Fetch partner profile (display name) when we know partnerUserId. This is
+  // done in a separate effect to avoid circular import issues and to keep
+  // the build free of top-level awaits.
+  useEffect(() => {
+    if (!partnerUserId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const api = await import('../services/api')
+        if (api && api.getProfileById) {
+          const profile = await api.getProfileById(partnerUserId)
+          if (cancelled) return
+          if (profile && (profile.display_name || profile.full_name)) {
+            setPartnerPresence(prev => ({ ...prev, __display_name: profile.display_name || profile.full_name }))
+          }
+        }
+      } catch (e) {
+        if (process.env.NODE_ENV === 'development') console.debug('partner profile fetch (usePresence) failed', e)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [partnerUserId])
+
   return {
     partnerPresence,
-          if (partnerId) {
-            // Try to fetch partner profile display name for nicer UI (username instead of email)
-            try {
-              // dynamic import to avoid circular dependency
-              const api = await import('../services/api')
-              if (api && api.getProfileById) {
-                const profile = await api.getProfileById(partnerId)
-                if (profile && (profile.display_name || profile.full_name)) {
-                  setPartnerPresence(prev => ({ ...prev, __display_name: profile.display_name || profile.full_name }))
-                }
-              }
-            } catch (e) {
-              console.debug('partner profile fetch (usePresence) failed', e)
-            }
-          }
     partnerUserId,
     isPartnerOnline: (() => {
       if (!partnerPresence) return false
