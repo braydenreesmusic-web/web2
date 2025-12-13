@@ -6,7 +6,7 @@ import { PiggyBank, Plus, TrendingUp, DollarSign, Calendar, Trash2 } from 'lucid
 import Dialog from '../components/ui/dialog'
 import Button from '../components/ui/button'
 import Input from '../components/ui/input'
-import { getSavingsGoals, createSavingsGoal, addContribution, deleteSavingsGoal } from '../services/api'
+import { getSavingsGoals, createSavingsGoal, addContribution, deleteSavingsGoal } from '../lib/lazyApi'
 
 export default function SavingsGoals() {
   const { user } = useAuth()

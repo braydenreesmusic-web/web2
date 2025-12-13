@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
-import { getEvents, createEvent, deleteEvent, getTasks, createTask, updateTask } from '../services/api'
+import { getEvents, createEvent, deleteEvent, getTasks, createTask, updateTask } from '../lib/lazyApi'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useToast } from '../contexts/ToastContext'
 import { Icons, OwnerBadge } from '../components/Icons'

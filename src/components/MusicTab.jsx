@@ -11,7 +11,7 @@ import {
   createPlaylist,
   getPlaylistTracks,
   addTrackToPlaylist,
-} from '../services/api'
+} from '../lib/lazyApi'
 import { usePresence } from '../hooks/usePresence'
 import { syncToLeader, stopSync } from '../lib/listeningSync'
 import PartnerPlaybackControls from './PartnerPlaybackControls'

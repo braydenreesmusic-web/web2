@@ -6,7 +6,7 @@ import { LogOut, User, Heart, Calendar, Camera, FileText, Edit2, Check, Send, Us
 import AvatarMaker from '../components/AvatarMaker'
 import Dialog from '../components/ui/dialog'
 import Input from '../components/ui/input'
-import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../services/api'
+import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../lib/lazyApi'
 import NotificationsButton from '../components/NotificationsButton'
 import { useToast } from '../contexts/ToastContext'
 import NotificationPrompt from '../components/NotificationPrompt'

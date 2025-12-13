@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useAuth } from '../contexts/AuthContext'
-import { getPins, createPin, updateLocationShare } from '../services/api'
+import { getPins, createPin, updateLocationShare } from '../lib/lazyApi'
 
 export default function MapPage() {
   const { user } = useAuth()
