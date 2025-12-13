@@ -281,153 +281,226 @@ export default function MusicTab({ user }) {
   }, [volume])
 
   return (
-    <div className="space-y-4">
-      {/* View tabs */}
-      <div className="glass-card p-2 grid grid-cols-4 gap-2">
-        {['search', 'library', 'playlists', 'listening'].map(v => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            className={`px-3 py-2 rounded-xl capitalize transition-all ${view === v ? 'text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
-            style={ view === v ? { background: 'linear-gradient(90deg, var(--accent-700), var(--accent-600))' } : {} }
-          >
-            {v}
-          </button>
-        ))}
-      </div>
-
-      {/* Search view */}
-      {view === 'search' && (
-        <div className="space-y-4">
-          <div className="glass-card p-4 flex gap-2">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              placeholder="Search songs, artists, albums..."
-              className="flex-1 input"
-            />
-            <Button onClick={handleSearch} disabled={searching}>
-              <Search className="w-4 h-4" />
-            </Button>
-          </div>
-
-          {searching && <div className="text-center text-gray-500">Searching...</div>}
-
-          <div className="grid md:grid-cols-2 gap-3">
-            {searchResults.map(track => (
-              <TrackCard key={track.trackId} track={track} onPlay={handlePlayTrack} onAdd={handleAddToLibrary} />
+    <div className="flex gap-6">
+      {/* Left sidebar (like Spotify) */}
+      <aside className="w-64">
+        <div className="glass-card p-4 space-y-3">
+          <div className="text-sm font-semibold">Browse</div>
+          <nav className="space-y-1">
+            {[
+              { key: 'search', label: 'Search' },
+              { key: 'library', label: 'Your Library' },
+              { key: 'playlists', label: 'Playlists' },
+              { key: 'listening', label: 'Listen Together' }
+            ].map(item => (
+              <button
+                key={item.key}
+                onClick={() => setView(item.key)}
+                className={`w-full text-left px-3 py-2 rounded-md transition ${view === item.key ? 'bg-gradient-to-r from-accent-700 to-accent-600 text-white' : 'hover:bg-gray-100'}`}
+              >
+                {item.label}
+              </button>
             ))}
+          </nav>
+
+          <div className="pt-3 border-t border-gray-100">
+            <div className="text-xs font-semibold text-gray-500">Playlists</div>
+            <div className="mt-2 space-y-2">
+              {playlists.slice(0,8).map(pl => (
+                <button key={pl.id} onClick={() => { setCurrentPlaylist(pl); setView('playlists') }} className="w-full text-left text-sm truncate hover:text-accent-600">
+                  {pl.title}
+                </button>
+              ))}
+              <button onClick={() => setShowNewPlaylist(true)} className="w-full text-left text-sm text-gray-500">+ New playlist</button>
+            </div>
           </div>
         </div>
-      )}
+      </aside>
 
-      {/* Library view */}
-      {view === 'library' && (
-        <div className="space-y-2">
-          {!library.length && (
-            <div className="glass-card p-8 text-center text-gray-500">
-              <Music2 className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-              No tracks in library. Search and add some!
-            </div>
-          )}
-          {library.map(track => (
-            <TrackCard key={track.id} track={track} onPlay={handlePlayTrack} compact />
-          ))}
-        </div>
-      )}
-
-      {/* Playlists view */}
-      {view === 'playlists' && (
-        <div className="space-y-4">
-          <Button onClick={() => setShowNewPlaylist(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Playlist
+      {/* Main content area */}
+      <main className="flex-1">
+        {/* Top search / actions */}
+        <div className="glass-card p-4 mb-4 flex items-center gap-3">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            placeholder="Search songs, artists, albums..."
+            className="flex-1 input"
+          />
+          <Button onClick={handleSearch} disabled={searching}>
+            <Search className="w-4 h-4" />
           </Button>
 
-          <div className="grid md:grid-cols-2 gap-3">
-            {playlists.map(playlist => (
-              <div key={playlist.id} className="glass-card p-4">
-                <div className="font-semibold">{playlist.title}</div>
-                <div className="text-sm text-gray-500">{playlist.description || 'No description'}</div>
-              </div>
-            ))}
+          <div className="ml-2 flex items-center gap-2">
+            <Button onClick={() => setView('library')} className={`px-3 py-2 ${view === 'library' ? 'bg-accent-600 text-white' : ''}`}>Your Library</Button>
+            <Button onClick={() => setView('playlists')} className={`px-3 py-2 ${view === 'playlists' ? 'bg-accent-600 text-white' : ''}`}>Playlists</Button>
           </div>
         </div>
-      )}
 
-      {/* Synced Listening view */}
-      {view === 'listening' && (
-        <div className="glass-card p-6 text-center space-y-4">
-          <Users className="w-12 h-12 mx-auto" style={{color: 'var(--accent-600)'}} />
-          <h3 className="font-semibold text-lg">Listen Together</h3>
-          {currentTrack ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-              <div className="flex items-center gap-4 md:col-span-1">
-                {(currentTrack.artwork_url || currentTrack.artworkUrl100) && (
-                  <motion.img
-                    layout
-                    src={currentTrack.artwork_url || currentTrack.artworkUrl100}
-                    alt="album art"
-                    className="w-36 h-36 rounded-lg shadow-2xl"
-                    whileHover={{ scale: 1.02 }}
-                  />
-                )}
-                <div className="hidden md:block">
-                  <div className="font-semibold text-lg">{currentTrack.track_name || currentTrack.trackName}</div>
-                  <div className="text-sm text-gray-400">{currentTrack.artist_name || currentTrack.artistName}</div>
+        {/* Content */}
+        <div>
+          {view === 'search' && (
+            <div className="grid md:grid-cols-3 gap-4">
+              {searchResults.map(track => (
+                <div key={track.trackId} className=""> 
+                  <TrackCard track={track} onPlay={handlePlayTrack} onAdd={handleAddToLibrary} />
                 </div>
-              </div>
-
-              <div className="md:col-span-2 space-y-3">
-                <PlaybackControls
-                  isPlaying={isPlaying}
-                  onPlayPause={handlePlayPause}
-                  onSkipBack={skipBack}
-                  onSkipForward={skipForward}
-                />
-
-                <div className="w-full">
-                  <ProgressBar currentTime={currentTime} duration={duration} onSeek={handleSeek} />
-                  <div className="flex justify-between text-xs text-gray-400 mt-1">
-                    <div>{formatTime(currentTime)}</div>
-                    <div>{formatTime(duration)}</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-4">
-                  <VolumeControl volume={volume} onChange={handleVolumeChange} />
-                      <PartnerSessionBadge partnerListeningSession={partnerListeningSession} partnerUserId={partnerUserId} joined={joinedSession} />
-                </div>
-              </div>
+              ))}
             </div>
-          ) : (
-            <p className="text-gray-500">No track playing. Search and play a song to start!</p>
           )}
 
-          {/* Partner controls: join/leave and see partner playback */}
-          <PartnerPlaybackControls
-            partnerSession={partnerListeningSession}
-            partnerId={partnerUserId}
-            joined={joinedSession}
-            onJoin={() => setJoinedSession(true)}
-            onLeave={() => setJoinedSession(false)}
-            onFollowPlay={() => {
-              // If partner is playing, attempt to load their track preview and play
-              if (!partnerListeningSession || !partnerListeningSession.track) return
-              const track = partnerListeningSession.track
-              setCurrentTrack(track)
-              if (audioRef.current) {
-                audioRef.current.src = track.preview_url || track.previewUrl
-                audioRef.current.currentTime = partnerListeningSession.playback_position || 0
-                audioRef.current.play()
-                setIsPlaying(true)
-              }
-            }}
-          />
+          {view === 'library' && (
+            <div>
+              <div className="glass-card p-3 mb-3 flex items-center justify-between">
+                <div className="font-semibold">Your Library</div>
+                <div className="text-sm text-gray-500">{library.length} tracks</div>
+              </div>
+              <div className="space-y-2">
+                {library.map(track => (
+                  <TrackCard key={track.id} track={track} onPlay={handlePlayTrack} compact />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {view === 'playlists' && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-lg font-semibold">Playlists</div>
+                <Button onClick={() => setShowNewPlaylist(true)}><Plus className="w-4 h-4 mr-2"/>New Playlist</Button>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {playlists.map(playlist => (
+                  <div key={playlist.id} className="glass-card p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">🎵</div>
+                      <div className="flex-1">
+                        <div className="font-semibold">{playlist.title}</div>
+                        <div className="text-sm text-gray-500">{playlist.description || 'No description'}</div>
+                      </div>
+                      <div>
+                        <Button onClick={async () => {
+                          setCurrentPlaylist(playlist)
+                          // load tracks for this playlist
+                          try {
+                            const t = await getPlaylistTracks(playlist.id)
+                            playlist.tracks = t || []
+                            setCurrentPlaylist({ ...playlist })
+                            setView('playlists')
+                          } catch (e) { console.error(e) }
+                        }}>Open</Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {view === 'listening' && (
+            <div className="glass-card p-6 text-center space-y-4">
+              <Users className="w-12 h-12 mx-auto" style={{color: 'var(--accent-600)'}} />
+              <h3 className="font-semibold text-lg">Listen Together</h3>
+              {currentTrack ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                  <div className="flex items-center gap-4 md:col-span-1">
+                    {(currentTrack.artwork_url || currentTrack.artworkUrl100) && (
+                      <motion.img
+                        layout
+                        src={currentTrack.artwork_url || currentTrack.artworkUrl100}
+                        alt="album art"
+                        className="w-36 h-36 rounded-lg shadow-2xl"
+                        whileHover={{ scale: 1.02 }}
+                      />
+                    )}
+                    <div className="hidden md:block">
+                      <div className="font-semibold text-lg">{currentTrack.track_name || currentTrack.trackName}</div>
+                      <div className="text-sm text-gray-400">{currentTrack.artist_name || currentTrack.artistName}</div>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-3">
+                    <PlaybackControls
+                      isPlaying={isPlaying}
+                      onPlayPause={handlePlayPause}
+                      onSkipBack={skipBack}
+                      onSkipForward={skipForward}
+                    />
+
+                    <div className="w-full">
+                      <ProgressBar currentTime={currentTime} duration={duration} onSeek={handleSeek} />
+                      <div className="flex justify-between text-xs text-gray-400 mt-1">
+                        <div>{formatTime(currentTime)}</div>
+                        <div>{formatTime(duration)}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                      <VolumeControl volume={volume} onChange={handleVolumeChange} />
+                      <PartnerSessionBadge partnerListeningSession={partnerListeningSession} partnerUserId={partnerUserId} joined={joinedSession} />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500">No track playing. Search and play a song to start!</p>
+              )}
+
+              <PartnerPlaybackControls
+                partnerSession={partnerListeningSession}
+                partnerId={partnerUserId}
+                joined={joinedSession}
+                onJoin={() => setJoinedSession(true)}
+                onLeave={() => setJoinedSession(false)}
+                onFollowPlay={() => {
+                  if (!partnerListeningSession || !partnerListeningSession.track) return
+                  const track = partnerListeningSession.track
+                  setCurrentTrack(track)
+                  if (audioRef.current) {
+                    audioRef.current.src = track.preview_url || track.previewUrl
+                    audioRef.current.currentTime = partnerListeningSession.playback_position || 0
+                    audioRef.current.play()
+                    setIsPlaying(true)
+                  }
+                }}
+              />
+            </div>
+          )}
         </div>
-      )}
+      </main>
+
+      {/* Sticky bottom player bar (Spotify-style) */}
+      <div className="fixed left-0 right-0 bottom-0 bg-white/80 backdrop-blur border-t border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {(currentTrack?.artwork_url || currentTrack?.artworkUrl100) ? (
+              <img src={currentTrack.artwork_url || currentTrack.artworkUrl100} alt="art" className="w-12 h-12 rounded" />
+            ) : (
+              <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">🎵</div>
+            )}
+            <div className="min-w-0">
+              <div className="font-semibold truncate">{currentTrack?.track_name || currentTrack?.trackName || 'Not playing'}</div>
+              <div className="text-xs text-gray-500 truncate">{currentTrack?.artist_name || currentTrack?.artistName || ''}</div>
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col items-center">
+            <div>
+              <PlaybackControls isPlaying={isPlaying} onPlayPause={handlePlayPause} onSkipBack={skipBack} onSkipForward={skipForward} />
+            </div>
+            <div className="w-full max-w-2xl mt-2">
+              <ProgressBar currentTime={currentTime} duration={duration} onSeek={handleSeek} />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-gray-500">{formatTime(currentTime)}</div>
+            <VolumeControl volume={volume} onChange={handleVolumeChange} />
+          </div>
+        </div>
+      </div>
 
       {/* Hidden audio element for playback */}
       <audio ref={audioRef} />
@@ -435,7 +508,7 @@ export default function MusicTab({ user }) {
       {/* New Playlist Dialog */}
       <Dialog open={showNewPlaylist} onClose={() => setShowNewPlaylist(false)} title="Create Playlist">
         <div className="space-y-4">
-                  <input
+          <input
             type="text"
             value={playlistTitle}
             onChange={e => setPlaylistTitle(e.target.value)}
