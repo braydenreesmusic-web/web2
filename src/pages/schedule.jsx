@@ -660,7 +660,7 @@ export default function Schedule() {
                     return (
                       <div
                         key={day}
-                        className={`aspect-square p-2 flex flex-col group transition-all text-sm rounded-md ${activePreset ? 'cursor-pointer bg-slate-50 hover:bg-slate-100' : 'bg-white cursor-pointer'}`}
+                        className={`p-2 flex flex-col group transition-all text-sm rounded-md min-h-[88px] ${activePreset ? 'cursor-pointer bg-slate-50 hover:bg-slate-100' : 'bg-white cursor-pointer'}`}
                         onClick={async () => {
                           if (activePreset) {
                             try {

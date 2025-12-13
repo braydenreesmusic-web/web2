@@ -2,6 +2,7 @@ import AppShell from './components/AppShell.jsx'
 import BottomTabs from './components/BottomTabs.jsx'
 import QuickDashboard from './components/QuickDashboard.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { Routes, Route } from 'react-router-dom'
 import Dashboard from './pages/dashboard.jsx'
 import Schedule from './pages/schedule.jsx'
@@ -33,6 +34,7 @@ export default function App() {
           path="/*"
           element={
             <ProtectedRoute>
+              <ErrorBoundary>
               <div className="min-h-screen flex justify-center">
                 <div className="w-full max-w-4xl px-4 pb-24">
                   <Routes>
@@ -50,6 +52,7 @@ export default function App() {
                 <BottomTabs />
                 <QuickDashboard />
               </div>
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />
