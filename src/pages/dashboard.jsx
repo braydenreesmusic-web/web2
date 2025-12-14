@@ -57,6 +57,7 @@ export default function Dashboard() {
           try {
             const m = await getMeetup(user.id)
             if (cancelled) return
+            console.debug && console.debug('Dashboard: loaded meetup', m)
             setMeetup(m)
           } catch (e) {
             console.debug && console.debug('failed to load meetup', e)
@@ -104,10 +105,24 @@ export default function Dashboard() {
 
   return (
     <section className="space-y-6">
-      {/* Compact milestone banner: show only when there's an active milestone */}
-      {meetup?.target_at && (
-        <Countdown compact={true} target={meetup.target_at} title={`Next time we will see ${relationship?.partner_a || relationship?.partner_b || relationship?.display_name || ''}`} calendarRoute="/schedule" initialCustomMilestones={meetup.milestones || null} />
-      )}
+      {/* Compact milestone banner: show when there's a persisted meetup OR a local fallback */}
+      {(() => {
+        if (!user) return null
+        // prefer persisted meetup from server
+        const serverTarget = meetup?.target_at || null
+        // fallback to localStorage key used by profile (`next-meetup:<user.id>`)
+        let localTarget = null
+        try {
+          const key = `next-meetup:${user.id}`
+          const raw = localStorage.getItem(key)
+          if (raw) localTarget = raw
+        } catch (e) {}
+        const bannerTarget = serverTarget || localTarget
+        if (!bannerTarget) return null
+        return (
+          <Countdown compact={true} target={bannerTarget} title={`Next time we will see ${relationship?.partner_a || relationship?.partner_b || relationship?.display_name || ''}`} calendarRoute="/schedule" initialCustomMilestones={meetup?.milestones || null} />
+        )
+      })()}
       {loading && (
         <div className="glass-card p-4">Loading your overview…</div>
       )}
