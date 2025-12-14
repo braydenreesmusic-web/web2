@@ -175,6 +175,35 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Next meetup summary card (always visible) */}
+      <div className="mt-4">
+        {(() => {
+          if (!user) return null
+          const serverTarget = meetup?.target_at || null
+          let localTarget = null
+          try {
+            const key = `next-meetup:${user.id}`
+            const raw = localStorage.getItem(key)
+            if (raw) localTarget = raw
+          } catch (e) {}
+          const bannerTarget = serverTarget || localTarget
+          if (!bannerTarget) return (
+            <div className="expensive-card p-4">
+              <div className="text-sm muted">Next Meetup</div>
+              <div className="text-sm muted mt-2">No meetup set — <a href="/profile" className="text-indigo-600">Set one</a></div>
+            </div>
+          )
+          const daysUntil = Math.max(0, Math.ceil((new Date(bannerTarget).getTime() - Date.now()) / (24 * 3600 * 1000)))
+          return (
+            <div className="expensive-card p-4">
+              <div className="text-sm muted">Next Meetup</div>
+              <div className="text-3xl font-semibold mt-2">{daysUntil} day{daysUntil===1 ? '' : 's'}</div>
+              <div className="text-xs text-gray-500 mt-1">{new Date(bannerTarget).toLocaleString()}</div>
+            </div>
+          )
+        })()}
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <button onClick={()=>setShowCheckIn(true)} className="expensive-card p-4 text-left hover:scale-[1.02] transition">
           <div className="text-lg font-semibold gradient-text">Check-In</div>
