@@ -189,17 +189,19 @@ export default function Dashboard() {
           const bannerTarget = serverTarget || localTarget
           if (!bannerTarget) return (
             <div className="expensive-card p-4">
-              <div className="text-sm muted">Next Meetup</div>
+              <div className="text-sm muted">Next time together</div>
               <div className="text-sm muted mt-2">No meetup set — <a href="/profile" className="text-indigo-600">Set one</a></div>
             </div>
           )
           const daysUntil = Math.max(0, Math.ceil((new Date(bannerTarget).getTime() - Date.now()) / (24 * 3600 * 1000)))
           return (
-            <div className="expensive-card p-4">
-              <div className="text-sm muted">Next Meetup</div>
-              <div className="text-3xl font-semibold mt-2">{daysUntil} day{daysUntil===1 ? '' : 's'}</div>
-              <div className="text-xs text-gray-500 mt-1">{new Date(bannerTarget).toLocaleString()}</div>
-            </div>
+            <Link to="/schedule" className="block">
+              <div className="expensive-card p-4 hover:shadow-lg transition cursor-pointer">
+                <div className="text-sm muted">Next time together</div>
+                <div className="text-3xl font-semibold mt-2">{daysUntil} day{daysUntil===1 ? '' : 's'}</div>
+                <div className="text-xs text-gray-500 mt-1">{new Date(bannerTarget).toLocaleString()}</div>
+              </div>
+            </Link>
           )
         })()}
       </div>
