@@ -56,6 +56,24 @@ export default function Countdown({ target, title = 'Next meetup', milestones })
   // localStorage key for this target date so we don't re-notify between sessions
   const storageKey = targetDate ? `countdown-notified:${targetDate.toISOString()}` : null
 
+  // custom milestones persisted per target
+  const customKey = targetDate ? `countdown-custom-milestones:${targetDate.toISOString()}` : null
+  const [customInputDays, setCustomInputDays] = useState('')
+  const [customMilestones, setCustomMilestones] = useState(() => {
+    if (!customKey) return []
+    try {
+      const raw = localStorage.getItem(customKey)
+      if (!raw) return []
+      return JSON.parse(raw)
+    } catch (e) { return [] }
+  })
+
+  const mergedMarks = useMemo(() => {
+    const base = (milestones && milestones.length) ? milestones.slice() : defaultMilestones()
+    const combined = Array.from(new Set([...(base || []), ...(customMilestones || [])]))
+    return combined.sort((a,b) => b - a)
+  }, [milestones, customMilestones])
+
   useEffect(() => {
     // load already-notified set from localStorage
     if (!storageKey) return
@@ -81,7 +99,7 @@ export default function Countdown({ target, title = 'Next meetup', milestones })
   useEffect(() => {
     if (!targetDate) return
     // Check milestones each second and notify once when crossed
-    for (const m of marks) {
+    for (const m of mergedMarks) {
       const whenMs = m * 1000
       if (msRemaining <= whenMs) {
         if (!notifiedRef.current.has(String(m))) {
@@ -102,7 +120,7 @@ export default function Countdown({ target, title = 'Next meetup', milestones })
         }
       }
     }
-  }, [msRemaining, marks, permission, storageKey, targetDate, title])
+  }, [msRemaining, mergedMarks, permission, storageKey, targetDate, title])
 
   function requestPermission() {
     if (!('Notification' in window)) return
@@ -154,11 +172,45 @@ export default function Countdown({ target, title = 'Next meetup', milestones })
               className="btn-ghost"
             >Test</button>
           </div>
+          <div className="mt-3">
+            <div className="text-sm muted">Calendar</div>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => {
+                  // download .ics
+                  try {
+                    const ics = buildICS(targetDate, title)
+                    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `${title.replace(/\s+/g,'-') || 'event'}.ics`
+                    document.body.appendChild(a)
+                    a.click()
+                    a.remove()
+                    URL.revokeObjectURL(url)
+                  } catch (e) { alert('Failed to create .ics: ' + e.message) }
+                }}
+                className="btn"
+              >Download .ics</button>
+
+              <button
+                onClick={() => {
+                  // open Google Calendar create
+                  try {
+                    const g = googleCalendarUrl(targetDate, title)
+                    window.open(g, '_blank')
+                  } catch (e) { alert('Failed to open Google Calendar: ' + e.message) }
+                }}
+                className="btn-ghost"
+              >Open in Google Calendar</button>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        {marks.map(m => {
+        {mergedMarks.map(m => {
           const passed = msRemaining <= m*1000
           return (
             <div key={m} className={`p-2 rounded-md text-center ${passed ? 'bg-gradient-to-r from-accent-700 to-accent-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
@@ -168,6 +220,69 @@ export default function Countdown({ target, title = 'Next meetup', milestones })
           )
         })}
       </div>
+
+      {/* Custom milestone editor */}
+      <div className="mt-3">
+        <div className="text-sm font-semibold mb-2">Custom Milestones</div>
+        <div className="flex gap-2 items-center">
+          <input type="number" min={0} value={customInputDays} onChange={e => setCustomInputDays(e.target.value)} className="input w-32" placeholder="Days before" />
+          <button className="btn" onClick={() => {
+            const days = Number(customInputDays)
+            if (!Number.isFinite(days) || days < 0) return alert('Enter a valid non-negative number of days')
+            const seconds = Math.round(days * 24 * 3600)
+            if (!customKey) return
+            const next = Array.from(new Set([...(customMilestones || []), seconds]))
+            setCustomMilestones(next)
+            try { localStorage.setItem(customKey, JSON.stringify(next)) } catch (e) {}
+            setCustomInputDays('')
+          }}>Add</button>
+        </div>
+
+        <div className="mt-3 space-y-2">
+          {(customMilestones || []).length === 0 ? (
+            <div className="text-sm muted">No custom milestones</div>
+          ) : (
+            (customMilestones || []).map(m => (
+              <div key={m} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                <div>{milestoneLabel(m)}</div>
+                <div><button className="btn-ghost" onClick={() => {
+                  const next = (customMilestones || []).filter(x => x !== m)
+                  setCustomMilestones(next)
+                  try { localStorage.setItem(customKey, JSON.stringify(next)) } catch (e) {}
+                }}>Remove</button></div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   )
+}
+
+// helpers
+function pad(n, len=2) { return String(n).padStart(len,'0') }
+function formatDateForICS(d) {
+  const YYYY = d.getUTCFullYear()
+  const MM = pad(d.getUTCMonth()+1)
+  const DD = pad(d.getUTCDate())
+  const hh = pad(d.getUTCHours())
+  const mm = pad(d.getUTCMinutes())
+  const ss = pad(d.getUTCSeconds())
+  return `${YYYY}${MM}${DD}T${hh}${mm}${ss}Z`
+}
+
+function buildICS(date, title) {
+  const dt = formatDateForICS(date)
+  const dtend = formatDateForICS(new Date(date.getTime() + 60*60*1000))
+  return `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Your App//EN\nBEGIN:VEVENT\nUID:${Date.now()}@yourapp\nDTSTAMP:${dt}\nDTSTART:${dt}\nDTEND:${dtend}\nSUMMARY:${escapeICalText(title)}\nEND:VEVENT\nEND:VCALENDAR`
+}
+
+function escapeICalText(s) { return (s || '').replace(/\n/g,'\\n').replace(/,/g,'\,') }
+
+function googleCalendarUrl(date, title) {
+  const start = formatDateForICS(date)
+  const end = formatDateForICS(new Date(date.getTime() + 60*60*1000))
+  const base = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+  const params = new URLSearchParams({ text: title, dates: `${start}/${end}` })
+  return `${base}&${params.toString()}`
 }
