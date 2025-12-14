@@ -211,44 +211,12 @@ export default function Countdown({ target, title = 'Next meetup', milestones, i
             >Test</button>
           </div>
           <div className="mt-3">
-            <div className="text-sm muted">Calendar</div>
-            <div className="flex gap-2 mt-2">
-              {calendarRoute ? (
+            {/* Calendar: internal route only. External download / Google Calendar removed per UI request. */}
+            {calendarRoute ? (
+              <div className="mt-3">
                 <a href={calendarRoute} className="btn">Open calendar</a>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      // download .ics
-                      try {
-                        const ics = buildICS(targetDate, title)
-                        const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
-                        const url = URL.createObjectURL(blob)
-                        const a = document.createElement('a')
-                        a.href = url
-                        a.download = `${title.replace(/\s+/g,'-') || 'event'}.ics`
-                        document.body.appendChild(a)
-                        a.click()
-                        a.remove()
-                        URL.revokeObjectURL(url)
-                      } catch (e) { alert('Failed to create .ics: ' + e.message) }
-                    }}
-                    className="btn"
-                  >Download .ics</button>
-
-                  <button
-                    onClick={() => {
-                      // open Google Calendar create
-                      try {
-                        const g = googleCalendarUrl(targetDate, title)
-                        window.open(g, '_blank')
-                      } catch (e) { alert('Failed to open Google Calendar: ' + e.message) }
-                    }}
-                    className="btn-ghost"
-                  >Open in Google Calendar</button>
-                </>
-              )}
-            </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -265,39 +233,43 @@ export default function Countdown({ target, title = 'Next meetup', milestones, i
         })}
       </div>
 
-      {/* Custom milestone editor */}
+      {/* Custom milestone editor hidden behind a small toggle to reduce UI clutter */}
       <div className="mt-3">
-        <div className="text-sm font-semibold mb-2">Custom Milestones</div>
-        <div className="flex gap-2 items-center">
-          <input type="number" min={0} value={customInputDays} onChange={e => setCustomInputDays(e.target.value)} className="input w-32" placeholder="Days before" />
-          <button className="btn" onClick={() => {
-            const days = Number(customInputDays)
-            if (!Number.isFinite(days) || days < 0) return alert('Enter a valid non-negative number of days')
-            const seconds = Math.round(days * 24 * 3600)
-            if (!customKey) return
-            const next = Array.from(new Set([...(customMilestones || []), seconds]))
-            setCustomMilestones(next)
-            try { localStorage.setItem(customKey, JSON.stringify(next)) } catch (e) {}
-            setCustomInputDays('')
-          }}>Add</button>
-        </div>
+        <details className="bg-gray-50 rounded p-2">
+          <summary className="cursor-pointer text-sm font-semibold">Edit custom milestones</summary>
+          <div className="mt-2">
+            <div className="flex gap-2 items-center">
+              <input type="number" min={0} value={customInputDays} onChange={e => setCustomInputDays(e.target.value)} className="input w-32" placeholder="Days before" />
+              <button className="btn" onClick={() => {
+                const days = Number(customInputDays)
+                if (!Number.isFinite(days) || days < 0) return alert('Enter a valid non-negative number of days')
+                const seconds = Math.round(days * 24 * 3600)
+                if (!customKey) return
+                const next = Array.from(new Set([...(customMilestones || []), seconds]))
+                setCustomMilestones(next)
+                try { localStorage.setItem(customKey, JSON.stringify(next)) } catch (e) {}
+                setCustomInputDays('')
+              }}>Add</button>
+            </div>
 
-        <div className="mt-3 space-y-2">
-          {(customMilestones || []).length === 0 ? (
-            <div className="text-sm muted">No custom milestones</div>
-          ) : (
-            (customMilestones || []).map(m => (
-              <div key={m} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                <div>{milestoneLabel(m)}</div>
-                <div><button className="btn-ghost" onClick={() => {
-                  const next = (customMilestones || []).filter(x => x !== m)
-                  setCustomMilestones(next)
-                  try { localStorage.setItem(customKey, JSON.stringify(next)) } catch (e) {}
-                }}>Remove</button></div>
-              </div>
-            ))
-          )}
-        </div>
+            <div className="mt-3 space-y-2">
+              {(customMilestones || []).length === 0 ? (
+                <div className="text-sm muted">No custom milestones</div>
+              ) : (
+                (customMilestones || []).map(m => (
+                  <div key={m} className="flex items-center justify-between p-2 bg-white rounded">
+                    <div>{milestoneLabel(m)}</div>
+                    <div><button className="btn-ghost" onClick={() => {
+                      const next = (customMilestones || []).filter(x => x !== m)
+                      setCustomMilestones(next)
+                      try { localStorage.setItem(customKey, JSON.stringify(next)) } catch (e) {}
+                    }}>Remove</button></div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   )

@@ -414,6 +414,8 @@ export default function Profile() {
 
           {nextMeetup ? (
             <Countdown
+              compact={true}
+              calendarRoute="/schedule"
               target={nextMeetup}
               title={`Next time we will see ${partners || ''}`}
               initialCustomMilestones={(typeof persistedMilestones !== 'undefined') ? persistedMilestones : null}
