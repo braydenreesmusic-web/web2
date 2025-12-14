@@ -7,6 +7,7 @@ import AvatarMaker from '../components/AvatarMaker'
 import { normalizeAvatarUrl } from '../lib/mediaUrl'
 import Dialog from '../components/ui/dialog'
 import Input from '../components/ui/input'
+import Countdown from '../components/Countdown'
 import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../lib/lazyApi'
 import NotificationsButton from '../components/NotificationsButton'
 import { useToast } from '../contexts/ToastContext'
@@ -143,6 +144,33 @@ export default function Profile() {
       }
     }
   }, [user])
+
+  // Next meetup stored locally per-user (ISO string)
+  const [nextMeetup, setNextMeetup] = useState('')
+  useEffect(() => {
+    if (!user) return
+    try {
+      const key = `next-meetup:${user.id}`
+      const raw = localStorage.getItem(key)
+      if (raw) setNextMeetup(raw)
+    } catch (e) {}
+  }, [user])
+
+  const saveNextMeetup = (iso) => {
+    if (!user) return
+    try {
+      const key = `next-meetup:${user.id}`
+      if (!iso) {
+        localStorage.removeItem(key)
+        setNextMeetup('')
+        showToast && showToast('Cleared next meetup', { type: 'info' })
+        return
+      }
+      localStorage.setItem(key, iso)
+      setNextMeetup(iso)
+      showToast && showToast('Saved next meetup', { type: 'success' })
+    } catch (e) { console.error(e) }
+  }
 
   const sendRequest = async () => {
     const email = partnerEmail.trim().toLowerCase()
@@ -364,6 +392,31 @@ export default function Profile() {
         <Dialog open={showAvatarEditor} onClose={()=>setShowAvatarEditor(false)} title="Edit Avatar">
           <AvatarMaker initialAvatar={user?.user_metadata?.avatar || ''} onSaved={(payload)=>{ setShowAvatarEditor(false); showToast && showToast('Avatar updated') }} />
         </Dialog>
+
+        {/* Next meetup countdown (local) */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-semibold">Next Meetup</div>
+            <div className="text-sm muted">Show a countdown to your next meetup</div>
+          </div>
+
+          <div className="flex gap-2 items-center mb-3">
+            <input
+              type="datetime-local"
+              value={nextMeetup ? new Date(nextMeetup).toISOString().slice(0,16) : ''}
+              onChange={e => setNextMeetup(e.target.value ? new Date(e.target.value).toISOString() : '')}
+              className="input w-64"
+            />
+            <button className="btn" onClick={() => saveNextMeetup(nextMeetup)}>Save</button>
+            <button className="btn-ghost" onClick={() => saveNextMeetup('')}>Clear</button>
+          </div>
+
+          {nextMeetup ? (
+            <Countdown target={nextMeetup} title={`Next time we will see ${partners || ''}`} />
+          ) : (
+            <div className="text-sm muted">No next meetup set. Pick a date/time and click Save.</div>
+          )}
+        </div>
         
         {/* Partner Linking Status */}
         {linked ? (
