@@ -36,7 +36,7 @@ function defaultMilestones() {
   return [7*24*3600, 3*24*3600, 2*24*3600, 1*24*3600, 0]
 }
 
-export default function Countdown({ target, title = 'Next meetup', milestones, initialCustomMilestones = null, onMilestonesChange = null }) {
+export default function Countdown({ target, title = 'Next meetup', milestones, initialCustomMilestones = null, onMilestonesChange = null, compact = false, calendarRoute = null }) {
   const targetDate = useMemo(() => {
     if (!target) return null
     if (target instanceof Date) return target
@@ -75,6 +75,18 @@ export default function Countdown({ target, title = 'Next meetup', milestones, i
     const combined = Array.from(new Set([...(base || []), ...(customMilestones || [])]))
     return combined.sort((a,b) => b - a)
   }, [milestones, customMilestones])
+
+  // helper: days until (ceil to next whole day), 0 => today
+  const daysUntil = useMemo(() => {
+    if (!targetDate) return null
+    const ms = Math.max(0, targetDate.getTime() - Date.now())
+    return Math.ceil(ms / (24 * 3600 * 1000))
+  }, [targetDate, nowMs])
+
+  // Convert mergedMarks (seconds) to days for banner matching
+  const mergedDays = useMemo(() => {
+    return Array.from(new Set((mergedMarks || []).map(s => Math.round(s / 86400))))
+  }, [mergedMarks])
 
   useEffect(() => {
     // load already-notified set from localStorage
@@ -152,6 +164,23 @@ export default function Countdown({ target, title = 'Next meetup', milestones, i
     return <div className="glass-card p-4">No target date supplied.</div>
   }
 
+  // Compact/banner mode: only show a simple milestone banner when today matches a milestone
+  if (compact) {
+    const days = daysUntil
+    const dayMatches = mergedDays.includes(days)
+    if (!dayMatches) return null
+    const label = days === 0 ? 'Today! 🎉' : `${days} day${days===1?'':'s'} away`
+    return (
+      <div className="w-full rounded-lg p-3 bg-gradient-to-r from-accent-600 to-accent-500 text-white flex items-center justify-between">
+        <div className="text-sm font-semibold">{title}</div>
+        <div className="text-sm">{label}</div>
+        {calendarRoute ? (
+          <a href={calendarRoute} className="ml-4 px-3 py-1 bg-white/20 rounded text-sm">Open calendar</a>
+        ) : null}
+      </div>
+    )
+  }
+
   return (
     <div className="glass-card p-4 space-y-3">
       <div className="flex items-start justify-between">
@@ -184,35 +213,41 @@ export default function Countdown({ target, title = 'Next meetup', milestones, i
           <div className="mt-3">
             <div className="text-sm muted">Calendar</div>
             <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => {
-                  // download .ics
-                  try {
-                    const ics = buildICS(targetDate, title)
-                    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
-                    const url = URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = `${title.replace(/\s+/g,'-') || 'event'}.ics`
-                    document.body.appendChild(a)
-                    a.click()
-                    a.remove()
-                    URL.revokeObjectURL(url)
-                  } catch (e) { alert('Failed to create .ics: ' + e.message) }
-                }}
-                className="btn"
-              >Download .ics</button>
+              {calendarRoute ? (
+                <a href={calendarRoute} className="btn">Open calendar</a>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      // download .ics
+                      try {
+                        const ics = buildICS(targetDate, title)
+                        const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `${title.replace(/\s+/g,'-') || 'event'}.ics`
+                        document.body.appendChild(a)
+                        a.click()
+                        a.remove()
+                        URL.revokeObjectURL(url)
+                      } catch (e) { alert('Failed to create .ics: ' + e.message) }
+                    }}
+                    className="btn"
+                  >Download .ics</button>
 
-              <button
-                onClick={() => {
-                  // open Google Calendar create
-                  try {
-                    const g = googleCalendarUrl(targetDate, title)
-                    window.open(g, '_blank')
-                  } catch (e) { alert('Failed to open Google Calendar: ' + e.message) }
-                }}
-                className="btn-ghost"
-              >Open in Google Calendar</button>
+                  <button
+                    onClick={() => {
+                      // open Google Calendar create
+                      try {
+                        const g = googleCalendarUrl(targetDate, title)
+                        window.open(g, '_blank')
+                      } catch (e) { alert('Failed to open Google Calendar: ' + e.message) }
+                    }}
+                    className="btn-ghost"
+                  >Open in Google Calendar</button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -234,7 +269,7 @@ export default function Countdown({ target, title = 'Next meetup', milestones, i
       <div className="mt-3">
         <div className="text-sm font-semibold mb-2">Custom Milestones</div>
         <div className="flex gap-2 items-center">
-            <input type="number" min={0} value={customInputDays} onChange={e => setCustomInputDays(e.target.value)} className="input w-32" placeholder="Days before" />
+          <input type="number" min={0} value={customInputDays} onChange={e => setCustomInputDays(e.target.value)} className="input w-32" placeholder="Days before" />
           <button className="btn" onClick={() => {
             const days = Number(customInputDays)
             if (!Number.isFinite(days) || days < 0) return alert('Enter a valid non-negative number of days')
@@ -251,13 +286,13 @@ export default function Countdown({ target, title = 'Next meetup', milestones, i
           {(customMilestones || []).length === 0 ? (
             <div className="text-sm muted">No custom milestones</div>
           ) : (
-                (customMilestones || []).map(m => (
+            (customMilestones || []).map(m => (
               <div key={m} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                 <div>{milestoneLabel(m)}</div>
                 <div><button className="btn-ghost" onClick={() => {
                   const next = (customMilestones || []).filter(x => x !== m)
-                      setCustomMilestones(next)
-                      try { localStorage.setItem(customKey, JSON.stringify(next)) } catch (e) {}
+                  setCustomMilestones(next)
+                  try { localStorage.setItem(customKey, JSON.stringify(next)) } catch (e) {}
                 }}>Remove</button></div>
               </div>
             ))

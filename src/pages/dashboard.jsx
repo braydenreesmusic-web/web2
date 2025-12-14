@@ -6,6 +6,8 @@ import Dialog from '../components/ui/dialog'
 import { useAuth } from '../contexts/AuthContext'
 import EmptyState from '../components/EmptyState'
 import { getCheckIns, getNotes, getMedia, getSavingsGoals, getPresence, getRelationshipData } from '../lib/lazyApi'
+import Countdown from '../components/Countdown'
+import { getMeetup } from '../lib/meetups'
 import DailyCheckIn from '../components/modals/DailyCheckIn.jsx'
 import Memories from '../components/modals/Memories.jsx'
 import RelationshipInsights from '../components/modals/RelationshipInsights.jsx'
@@ -25,6 +27,7 @@ export default function Dashboard() {
   const [savings, setSavings] = useState([])
   const [presence, setPresence] = useState([])
   const [relationship, setRelationship] = useState(null)
+  const [meetup, setMeetup] = useState(null)
   const [partnerDisplayName, setPartnerDisplayName] = useState('')
   const [showDaysModal, setShowDaysModal] = useState(false)
 
@@ -49,6 +52,16 @@ export default function Dashboard() {
         setSavings(sv || [])
         setPresence(pr || [])
         setRelationship(rel || null)
+        // also try to load persisted meetup for this user
+        ;(async () => {
+          try {
+            const m = await getMeetup(user.id)
+            if (cancelled) return
+            setMeetup(m)
+          } catch (e) {
+            console.debug && console.debug('failed to load meetup', e)
+          }
+        })()
       } catch (e) {
         console.error('Dashboard load failed', e)
       } finally {
@@ -91,6 +104,10 @@ export default function Dashboard() {
 
   return (
     <section className="space-y-6">
+      {/* Compact milestone banner: show only when there's an active milestone */}
+      {meetup?.target_at && (
+        <Countdown compact={true} target={meetup.target_at} title={`Next time we will see ${relationship?.partner_a || relationship?.partner_b || relationship?.display_name || ''}`} calendarRoute="/schedule" initialCustomMilestones={meetup.milestones || null} />
+      )}
       {loading && (
         <div className="glass-card p-4">Loading your overview…</div>
       )}
