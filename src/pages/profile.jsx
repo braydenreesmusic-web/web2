@@ -416,9 +416,9 @@ export default function Profile() {
             <Countdown
               target={nextMeetup}
               title={`Next time we will see ${partners || ''}`}
-              initialCustomMilestones={persistedMilestones}
+              initialCustomMilestones={(typeof persistedMilestones !== 'undefined') ? persistedMilestones : null}
               onMilestonesChange={(m) => {
-                setPersistedMilestones(m)
+                if (typeof setPersistedMilestones === 'function') setPersistedMilestones(m)
                 // persist milestones immediately so they survive reloads
                 ;(async () => {
                   try { await upsertMeetup(user.id, { target_at: nextMeetup || null, milestones: m || null }) } catch (e) { console.debug && console.debug('failed to save milestones', e) }
