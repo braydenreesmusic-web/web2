@@ -85,7 +85,7 @@ export default function Countdown({ target, title = 'Next meetup', milestones, i
 
   // Convert mergedMarks (seconds) to days for banner matching
   const mergedDays = useMemo(() => {
-    return Array.from(new Set((mergedMarks || []).map(s => Math.round(s / 86400))))
+    return Array.from(new Set((mergedMarks || []).map(s => Math.round(s / 86400)))).sort((a,b)=>a-b)
   }, [mergedMarks])
 
   useEffect(() => {
