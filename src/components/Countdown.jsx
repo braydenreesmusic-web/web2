@@ -36,7 +36,7 @@ function defaultMilestones() {
   return [7*24*3600, 3*24*3600, 2*24*3600, 1*24*3600, 0]
 }
 
-export default function Countdown({ target, title = 'Next meetup', milestones }) {
+export default function Countdown({ target, title = 'Next meetup', milestones, initialCustomMilestones = null, onMilestonesChange = null }) {
   const targetDate = useMemo(() => {
     if (!target) return null
     if (target instanceof Date) return target
@@ -60,6 +60,8 @@ export default function Countdown({ target, title = 'Next meetup', milestones })
   const customKey = targetDate ? `countdown-custom-milestones:${targetDate.toISOString()}` : null
   const [customInputDays, setCustomInputDays] = useState('')
   const [customMilestones, setCustomMilestones] = useState(() => {
+    // If an initial list is provided via props, prefer that.
+    if (Array.isArray(initialCustomMilestones)) return initialCustomMilestones.slice()
     if (!customKey) return []
     try {
       const raw = localStorage.getItem(customKey)
@@ -85,6 +87,13 @@ export default function Countdown({ target, title = 'Next meetup', milestones })
       }
     } catch (e) {}
   }, [storageKey])
+
+  useEffect(() => {
+    // Inform parent about custom milestone changes so callers can persist them.
+    try {
+      if (typeof onMilestonesChange === 'function') onMilestonesChange(customMilestones.slice())
+    } catch (e) {}
+  }, [customMilestones, onMilestonesChange])
 
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 1000)
@@ -225,7 +234,7 @@ export default function Countdown({ target, title = 'Next meetup', milestones })
       <div className="mt-3">
         <div className="text-sm font-semibold mb-2">Custom Milestones</div>
         <div className="flex gap-2 items-center">
-          <input type="number" min={0} value={customInputDays} onChange={e => setCustomInputDays(e.target.value)} className="input w-32" placeholder="Days before" />
+            <input type="number" min={0} value={customInputDays} onChange={e => setCustomInputDays(e.target.value)} className="input w-32" placeholder="Days before" />
           <button className="btn" onClick={() => {
             const days = Number(customInputDays)
             if (!Number.isFinite(days) || days < 0) return alert('Enter a valid non-negative number of days')
@@ -242,13 +251,13 @@ export default function Countdown({ target, title = 'Next meetup', milestones })
           {(customMilestones || []).length === 0 ? (
             <div className="text-sm muted">No custom milestones</div>
           ) : (
-            (customMilestones || []).map(m => (
+                (customMilestones || []).map(m => (
               <div key={m} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                 <div>{milestoneLabel(m)}</div>
                 <div><button className="btn-ghost" onClick={() => {
                   const next = (customMilestones || []).filter(x => x !== m)
-                  setCustomMilestones(next)
-                  try { localStorage.setItem(customKey, JSON.stringify(next)) } catch (e) {}
+                      setCustomMilestones(next)
+                      try { localStorage.setItem(customKey, JSON.stringify(next)) } catch (e) {}
                 }}>Remove</button></div>
               </div>
             ))

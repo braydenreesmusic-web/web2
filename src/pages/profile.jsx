@@ -14,6 +14,7 @@ import { useToast } from '../contexts/ToastContext'
 import NotificationPrompt from '../components/NotificationPrompt'
 import { sendFallbackEmail } from '../services/notify'
 import { supabase } from '../lib/supabase'
+import { getMeetup, upsertMeetup } from '../lib/meetups'
 
 export default function Profile() {
   const { user, signOut } = useAuth()
@@ -412,7 +413,18 @@ export default function Profile() {
           </div>
 
           {nextMeetup ? (
-            <Countdown target={nextMeetup} title={`Next time we will see ${partners || ''}`} />
+            <Countdown
+              target={nextMeetup}
+              title={`Next time we will see ${partners || ''}`}
+              initialCustomMilestones={persistedMilestones}
+              onMilestonesChange={(m) => {
+                setPersistedMilestones(m)
+                // persist milestones immediately so they survive reloads
+                ;(async () => {
+                  try { await upsertMeetup(user.id, { target_at: nextMeetup || null, milestones: m || null }) } catch (e) { console.debug && console.debug('failed to save milestones', e) }
+                })()
+              }}
+            />
           ) : (
             <div className="text-sm muted">No next meetup set. Pick a date/time and click Save.</div>
           )}
