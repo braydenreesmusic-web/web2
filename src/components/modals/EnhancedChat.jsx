@@ -622,7 +622,7 @@ export default function EnhancedChat({ open, onClose }) {
 
         {mode === 'chat' && (
           <>
-            <div className="max-h-72 overflow-y-auto mt-2 chat-scroll">
+            <div className="max-h-72 overflow-y-auto mt-2 chat-scroll touch-scroll">
               {messages.map((m, i) => (
                   <div key={i} className="chat-row">
                     {/* Prefer showing a real avatar image when available for the current user */}
@@ -648,7 +648,7 @@ export default function EnhancedChat({ open, onClose }) {
 
             <div className="flex gap-2">
               <textarea value={input} onChange={onInputChange} placeholder="Send a love note…" className="flex-1 px-3 py-3 rounded-xl border resize-none" rows={2} onKeyDown={(e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); } }} />
-              <Button onClick={send} className="expensive-btn">Send</Button>
+              <Button onClick={send} className="expensive-btn touch-target">Send</Button>
             </div>
           </>
         )}
@@ -718,7 +718,7 @@ export default function EnhancedChat({ open, onClose }) {
             <pre className="text-xs bg-white p-2 rounded border overflow-auto">{JSON.stringify(partnerListeningSession, null, 2)}</pre>
 
             <div className="mt-2 text-xs font-medium">Recent Events</div>
-            <div className="max-h-48 overflow-y-auto text-xs mt-1 space-y-2">
+            <div className="max-h-48 overflow-y-auto text-xs mt-1 space-y-2 touch-scroll">
               {presenceEvents && presenceEvents.length ? presenceEvents.map((e, i) => (
                 <div key={i} className="p-1 bg-white border rounded">
                   <div className="flex items-center justify-between">
@@ -740,14 +740,14 @@ export default function EnhancedChat({ open, onClose }) {
         {showDevControls && uiDebugEvents && (
           <div className="mt-2 p-2 bg-slate-50 border rounded text-xs">
             <div className="font-medium text-sm">game_events (server)</div>
-            <pre className="max-h-60 overflow-auto text-xs mt-2 bg-white p-2 rounded border">{JSON.stringify(uiDebugEvents, null, 2)}</pre>
+            <pre className="max-h-60 overflow-auto text-xs mt-2 bg-white p-2 rounded border touch-scroll">{JSON.stringify(uiDebugEvents, null, 2)}</pre>
           </div>
         )}
 
         {showDevControls && relationshipDebug && (
           <div className="mt-2 p-2 bg-slate-50 border rounded text-xs">
             <div className="font-medium text-sm">relationship (client)</div>
-            <pre className="max-h-40 overflow-auto text-xs mt-2 bg-white p-2 rounded border">{JSON.stringify(relationshipDebug, null, 2)}</pre>
+            <pre className="max-h-40 overflow-auto text-xs mt-2 bg-white p-2 rounded border touch-scroll">{JSON.stringify(relationshipDebug, null, 2)}</pre>
           </div>
         )}
 

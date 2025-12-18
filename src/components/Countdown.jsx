@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
+import { motion } from 'framer-motion'
 
 /*
   Countdown component
@@ -168,16 +169,77 @@ export default function Countdown({ target, title = 'Next meetup', milestones, i
   if (compact) {
     const days = daysUntil
     const dayMatches = mergedDays.includes(days)
-    if (!dayMatches) return null
-    const label = days === 0 ? 'Today! 🎉' : `${days} day${days===1?'':'s'} away`
+    const isToday = days === 0
+    const label = isToday ? 'Today! 🎉' : `${days} day${days===1?'':'s'}`
+
+    // snooze/dismiss persistence per-target
+    const snoozeKey = targetDate ? `countdown-snooze:${targetDate.toISOString()}` : null
+    const [snoozedUntil, setSnoozedUntil] = useState(() => {
+      if (!snoozeKey) return 0
+      try {
+        const raw = localStorage.getItem(snoozeKey)
+        return raw ? Number(raw) : 0
+      } catch (e) { return 0 }
+    })
+
+    useEffect(() => {
+      if (!snoozeKey) return
+      try {
+        const raw = localStorage.getItem(snoozeKey)
+        const num = raw ? Number(raw) : 0
+        setSnoozedUntil(num || 0)
+      } catch (e) {}
+    }, [snoozeKey])
+
+    if (snoozedUntil && snoozedUntil > Date.now()) return null
+
+    const setSnooze = (days) => {
+      if (!snoozeKey) return
+      const until = Date.now() + (days * 24 * 3600 * 1000)
+      try { localStorage.setItem(snoozeKey, String(until)) } catch (e) {}
+      setSnoozedUntil(until)
+    }
+
     return (
-      <div className="w-full rounded-lg p-3 bg-gradient-to-r from-accent-600 to-accent-500 text-white flex items-center justify-between">
-        <div className="text-sm font-semibold">{title}</div>
-        <div className="text-sm">{label}</div>
-        {calendarRoute ? (
-          <a href={calendarRoute} className="ml-4 px-3 py-1 bg-white/20 rounded text-sm">Open calendar</a>
-        ) : null}
-      </div>
+      <motion.div whileHover={{ y: -3 }} className={`w-full rounded-2xl p-4 flex items-center justify-between shadow-xl transition-all relative overflow-hidden ${dayMatches ? 'bg-gradient-to-r from-accent-800 to-accent-600 text-white' : 'bg-white border border-gray-100'}`}>
+        <div className="absolute inset-0 opacity-20 pointer-events-none" aria-hidden>
+          {/* subtle diagonal stripes */}
+          <svg width="100%" height="100%" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="g" x1="0" x2="1"><stop offset="0" stopColor="rgba(255,255,255,0.06)"/><stop offset="1" stopColor="rgba(0,0,0,0.06)"/></linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#g)" />
+          </svg>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl ${dayMatches ? 'bg-white/20' : 'bg-indigo-50'}`} aria-hidden>
+            <span className="leading-none">💫</span>
+          </div>
+          <div>
+            <div className={`text-xs font-semibold ${dayMatches ? 'uppercase tracking-wider text-white/90' : 'text-gray-600'}`}>{title}</div>
+            <div className={`mt-1 text-2xl font-extrabold ${dayMatches ? 'text-white' : 'text-slate-900'}`}>{isToday ? 'Today' : `${days} day${days===1 ? '' : 's'}`}</div>
+            <div className={`text-sm mt-1 ${dayMatches ? 'text-white/90' : 'text-gray-500'}`}>{targetDate.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {calendarRoute ? (
+            <a href={calendarRoute} className={`px-4 py-2 rounded-md font-semibold ${dayMatches ? 'bg-white text-accent-700 shadow-sm' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`} aria-label={`Open calendar on ${targetDate.toLocaleDateString()}`}>
+              Open calendar
+            </a>
+          ) : null}
+
+          <div className="flex items-center gap-2">
+            <button onClick={() => setSnooze(1)} className={`px-3 py-1 text-sm rounded-md ${dayMatches ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'}`}>Snooze 1d</button>
+            <button onClick={() => setSnooze(7)} className={`px-3 py-1 text-sm rounded-md ${dayMatches ? 'bg-white/10 text-white/90' : 'bg-gray-50 text-gray-600'}`}>Dismiss 7d</button>
+          </div>
+
+          <button aria-label="close" onClick={() => setSnooze(7)} className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm opacity-80 hover:opacity-100">
+            ×
+          </button>
+        </div>
+      </motion.div>
     )
   }
 

@@ -11,3 +11,14 @@ createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>
 )
+
+// Register service worker (simple offline + push handling)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js').then((reg) => {
+      console.log('Service worker registered.', reg);
+    }).catch((err) => {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}

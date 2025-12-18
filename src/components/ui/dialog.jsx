@@ -5,13 +5,20 @@ export default function Dialog({ open, onClose, title, children }) {
   if (!open) return null
   const titleId = `dialog-title-${String(title || '').replace(/\s+/g, '-').toLowerCase()}`
   return (
-    <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}>
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-label="Dialog backdrop"
+      className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      role="presentation"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
+    >
       <motion.div
         initial={{ y: 8, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 8, opacity: 0 }}
         transition={{ duration: 0.22 }}
-        className="card rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        className="card rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto touch-scroll"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

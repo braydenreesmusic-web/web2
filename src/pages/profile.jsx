@@ -8,7 +8,7 @@ import { normalizeAvatarUrl } from '../lib/mediaUrl'
 import Dialog from '../components/ui/dialog'
 import Input from '../components/ui/input'
 import Countdown from '../components/Countdown'
-import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests } from '../lib/lazyApi'
+import { getNotes, getMedia, getEvents, getRelationshipData, updateRelationshipData, sendPartnerRequest, getPartnerRequests, acceptPartnerRequest, rejectPartnerRequest, subscribeToPartnerRequests, createEvent } from '../lib/lazyApi'
 import NotificationsButton from '../components/NotificationsButton'
 import { useToast } from '../contexts/ToastContext'
 import NotificationPrompt from '../components/NotificationPrompt'
@@ -170,7 +170,49 @@ export default function Profile() {
       localStorage.setItem(key, iso)
       setNextMeetup(iso)
       showToast && showToast('Saved next meetup', { type: 'success' })
+      // persist server-side and create calendar event in background
+      persistMeetupAndEvent(iso).catch(e=>console.debug && console.debug('persistMeetupAndEvent error', e))
     } catch (e) { console.error(e) }
+  }
+
+  // Persist meetup to Supabase and create a calendar event (if one doesn't exist)
+  const persistMeetupAndEvent = async (iso) => {
+    if (!user || !iso) return
+    try {
+      // Persist to meetups table (upsert)
+      try {
+        await upsertMeetup(user.id, { target_at: iso })
+      } catch (e) {
+        console.debug && console.debug('Failed to upsert meetup', e)
+      }
+
+      // Try to avoid duplicate calendar events: check for same-day "Next Time Together" events
+      try {
+        const all = await getEvents(user.id)
+        const isoDay = new Date(iso).toISOString().slice(0,10)
+        const already = (all || []).some(ev => {
+          try {
+            const evDay = new Date(ev.date).toISOString().slice(0,10)
+            return evDay === isoDay && (ev.title || '').toLowerCase().includes('next')
+          } catch (e) { return false }
+        })
+        if (!already) {
+          await createEvent({
+            user_id: user.id,
+            title: 'Next Time Together',
+            date: iso,
+            category: 'Together',
+            owner: 'together',
+            note: 'Saved from profile meetup'
+          })
+          showToast && showToast('Added event to your calendar', { type: 'success' })
+        }
+      } catch (e) {
+        console.debug && console.debug('Failed to create calendar event', e)
+      }
+    } catch (e) {
+      console.error('persistMeetupAndEvent error', e)
+    }
   }
 
   const sendRequest = async () => {
@@ -415,7 +457,7 @@ export default function Profile() {
           {nextMeetup ? (
             <Countdown
               compact={true}
-              calendarRoute="/schedule"
+              calendarRoute={`/schedule?date=${encodeURIComponent(new Date(nextMeetup).toISOString().slice(0,10))}`}
               target={nextMeetup}
               title={`Next time we will see ${partners || ''}`}
               initialCustomMilestones={(typeof persistedMilestones !== 'undefined') ? persistedMilestones : null}

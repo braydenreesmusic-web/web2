@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useToast } from '../contexts/ToastContext'
 import { Icons, OwnerBadge } from '../components/Icons'
 import SchedulePresets from '../components/SchedulePresets'
+import EventDetail from '../components/modals/EventDetail'
 
 const ownerColors = {
   hers: 'bg-slate-500',
@@ -62,6 +63,27 @@ export default function Schedule() {
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [taskTitle, setTaskTitle] = useState('')
+
+  // If a `date` query param is provided (YYYY-MM-DD), open the calendar focused
+  // on that month so the user sees the meetup/event immediately.
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return
+      const params = new URLSearchParams(window.location.search)
+      const q = params.get('date')
+      if (!q) return
+      const parsed = new Date(q)
+      if (isNaN(parsed.getTime())) return
+      setCurrentYear(parsed.getFullYear())
+      setCurrentMonth(parsed.getMonth())
+      // also set the add/edit form date value so the UI can show details if desired
+      // store as local ISO 16-char (YYYY-MM-DDTHH:MM)
+      const isoLocal = new Date(parsed.getTime() - parsed.getTimezoneOffset()*60000).toISOString().slice(0,16)
+      setDate(isoLocal)
+    } catch (e) {
+      console.debug && console.debug('Failed to parse schedule ?date param', e)
+    }
+  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -136,6 +158,8 @@ export default function Schedule() {
   const [batchSelecting, setBatchSelecting] = useState(false)
   const [selectedDays, setSelectedDays] = useState([])
   const [expandedGroups, setExpandedGroups] = useState({})
+  const [showEventModal, setShowEventModal] = useState(false)
+  const [modalEvent, setModalEvent] = useState(null)
 
   const scanImageForSchedule = async () => {
     if (!photoPreview) return
@@ -203,6 +227,48 @@ export default function Schedule() {
       showToast && showToast('Failed to import events: ' + (err.message || err), { type: 'error' })
     }
   }
+
+  // If a `date` query param is provided (YYYY-MM-DD), open the calendar focused
+  // on that month so the user sees the meetup/event immediately.
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return
+      const params = new URLSearchParams(window.location.search)
+      const q = params.get('date')
+      if (!q) return
+      const parsed = new Date(q)
+      if (isNaN(parsed.getTime())) return
+      setCurrentYear(parsed.getFullYear())
+      setCurrentMonth(parsed.getMonth())
+      // also set the add/edit form date value so the UI can show details if desired
+      // store as local ISO 16-char (YYYY-MM-DDTHH:MM)
+      const isoLocal = new Date(parsed.getTime() - parsed.getTimezoneOffset()*60000).toISOString().slice(0,16)
+      setDate(isoLocal)
+    } catch (e) {
+      console.debug && console.debug('Failed to parse schedule ?date param', e)
+    }
+  }, [])
+
+  // When events load, if a ?date=YYYY-MM-DD param is present and an event exists that day,
+  // open the event detail modal for quick editing.
+  useEffect(() => {
+    try {
+      if (!events || events.length === 0) return
+      if (typeof window === 'undefined') return
+      const params = new URLSearchParams(window.location.search)
+      const q = params.get('date')
+      if (!q) return
+      const match = events.find(ev => {
+        try { return new Date(ev.date).toISOString().slice(0,10) === q } catch (e) { return false }
+      })
+      if (match) {
+        setModalEvent(match)
+        setShowEventModal(true)
+      }
+    } catch (e) {
+      console.debug && console.debug('auto-open event modal failed', e)
+    }
+  }, [events])
 
   const applyPreset = (p) => {
     if (!p) return
@@ -607,7 +673,7 @@ export default function Schedule() {
                         <div className="text-sm text-gray-600">{selectedDays.length} selected</div>
                         <button onClick={createBatchEvents} className="px-3 py-2 rounded bg-slate-700 text-white">Create for selected</button>
                         <button onClick={() => setSelectedDays([])} className="px-3 py-2 rounded border">Clear</button>
-                      </div>
+                      </button>
                     )}
 
                     <div className="mt-4 flex gap-3 items-center">
@@ -658,9 +724,10 @@ export default function Schedule() {
                   {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
                     const dayEvents = eventsByDay[day] || []
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={day}
-                        className={`p-2 flex flex-col group transition-all text-sm rounded-md min-h-[88px] ${activePreset ? 'cursor-pointer bg-slate-50 hover:bg-slate-100' : 'bg-white cursor-pointer'}`}
+                        className={`day-cell p-3 flex flex-col group transition-all text-sm rounded-md min-h-[84px] sm:min-h-[88px] ${activePreset ? 'cursor-pointer bg-slate-50 hover:bg-slate-100' : 'bg-white cursor-pointer'}`}
                         onClick={async () => {
                           if (activePreset) {
                             try {
@@ -683,7 +750,12 @@ export default function Schedule() {
                             }
                             return
                           }
-                          if (dayEvents[0]) setSelectedEvent(dayEvents[0])
+                          if (dayEvents[0]) {
+                            // on iOS ensure event click uses focus then opens modal
+                            setSelectedEvent(dayEvents[0])
+                            // small delay to avoid gesture conflicts
+                            setTimeout(()=>{ window.scrollTo({ top: 0, behavior: 'smooth' }) }, 50)
+                          }
                         }}
                       >
                           <div className="font-bold text-gray-700 text-xs mb-1 flex items-center justify-between">
@@ -694,14 +766,15 @@ export default function Schedule() {
                         <div className={`flex-1 overflow-hidden space-y-1 ${selectedDays.includes(day) ? 'ring-2 ring-offset-1 ring-slate-300 bg-slate-50' : ''}`}>
                           <AnimatePresence initial={false}>
                             {dayEvents.slice(0, 3).map((e) => (
-                              <motion.div
+                              <motion.button
                                 key={e.id}
+                                type="button"
                                 layout
                                 initial={{ opacity: 0, y: 6, scale: 0.98 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -6, scale: 0.97 }}
                                 transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-                                className={`text-xs px-2 py-1 rounded-lg font-semibold text-white truncate shadow-sm hover:shadow ${ownerColors[e.owner]}`}
+                                className={`text-xs px-2 py-1 rounded-lg font-semibold text-white truncate shadow-sm hover:shadow ${ownerColors[e.owner]} touch-target`}
                                 title={e.title}
                                 onClick={(ev) => {
                                   ev.stopPropagation()
@@ -709,7 +782,7 @@ export default function Schedule() {
                                 }}
                               >
                                 {e.title}
-                              </motion.div>
+                              </motion.button>
                             ))}
                           </AnimatePresence>
 
@@ -728,7 +801,7 @@ export default function Schedule() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-white rounded-3xl p-8 shadow-md border border-gray-200"
+                className="bg-white rounded-3xl p-8 shadow-md border border-gray-200 touch-scroll max-h-[36rem] overflow-y-auto"
               >
                 <div className="flex items-center gap-2 mb-6">
                   <Icons.Link className="w-6 h-6 text-slate-600" />
@@ -737,6 +810,13 @@ export default function Schedule() {
                 <div className="space-y-3">
                   <AnimatePresence>
                     {(() => {
+                  <EventDetail
+                    open={showEventModal}
+                    event={modalEvent}
+                    onClose={() => { setShowEventModal(false); setModalEvent(null); try { window.history.replaceState({}, '', window.location.pathname) } catch(e){} }}
+                    onUpdated={(updated) => setEvents(prev => (prev || []).map(e => e.id === updated.id ? updated : e))}
+                    onDeleted={(id) => setEvents(prev => (prev || []).filter(e => e.id !== id))}
+                  />
                       // group events by title+category
                       const groups = {}
                       events.slice(0, 50).forEach(e => {
@@ -754,11 +834,11 @@ export default function Schedule() {
                           const e = primary
                           return (
                             <motion.div key={e.id} layout initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }} transition={{ delay: gi * 0.02 }} className={`p-4 rounded-xl border flex items-start justify-between gap-4 group hover:shadow-md transition-all bg-white`}>
-                              <div className="flex-1" onClick={()=>setSelectedEvent(e)}>
+                              <button type="button" className="flex-1 text-left p-0 bg-transparent border-0" onClick={()=>setSelectedEvent(e)}>
                                 <div className="font-semibold text-gray-900 flex items-center gap-2">{e.title}</div>
                                 <div className="text-xs text-gray-600 mt-1">{new Date(e.date).toLocaleString()} • <OwnerBadge owner={e.owner} /></div>
                                 {e.note && <div className="text-xs text-gray-700 mt-2 italic">{e.note}</div>}
-                              </div>
+                              </button>
                               <motion.button onClick={() => removeEvent(e.id)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-3 py-2 rounded-lg bg-red-100 text-red-600 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"><Icons.Trash className="w-4 h-4" /></motion.button>
                             </motion.div>
                           )
@@ -768,10 +848,10 @@ export default function Schedule() {
                         return (
                           <motion.div key={k} layout initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }} transition={{ delay: gi * 0.02 }} className="p-4 rounded-xl border bg-white">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3" onClick={() => setExpandedGroups(prev => ({ ...prev, [k]: !prev[k] }))}>
+                              <button type="button" className="flex items-center gap-3 p-0 bg-transparent border-0" onClick={() => setExpandedGroups(prev => ({ ...prev, [k]: !prev[k] }))}>
                                 <div className="font-semibold text-gray-900">{primary.title} <span className="ml-2 text-sm text-gray-500">({items.length})</span></div>
                                 <div className="text-xs text-gray-600">{new Date(primary.date).toLocaleString()}</div>
-                              </div>
+                              </button>
                               <div className="flex items-center gap-2">
                                 <button onClick={() => setExpandedGroups(prev => ({ ...prev, [k]: !prev[k] }))} className="px-3 py-1 rounded-md border text-sm">{expanded ? 'Hide' : 'Show all'}</button>
                               </div>
@@ -780,10 +860,10 @@ export default function Schedule() {
                               <div className="mt-3 space-y-2">
                                 {items.map(it => (
                                   <div key={it.id} className="flex items-center justify-between p-2 rounded-md border hover:bg-gray-50">
-                                    <div className="text-sm" onClick={()=>setSelectedEvent(it)}>
+                                    <button type="button" className="text-sm p-0 bg-transparent border-0 text-left" onClick={()=>setSelectedEvent(it)}>
                                       <div className="font-medium">{it.title}</div>
                                       <div className="text-xs text-gray-500">{new Date(it.date).toLocaleString()} • <OwnerBadge owner={it.owner} /></div>
-                                    </div>
+                                    </button>
                                     <button onClick={() => removeEvent(it.id)} className="px-2 py-1 rounded text-red-600 text-sm border">Delete</button>
                                   </div>
                                 ))}

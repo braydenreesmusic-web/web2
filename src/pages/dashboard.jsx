@@ -119,19 +119,20 @@ export default function Dashboard() {
         } catch (e) {}
         const bannerTarget = serverTarget || localTarget
         if (!bannerTarget) return null
+        const calDate = new Date(bannerTarget).toISOString().slice(0,10)
         return (
-          <Countdown compact={true} target={bannerTarget} title={`Next time we will see ${relationship?.partner_a || relationship?.partner_b || relationship?.display_name || ''}`} calendarRoute="/schedule" initialCustomMilestones={meetup?.milestones || null} />
+          <Countdown compact={true} target={bannerTarget} title={`Next time we will see ${relationship?.partner_a || relationship?.partner_b || relationship?.display_name || ''}`} calendarRoute={`/schedule?date=${encodeURIComponent(calDate)}`} initialCustomMilestones={meetup?.milestones || null} />
         )
       })()}
       {loading && (
-        <div className="glass-card p-4">Loading your overview…</div>
+        <div className="glass-card p-6">Loading your overview…</div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button onClick={() => setShowDaysModal(true)} className="expensive-card p-4 text-left">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <button onClick={() => setShowDaysModal(true)} className="expensive-card p-6 text-left">
           <div className="text-sm muted">Days Together</div>
           <div className="text-3xl font-semibold">{relationship?.start_date ? Math.floor((Date.now() - new Date(relationship.start_date)) / (1000*60*60*24)) : 512}</div>
         </button>
-        <Link to="/savings" className="expensive-card p-4 hover:shadow-lg transition-shadow">
+        <Link to="/savings" className="expensive-card p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-center gap-2 mb-2">
             <PiggyBank className="w-4 h-4 text-[var(--accent-600)]" />
             <div className="text-sm muted">Savings Goals</div>
@@ -150,7 +151,7 @@ export default function Dashboard() {
             <div className="text-xs text-gray-400">No goals yet</div>
           )}
         </Link>
-        <div className="expensive-card p-4">
+        <div className="expensive-card p-6">
           <div className="text-sm muted mb-2">Presence</div>
           {presence.filter(p => p.is_online).length > 0 ? (
             <div className="flex flex-col gap-3">
@@ -175,7 +176,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Next meetup summary card (always visible) */}
+      {/* Next Time Together summary card (always visible) */}
       <div className="mt-4">
         {(() => {
           if (!user) return null
@@ -188,16 +189,18 @@ export default function Dashboard() {
           } catch (e) {}
           const bannerTarget = serverTarget || localTarget
           if (!bannerTarget) return (
-            <div className="expensive-card p-4">
-              <div className="text-sm muted">Next time together</div>
+            <div className="expensive-card p-6">
+              <div className="text-sm muted">Next Time Together</div>
               <div className="text-sm muted mt-2">No meetup set — <a href="/profile" className="text-indigo-600">Set one</a></div>
             </div>
           )
           const daysUntil = Math.max(0, Math.ceil((new Date(bannerTarget).getTime() - Date.now()) / (24 * 3600 * 1000)))
+          // Link to the schedule and open on the meetup date
+          const dateOnly = new Date(bannerTarget).toISOString().slice(0,10)
           return (
-            <Link to="/schedule" className="block">
-              <div className="expensive-card p-4 hover:shadow-lg transition cursor-pointer">
-                <div className="text-sm muted">Next time together</div>
+              <Link to={`/schedule?date=${encodeURIComponent(dateOnly)}`} className="block touch-target">
+                <div className="expensive-card p-6 hover:shadow-lg transition">
+                <div className="text-sm muted">Next Time Together</div>
                 <div className="text-3xl font-semibold mt-2">{daysUntil} day{daysUntil===1 ? '' : 's'}</div>
                 <div className="text-xs text-gray-500 mt-1">{new Date(bannerTarget).toLocaleString()}</div>
               </div>
@@ -206,7 +209,7 @@ export default function Dashboard() {
         })()}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         <button onClick={()=>setShowCheckIn(true)} className="expensive-card p-4 text-left hover:scale-[1.02] transition">
           <div className="text-lg font-semibold gradient-text">Check-In</div>
           <div className="text-sm muted">Daily mood & energy</div>

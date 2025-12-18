@@ -266,14 +266,12 @@ export default function Bookmarks() {
                   return (
                     <Draggable key={b.id} draggableId={`${b.id}`} index={idx}>
                       {(provided, snapshot) => (
-                        <motion.div
+                        <motion.button
+                          type="button"
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           onClick={() => { if (b.url) window.open(b.url, '_blank', 'noopener'); }}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (b.url) window.open(b.url, '_blank', 'noopener'); } }}
-                          className={`cursor-pointer relative group rounded-2xl overflow-hidden transition-all h-full
+                          className={`cursor-pointer relative group rounded-2xl overflow-hidden transition-all h-full touch-target
                             ${snapshot.isDragging 
                               ? 'shadow-2xl ring-2 ring-slate-600 scale-105' 
                               : 'shadow-md hover:shadow-xl hover:-translate-y-1'

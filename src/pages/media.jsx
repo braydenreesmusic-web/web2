@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import EmptyState from '../components/EmptyState'
 const MusicTab = lazy(() => import('../components/MusicTab'))
 import { Camera, Sparkles, Heart, Search } from 'lucide-react'
+import Skeleton from '../components/ui/Skeleton'
 
 export default function Media() {
   const [tab, setTab] = useState('photos')
@@ -53,20 +54,45 @@ export default function Media() {
     return () => { cancelled = true }
   }, [user])
 
-  const generateAIDescription = async () => {
+  const generateAIDescription = async (photo = null) => {
+    const now = Date.now()
+    if (now - (lastGenAt.current || 0) < 1200) return
+    lastGenAt.current = now
     setLoadingAI(true)
     try {
-      const descriptions = [
-        "A beautiful moment frozen in time 📸✨",
-        "Pure magic captured in pixels 💫",
-        "This memory makes my heart smile 💕",
-        "Love looks good on you two 💖",
-        "Creating memories, one photo at a time 🌟",
-      ]
-      const random = descriptions[Math.floor(Math.random() * descriptions.length)]
-      setAiDescription(random)
+      const payload = { imageUrl: photo?.url || selectedPhoto?.url || null, caption: photo?.caption || selectedPhoto?.caption || '' }
+      const resp = await fetch('/api/ai/describe-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '')
+        console.warn('AI describe failed', resp.status, txt)
+        // Fallback to a small local set so UX still works without a configured API key
+        const fallback = [
+          "A beautiful moment frozen in time 📸✨",
+          "This memory makes my heart smile 💕",
+          "Love looks good on you two 💖",
+        ]
+        const pick = fallback[Math.floor(Math.random() * fallback.length)]
+        setAiDescription(pick)
+        // persist fallback as well to reduce repeated attempts
+        try { const id = (photo && photo.id) || (selectedPhoto && selectedPhoto.id); if (id) await updatePhotoCaption(id, pick) } catch(e){}
+        return
+      }
+      const json = await resp.json()
+      const desc = json.description || "Couldn't generate description"
+      setAiDescription(desc)
+      // Persist generated caption to Supabase to cache and avoid repeat model calls
+      try {
+        const id = (photo && photo.id) || (selectedPhoto && selectedPhoto.id)
+        if (id) await updatePhotoCaption(id, desc)
+      } catch (e) {
+        console.error('Failed to persist AI caption', e)
+      }
     } catch (err) {
-      console.error(err)
+      console.error('generateAIDescription error', err)
       setAiDescription("Couldn't generate description")
     } finally {
       setLoadingAI(false)
@@ -153,6 +179,9 @@ export default function Media() {
       console.error('Failed to persist caption', e)
     }
   }
+
+  // simple client-side throttle to avoid accidental duplicate AI requests
+  const lastGenAt = useRef(0)
 
   const toggleFavorite = async (photoId) => {
     // optimistic UI
@@ -278,11 +307,28 @@ export default function Media() {
               <div className="ml-auto text-sm muted">{filteredPhotos.length} photos</div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredPhotos.map(p => (
-                <div key={p.id} className="relative photo-card overflow-hidden rounded-xl">
-                  <button onClick={() => { setSelectedPhoto(p); setCaption(p.caption || '') }} className="block w-full p-0 border-0">
-                    <img src={p.url} alt={p.caption || 'Photo'} className="w-full h-56 object-cover" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 touch-scroll">
+              {loading ? (
+                Array.from({length: 8}).map((_, i) => (
+                  <div key={i} className="relative photo-card overflow-hidden rounded-xl">
+                    <Skeleton className="w-full h-56" />
+                    <div className="p-3 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <Skeleton className="w-3/4 h-4 rounded" />
+                        <div className="mt-2"><Skeleton className="w-1/3 h-3 rounded" /></div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="w-10 h-10 rounded" />
+                        <Skeleton className="w-10 h-10 rounded" />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                filteredPhotos.map(p => (
+                  <div key={p.id} className="relative photo-card overflow-hidden rounded-xl">
+                  <button onClick={() => { setSelectedPhoto(p); setCaption(p.caption || '') }} className="block w-full p-0 border-0 touch-target">
+                    <img loading="lazy" src={p.url} alt={p.caption || 'Photo'} className="w-full h-56 object-cover" />
                   </button>
 
                   <div className="p-3 flex items-center gap-3">
@@ -291,10 +337,10 @@ export default function Media() {
                       <div className="text-xs muted mt-1">{p.date}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => toggleFavorite(p.id)} aria-label="favorite" className={`p-2 rounded ${p.favorite ? 'text-red-600' : 'text-gray-500'}`}>
+                      <button onClick={() => toggleFavorite(p.id)} aria-label="favorite" className={`p-2 rounded touch-target ${p.favorite ? 'text-red-600' : 'text-gray-500'}`}>
                         ❤
                       </button>
-                      <button onClick={() => downloadPhoto(p.url)} aria-label="download" className="p-2 rounded text-gray-500">↓</button>
+                      <button onClick={() => downloadPhoto(p.url)} aria-label="download" className="p-2 rounded touch-target text-gray-500">↓</button>
                     </div>
                   </div>
                 </div>
@@ -417,6 +463,30 @@ export default function Media() {
             {aiDescription && (
               <div className="p-4 rounded-xl border" style={{background: 'linear-gradient(180deg, #f7f8f9, var(--card))', borderColor: 'var(--border)'}}>
                 <p className="text-sm" style={{color: 'var(--text)'}}>{aiDescription}</p>
+              </div>
+            )}
+
+            {aiDescription && (
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => generateAIDescription(selectedPhoto)}
+                  disabled={loadingAI}
+                  className="px-3 py-2 rounded bg-gray-100"
+                >
+                  {loadingAI ? 'Generating…' : 'Regenerate'}
+                </button>
+
+                <button
+                  onClick={async () => {
+                    if (!aiDescription) return
+                    setCaption(aiDescription)
+                    try { await updatePhotoCaption(selectedPhoto.id, aiDescription) } catch (e) { console.error(e) }
+                    setAiDescription('')
+                  }}
+                  className="flex-1 btn"
+                >
+                  Save AI Caption
+                </button>
               </div>
             )}
 

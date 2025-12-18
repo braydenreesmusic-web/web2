@@ -77,7 +77,7 @@ export default function NotificationPrompt() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black opacity-40" onClick={() => dismiss(true)} />
+      <button aria-label="Dismiss notification prompt" tabIndex={-1} type="button" className="absolute inset-0 bg-black opacity-40" onClick={() => dismiss(true)} />
       <div className="relative w-full max-w-md bg-white rounded-xl shadow-lg p-5">
         <div className="flex items-start gap-3">
           <div className="flex-1">

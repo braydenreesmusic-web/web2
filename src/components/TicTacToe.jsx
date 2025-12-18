@@ -426,7 +426,7 @@ export default function TicTacToe() {
       <div className="flex gap-4">
         <div className="flex-1">
           <div className="text-sm text-gray-600">Move history</div>
-          <div className="max-h-48 overflow-y-auto mt-2 space-y-2">
+          <div className="max-h-48 overflow-y-auto mt-2 space-y-2 touch-scroll">
             {moveHistory.length === 0 && <div className="text-gray-400">No moves yet</div>}
             {moveHistory.map((m, i) => (
               <div key={i} className="glass-card p-2 flex items-center justify-between">
@@ -447,7 +447,7 @@ export default function TicTacToe() {
 
         <div className="w-80">
           <div className="text-sm text-gray-600">Game Chat</div>
-          <div className="max-h-64 overflow-y-auto mt-2 space-y-2">
+          <div className="max-h-64 overflow-y-auto mt-2 space-y-2 touch-scroll">
             {gameMessages.length === 0 && <div className="text-gray-400">No game messages yet</div>}
             {gameMessages.map((m, i) => (
               <div key={i} className="glass-card p-2">

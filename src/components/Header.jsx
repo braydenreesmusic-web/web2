@@ -16,7 +16,8 @@ export default function Header({ title }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32 }}
       role="banner"
-      className="w-full glass-card blur-bg flex items-center justify-between px-4 sm:px-6 py-3"
+      className="w-full glass-card blur-bg flex items-center justify-between px-4 sm:px-6 py-3 safe-area-top"
+      style={{ paddingTop: 'env(safe-area-inset-top, 12px)' }}
     >
       <div className="flex items-center gap-4">
         <button

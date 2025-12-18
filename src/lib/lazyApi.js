@@ -38,6 +38,7 @@ export const deleteEvent = wrap('deleteEvent')
 export const getTasks = wrap('getTasks')
 export const createTask = wrap('createTask')
 export const updateTask = wrap('updateTask')
+export const updateEvent = wrap('updateEvent')
 
 export const getSavingsGoals = wrap('getSavingsGoals')
 export const createSavingsGoal = wrap('createSavingsGoal')
@@ -98,7 +99,7 @@ export const updateListeningSession = wrap('updateListeningSession')
 export const triggerNotification = wrap('triggerNotification')
 
 const defaultExport = {
-  getEvents,createEvent,deleteEvent,getTasks,createTask,updateTask,
+  getEvents,createEvent,deleteEvent,updateEvent,getTasks,createTask,updateTask,
   getSavingsGoals,createSavingsGoal,addContribution,deleteSavingsGoal,
   getPins,createPin,updateLocationShare,
   getCheckIns,getNotes,getMedia,getPresence,getRelationshipData,
