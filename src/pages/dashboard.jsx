@@ -12,7 +12,7 @@ import DailyCheckIn from '../components/modals/DailyCheckIn.jsx'
 import Memories from '../components/modals/Memories.jsx'
 import RelationshipInsights from '../components/modals/RelationshipInsights.jsx'
 import EnhancedChat from '../components/modals/EnhancedChat.jsx'
-import { PiggyBank } from 'lucide-react'
+import { PiggyBank, Calendar } from 'lucide-react'
 
 export default function Dashboard() {
   const [showCheckIn, setShowCheckIn] = useState(false)
@@ -128,9 +128,12 @@ export default function Dashboard() {
         <div className="glass-card p-6">Loading your overview…</div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <button onClick={() => setShowDaysModal(true)} className="expensive-card p-6 text-left">
-          <div className="text-sm muted">Days Together</div>
-          <div className="text-3xl font-semibold">{relationship?.start_date ? Math.floor((Date.now() - new Date(relationship.start_date)) / (1000*60*60*24)) : 512}</div>
+        <button onClick={() => setShowDaysModal(true)} className="expensive-card p-6 text-left hover:shadow-md transition-transform hover:-translate-y-0.5">
+          <div className="flex items-center gap-3">
+            <div className="text-sm muted">Days Together</div>
+            <div className="ml-auto text-xs muted">{partnerDisplayName || 'Partner'}</div>
+          </div>
+          <div className="text-3xl font-semibold mt-2">{relationship?.start_date ? Math.floor((Date.now() - new Date(relationship.start_date)) / (1000*60*60*24)) : 512}</div>
         </button>
         <Link to="/savings" className="expensive-card p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-center gap-2 mb-2">
@@ -198,11 +201,20 @@ export default function Dashboard() {
           // Link to the schedule and open on the meetup date
           const dateOnly = new Date(bannerTarget).toISOString().slice(0,10)
           return (
-              <Link to={`/schedule?date=${encodeURIComponent(dateOnly)}`} className="block touch-target">
-                <div className="expensive-card p-6 hover:shadow-lg transition">
-                <div className="text-sm muted">Next Time Together</div>
-                <div className="text-3xl font-semibold mt-2">{daysUntil} day{daysUntil===1 ? '' : 's'}</div>
-                <div className="text-xs text-gray-500 mt-1">{new Date(bannerTarget).toLocaleString()}</div>
+            <Link to={`/schedule?date=${encodeURIComponent(dateOnly)}`} className="block touch-target">
+              <div className="expensive-card p-6 hover:shadow-lg transition flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-6 h-6 text-indigo-600" />
+                  <div>
+                    <div className="text-sm muted">Next Time Together</div>
+                    <div className="text-2xl font-semibold mt-1">{daysUntil} day{daysUntil===1 ? '' : 's'}</div>
+                    <div className="text-xs text-gray-500 mt-1">{new Date(bannerTarget).toLocaleString()}</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs muted mb-2">Open calendar</div>
+                  <div className="inline-flex items-center px-3 py-2 rounded bg-indigo-600 text-white text-sm">View</div>
+                </div>
               </div>
             </Link>
           )
