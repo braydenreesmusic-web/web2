@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react'
+import { useToast } from '../contexts/ToastContext'
 import Dialog from '../components/ui/dialog.jsx'
 import Button from '../components/ui/button.jsx'
 import { useAuth } from '../contexts/AuthContext'
@@ -12,6 +13,7 @@ export default function Media() {
   const [open, setOpen] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState(null)
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [notes, setNotes] = useState([])
   const [photos, setPhotos] = useState([])
   const [videos, setVideos] = useState([])
@@ -68,7 +70,11 @@ export default function Media() {
       })
       if (!resp.ok) {
         const txt = await resp.text().catch(() => '')
-        console.warn('AI describe failed', resp.status, txt)
+        let details = null
+        try { details = JSON.parse(txt) } catch (_) { details = txt }
+        console.warn('AI describe failed', resp.status, details)
+        if (resp.status === 429) showToast && showToast('AI rate limit reached — try again in a moment', { type: 'error' })
+        else showToast && showToast('AI generation failed — using a fallback caption', { type: 'error' })
         // Fallback to a small local set so UX still works without a configured API key
         const fallback = [
           "A beautiful moment frozen in time 📸✨",
@@ -88,11 +94,14 @@ export default function Media() {
       try {
         const id = (photo && photo.id) || (selectedPhoto && selectedPhoto.id)
         if (id) await updatePhotoCaption(id, desc)
+        showToast && showToast('AI caption saved', { type: 'success' })
       } catch (e) {
         console.error('Failed to persist AI caption', e)
+        showToast && showToast('Generated caption could not be saved', { type: 'error' })
       }
     } catch (err) {
       console.error('generateAIDescription error', err)
+      showToast && showToast('AI request failed — check console for details', { type: 'error' })
       setAiDescription("Couldn't generate description")
     } finally {
       setLoadingAI(false)
