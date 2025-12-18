@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import Dialog from '../ui/dialog'
 import Input from '../ui/input'
 import Button from '../ui/button'
-import Textarea from '../ui/textarea'
 import { useToast } from '../../contexts/ToastContext'
 import { updateEvent, deleteEvent } from '../../lib/lazyApi'
 
@@ -74,7 +73,7 @@ export default function EventDetail({ open, event, onClose, onUpdated, onDeleted
           </div>
           <div>
             <label className="text-xs text-gray-500">Note</label>
-            <Textarea value={note} onChange={e => setNote(e.target.value)} />
+            <textarea value={note} onChange={e => setNote(e.target.value)} className="input" />
           </div>
           <div className="flex items-center justify-end gap-2">
             <button className="btn-ghost" onClick={onClose}>Cancel</button>

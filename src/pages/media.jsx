@@ -308,8 +308,8 @@ export default function Media() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 touch-scroll">
-              {loading ? (
-                Array.from({length: 8}).map((_, i) => (
+              {loading && (
+                Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="relative photo-card overflow-hidden rounded-xl">
                     <Skeleton className="w-full h-56" />
                     <div className="p-3 flex items-center gap-3">
@@ -324,9 +324,10 @@ export default function Media() {
                     </div>
                   </div>
                 ))
-              ) : (
-                filteredPhotos.map(p => (
-                  <div key={p.id} className="relative photo-card overflow-hidden rounded-xl">
+              )}
+
+              {!loading && filteredPhotos.map(p => (
+                <div key={p.id} className="relative photo-card overflow-hidden rounded-xl">
                   <button onClick={() => { setSelectedPhoto(p); setCaption(p.caption || '') }} className="block w-full p-0 border-0 touch-target">
                     <img loading="lazy" src={p.url} alt={p.caption || 'Photo'} className="w-full h-56 object-cover" />
                   </button>

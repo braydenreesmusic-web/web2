@@ -671,9 +671,9 @@ export default function Schedule() {
                     {batchSelecting && (
                       <div className="mt-3 flex items-center gap-2">
                         <div className="text-sm text-gray-600">{selectedDays.length} selected</div>
-                        <button onClick={createBatchEvents} className="px-3 py-2 rounded bg-slate-700 text-white">Create for selected</button>
-                        <button onClick={() => setSelectedDays([])} className="px-3 py-2 rounded border">Clear</button>
-                      </button>
+                          <button onClick={createBatchEvents} className="px-3 py-2 rounded bg-slate-700 text-white">Create for selected</button>
+                          <button onClick={() => setSelectedDays([])} className="px-3 py-2 rounded border">Clear</button>
+                        </div>
                     )}
 
                     <div className="mt-4 flex gap-3 items-center">
@@ -790,7 +790,7 @@ export default function Schedule() {
                             <div className="text-xs text-gray-500 px-1.5 font-semibold">+{dayEvents.length - 3}</div>
                           )}
                         </div>
-                      </div>
+                      </button>
                     )
                   })}
                 </div>
@@ -809,14 +809,14 @@ export default function Schedule() {
                 </div>
                 <div className="space-y-3">
                   <AnimatePresence>
+                    <EventDetail
+                      open={showEventModal}
+                      event={modalEvent}
+                      onClose={() => { setShowEventModal(false); setModalEvent(null); try { window.history.replaceState({}, '', window.location.pathname) } catch(e){} }}
+                      onUpdated={(updated) => setEvents(prev => (prev || []).map(e => e.id === updated.id ? updated : e))}
+                      onDeleted={(id) => setEvents(prev => (prev || []).filter(e => e.id !== id))}
+                    />
                     {(() => {
-                  <EventDetail
-                    open={showEventModal}
-                    event={modalEvent}
-                    onClose={() => { setShowEventModal(false); setModalEvent(null); try { window.history.replaceState({}, '', window.location.pathname) } catch(e){} }}
-                    onUpdated={(updated) => setEvents(prev => (prev || []).map(e => e.id === updated.id ? updated : e))}
-                    onDeleted={(id) => setEvents(prev => (prev || []).filter(e => e.id !== id))}
-                  />
                       // group events by title+category
                       const groups = {}
                       events.slice(0, 50).forEach(e => {

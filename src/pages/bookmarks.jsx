@@ -390,7 +390,7 @@ export default function Bookmarks() {
                               </motion.button>
                             </div>
                           </div>
-                        </motion.div>
+                        </motion.button>
                       )}
                     </Draggable>
                   )

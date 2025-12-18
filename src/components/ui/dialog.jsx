@@ -40,6 +40,6 @@ export default function Dialog({ open, onClose, title, children }) {
           {children}
         </div>
       </motion.div>
-    </div>
+    </button>
   )
 }
